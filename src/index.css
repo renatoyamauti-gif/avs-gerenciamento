@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-headline: "Manrope", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  --color-primary: #3b82f6;
+  --color-primary-container: #1e293b;
+  --color-primary-fixed: #3b82f6;
+  --color-primary-fixed-dim: #2563eb;
+  
+  --color-secondary: #8b5cf6;
+  --color-secondary-container: #334155;
+  
+  --color-tertiary: #f43f5e;
+  --color-tertiary-container: #4c0519;
+  
+  --color-background: #0f172a;
+  --color-surface: #0f172a;
+  --color-surface-container: #1e293b;
+  --color-surface-container-low: #1e293b;
+  --color-surface-container-lowest: #0f172a;
+  --color-surface-container-high: #334155;
+  --color-surface-container-highest: #475569;
+  
+  --color-on-primary: #ffffff;
+  --color-on-secondary: #ffffff;
+  --color-on-surface: #f8fafc;
+  --color-on-surface-variant: #94a3b8;
+  
+  --color-error: #f43f5e;
+  --color-error-container: #4c0519;
+  
+  --color-outline: #334155;
+  --color-outline-variant: #475569;
+
+  --radius-card: 24px;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-body antialiased;
+  }
+}
+
+.tonal-layering {
+  transition: background-color 0.3s ease;
+}
+
+.glass-nav {
+  backdrop-filter: blur(24px);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
