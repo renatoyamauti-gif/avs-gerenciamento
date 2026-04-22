@@ -7,7 +7,7 @@ import { Bell, CheckCircle2, Settings, Search } from 'lucide-react';
 import { IMAGES } from '../constants';
 
 const Header = () => (
-  <header className="fixed top-0 right-0 w-[calc(100%-16rem)] z-40 bg-[#0f172a]/80 backdrop-blur-xl flex justify-between items-center px-10 py-4 border-b border-[#334155]">
+  <header className="fixed top-0 right-0 w-[calc(100%-16rem)] z-40 bg-[#0f172a]/80 backdrop-blur-xl hidden lg:flex justify-between items-center px-10 py-4 border-b border-[#334155]">
     <div className="flex items-center gap-6">
       <div className="text-xl font-black text-white font-headline tracking-tighter italic">
         AVS <span className="text-[10px] text-[#3b82f6] tracking-[0.2em] font-bold not-italic">GERENCIAMENTO</span>
