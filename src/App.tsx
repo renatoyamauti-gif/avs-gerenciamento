@@ -131,10 +131,6 @@ export default function App() {
               </div>
             </footer>
           </div>
-
-          <button className="fixed bottom-6 right-6 lg:bottom-10 lg:right-10 h-14 w-14 lg:h-16 lg:w-16 rounded-full bg-primary text-white shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50">
-            <Plus size={32} />
-          </button>
         </main>
       </div>
     </Router>

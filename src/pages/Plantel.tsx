@@ -108,7 +108,22 @@ export default function Plantel() {
     };
 
     try {
+      const wasSoldBefore = editingBird?.status === 'Vendida';
+      const isNowSold = status === 'Vendida';
+      const salePrice = birdData.sale_price;
+
       await dbService.saveBird(birdData);
+
+      if (isNowSold && !wasSoldBefore && salePrice && salePrice > 0) {
+        await dbService.saveTransaction({
+          type: 'Entrada',
+          category: 'Venda de Aves',
+          reason: `Venda da ave: ${birdData.name} (${birdData.ring_number})`,
+          amount: salePrice,
+          date: new Date().toISOString().split('T')[0]
+        });
+      }
+
       await loadData();
       setIsAdding(false);
       setEditingBird(null);
@@ -142,9 +157,10 @@ export default function Plantel() {
     return matchesSearch && matchesFilter;
   });
 
-  const totalBirds = filteredBirds.length;
-  const totalMonthlyWeight = filteredBirds.reduce((acc, b) => acc + (b.monthly_feed_grams || 0), 0);
-  const totalMonthlyCost = filteredBirds.reduce((acc, b) => acc + (b.monthly_feed_cost || 0), 0);
+  const activeBirds = filteredBirds.filter(b => b.status !== 'Vendida');
+  const totalBirds = activeBirds.length;
+  const totalMonthlyWeight = activeBirds.reduce((acc, b) => acc + (b.monthly_feed_grams || 0), 0);
+  const totalMonthlyCost = activeBirds.reduce((acc, b) => acc + (b.monthly_feed_cost || 0), 0);
 
   if (loading) {
     return (
