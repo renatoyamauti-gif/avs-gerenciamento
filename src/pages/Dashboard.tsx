@@ -36,10 +36,10 @@ export default function Dashboard() {
       let nearestStatus = null;
 
       (incubators || []).forEach(inc => {
-        (inc.batches || []).forEach(batch => {
+        (inc.incubator_batches || []).forEach(batch => {
           totalIncEggs += batch.count;
           
-          const start = new Date(batch.startDate).getTime();
+          const start = new Date(batch.start_date).getTime();
           const end = start + 21 * 24 * 60 * 60 * 1000;
           const now = new Date().getTime();
           const diff = end - now;

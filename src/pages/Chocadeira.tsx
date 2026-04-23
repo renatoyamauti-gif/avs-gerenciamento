@@ -255,14 +255,14 @@ export default function Chocadeira() {
                               <p className="text-[10px] text-[#94a3b8] font-bold">{batch.count} UNIDADES</p>
                             </div>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex items-center gap-2">
                             <button 
                               onClick={() => setIsEditingBatch({ incubatorId: inc.id, batch })}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity text-[#94a3b8] hover:text-[#3b82f6] text-[10px] font-bold uppercase tracking-widest"
+                              className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-[#94a3b8] hover:text-[#3b82f6] text-[10px] font-bold uppercase tracking-widest"
                             >
                               Editar
                             </button>
-                            <button onClick={() => removeBatch(batch.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#94a3b8] hover:text-[#f43f5e] p-2"><Trash2 size={16} /></button>
+                            <button onClick={() => removeBatch(batch.id)} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-[#94a3b8] hover:text-[#f43f5e] p-2"><Trash2 size={16} /></button>
                           </div>
                         </div>
 
