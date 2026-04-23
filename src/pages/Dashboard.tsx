@@ -22,7 +22,8 @@ export default function Dashboard() {
       setLoading(true);
       // Load Birds
       const birds = await dbService.getBirds();
-      setBirdCount(birds?.length || 0);
+      const activeBirds = (birds || []).filter(b => b.status !== 'Vendida');
+      setBirdCount(activeBirds.length);
 
       // Load Eggs
       const eggLogs = await dbService.getEggLogs();
