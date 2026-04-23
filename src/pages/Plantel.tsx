@@ -475,13 +475,21 @@ export default function Plantel() {
                           const recipe = recipes.find(r => r.id === e.target.value);
                           setSelectedRecipePrice(recipe?.price_per_kg || 0);
                         }}
-                        className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium"
+                        className={`w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium ${recipes.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={recipes.length === 0}
                       >
-                        <option value="">Selecione uma Ração...</option>
+                        {recipes.length === 0 ? (
+                          <option value="">Nenhuma ração cadastrada</option>
+                        ) : (
+                          <option value="">Selecione uma Ração...</option>
+                        )}
                         {recipes.map(r => (
                           <option key={r.id} value={r.id}>{r.name} (R$ {r.price_per_kg.toFixed(2)}/kg)</option>
                         ))}
                       </select>
+                      {recipes.length === 0 && (
+                        <p className="text-[10px] text-[#f59e0b] mt-1 font-bold">Cadastre uma ração no menu lateral primeiro.</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Consumo Diário (gramas)</label>
