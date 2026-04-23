@@ -238,10 +238,10 @@ export default function Dashboard() {
                       </div>
                    </div>
                    <div className="flex items-baseline gap-1">
-                      <span className={`text-4xl font-black font-headline tracking-tighter ${nextHatch.finished ? 'text-[#10b981]' : 'text-white'}`}>
-                        {nextHatch.finished ? 'ECLOSÃO' : nextHatch.days}
+                      <span className={`text-3xl sm:text-4xl font-black font-headline tracking-tighter ${nextHatch.finished ? 'text-[#10b981]' : 'text-white'}`}>
+                        {nextHatch.finished ? 'ECLOSÃO' : `${nextHatch.days}d ${nextHatch.hours}h`}
                       </span>
-                      {!nextHatch.finished && <span className="text-xs font-bold text-[#475569] uppercase">Dias</span>}
+                      {!nextHatch.finished && <span className="text-[10px] font-bold text-[#475569] uppercase ml-1">Restantes</span>}
                    </div>
                 </div>
              ) : (
