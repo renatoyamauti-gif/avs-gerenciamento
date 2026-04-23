@@ -34,6 +34,8 @@ export default function Plantel() {
   const [selectedRecipePrice, setSelectedRecipePrice] = useState(0);
   const [monthlyGrams, setMonthlyGrams] = useState(0);
   const [formStatus, setFormStatus] = useState('Active');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [feedRecipeId, setFeedRecipeId] = useState<string>('');
 
   useEffect(() => {
     loadData();
@@ -59,10 +61,23 @@ export default function Plantel() {
       setBirdOrigin(editingBird.origin || 'Própria');
       setFormStatus(editingBird.status || 'Active');
       setMonthlyGrams(editingBird.monthly_feed_grams || 0);
+      setFeedRecipeId(editingBird.feed_recipe_id || '');
+      setImagePreview(editingBird.img_url || null);
       const recipe = recipes.find(r => r.id === editingBird.feed_recipe_id);
       setSelectedRecipePrice(recipe?.price_per_kg || 0);
     }
   }, [editingBird, recipes]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSaveBird = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -89,7 +104,7 @@ export default function Plantel() {
       monthly_feed_grams: monthlyGramsStorage,
       feed_recipe_id: recipeId || null,
       monthly_feed_cost: monthlyCost,
-      img_url: editingBird?.img_url || IMAGES.bird1,
+      img_url: imagePreview || editingBird?.img_url || IMAGES.bird1,
     };
 
     try {
@@ -102,6 +117,8 @@ export default function Plantel() {
       setSelectedRecipePrice(0);
       setMonthlyGrams(0);
       setFormStatus('Active');
+      setImagePreview(null);
+      setFeedRecipeId('');
     } catch (error) {
       alert('Erro ao salvar ave: ' + error);
     }
@@ -162,6 +179,8 @@ export default function Plantel() {
               setFormStatus('Active');
               setMonthlyGrams(0);
               setSelectedRecipePrice(0);
+              setImagePreview(null);
+              setFeedRecipeId('');
               setIsAdding(true);
             }}
             className="flex items-center gap-2 bg-[#3b82f6] text-white px-6 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow-md transition-all hover:scale-105 active:scale-95"
@@ -379,10 +398,17 @@ export default function Plantel() {
 
               <form onSubmit={handleSaveBird} className="space-y-8">
                 <div className="flex justify-center mb-8">
-                  <div className="w-32 h-32 rounded-3xl bg-[#0f172a] border border-dashed border-[#334155] flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#3b82f6] transition-colors group">
-                    <Camera className="text-[#475569] group-hover:text-[#3b82f6]" size={32} />
-                    <span className="text-[10px] font-bold text-[#475569] uppercase group-hover:text-[#3b82f6]">Foto</span>
-                  </div>
+                  <label className="w-32 h-32 rounded-3xl bg-[#0f172a] border border-dashed border-[#334155] flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#3b82f6] transition-colors group relative overflow-hidden">
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <>
+                        <Camera className="text-[#475569] group-hover:text-[#3b82f6]" size={32} />
+                        <span className="text-[10px] font-bold text-[#475569] uppercase group-hover:text-[#3b82f6]">Foto</span>
+                      </>
+                    )}
+                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
+                  </label>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -407,7 +433,7 @@ export default function Plantel() {
                       name="status" 
                       value={formStatus}
                       onChange={(e) => setFormStatus(e.target.value)}
-                      className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium appearance-none"
+                      className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium"
                     >
                       <option value="Active">Ativa</option>
                       <option value="Breeding">Em Reprodução</option>
@@ -443,12 +469,13 @@ export default function Plantel() {
                       <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Tipo de Ração</label>
                       <select 
                         name="feedRecipeId" 
-                        defaultValue={editingBird?.feed_recipe_id}
+                        value={feedRecipeId}
                         onChange={(e) => {
+                          setFeedRecipeId(e.target.value);
                           const recipe = recipes.find(r => r.id === e.target.value);
                           setSelectedRecipePrice(recipe?.price_per_kg || 0);
                         }}
-                        className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium appearance-none"
+                        className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium"
                       >
                         <option value="">Selecione uma Ração...</option>
                         {recipes.map(r => (
