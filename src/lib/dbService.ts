@@ -90,6 +90,49 @@ export const dbService = {
     if (error) handleSupabaseError(error, 'delete', 'rations');
   },
 
+  // Ingredients
+  async getIngredients() {
+    const { data, error } = await supabase
+      .from('ingredients')
+      .select('*')
+      .order('name');
+    if (error) handleSupabaseError(error, 'list', 'ingredients');
+    return data;
+  },
+
+  async saveIngredient(ingredient: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    const ingredientData = { ...ingredient, user_id: user.id };
+
+    if (ingredient.id && ingredient.id.length > 15) {
+      const { data, error } = await supabase
+        .from('ingredients')
+        .update(ingredientData)
+        .eq('id', ingredient.id)
+        .select();
+      if (error) handleSupabaseError(error, 'update', 'ingredients');
+      return data[0];
+    } else {
+      const { id, ...cleanData } = ingredientData;
+      const { data, error } = await supabase
+        .from('ingredients')
+        .insert([cleanData])
+        .select();
+      if (error) handleSupabaseError(error, 'create', 'ingredients');
+      return data[0];
+    }
+  },
+
+  async deleteIngredient(id: string) {
+    const { error } = await supabase
+      .from('ingredients')
+      .delete()
+      .eq('id', id);
+    if (error) handleSupabaseError(error, 'delete', 'ingredients');
+  },
+
   // Finance
   async getTransactions() {
     const { data, error } = await supabase

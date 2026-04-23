@@ -11,13 +11,15 @@ import {
   ListChecks, 
   CheckSquare, 
   Square,
-  Wheat
+  Wheat,
+  Loader2
 } from 'lucide-react';
+import { dbService } from '../lib/dbService';
 
 interface Ingredient {
   id: string;
   name: string;
-  pricePerKg: number;
+  price_per_kg: number;
 }
 
 interface RecipeItem {
@@ -29,49 +31,42 @@ interface FeedRecipe {
   id: string;
   name: string;
   items: RecipeItem[];
-  pricePerKg: number;
+  price_per_kg: number;
   description?: string;
 }
 
 export default function Ration() {
   const [activeTab, setActiveTab] = useState<'recipes' | 'ingredients'>('recipes');
-
-  const [ingredients, setIngredients] = useState<Ingredient[]>(() => {
-    const saved = localStorage.getItem('avs_ingredients');
-    return saved ? JSON.parse(saved) : [
-      { id: 'i1', name: 'Alpiste', pricePerKg: 7.50 },
-      { id: 'i2', name: 'Painço', pricePerKg: 5.20 },
-      { id: 'i3', name: 'Girassol', pricePerKg: 10.00 },
-      { id: 'i4', name: 'Aveia', pricePerKg: 6.80 },
-      { id: 'i5', name: 'Cálcio', pricePerKg: 15.00 },
-    ];
-  });
-
-  const [recipes, setRecipes] = useState<FeedRecipe[]>(() => {
-    const saved = localStorage.getItem('avs_feed_recipes');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Migration: Convert old ingredientIds to items
-      return parsed.map((r: any) => {
-        if (r.ingredientIds && !r.items) {
-          return {
-            ...r,
-            items: r.ingredientIds.map((id: string) => ({ ingredientId: id, weight: 1 })),
-            ingredientIds: undefined
-          };
-        }
-        return r;
-      });
-    }
-    return [
-      { id: '1', name: 'Mix Premium - Reprodução', items: [{ ingredientId: 'i1', weight: 0.5 }, { ingredientId: 'i3', weight: 0.3 }, { ingredientId: 'i5', weight: 0.2 }], pricePerKg: 12.50 },
-      { id: '2', name: 'Mix Manutenção', items: [{ ingredientId: 'i1', weight: 0.6 }, { ingredientId: 'i2', weight: 0.3 }, { ingredientId: 'i4', weight: 0.1 }], pricePerKg: 8.90 },
-    ];
-  });
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [recipes, setRecipes] = useState<FeedRecipe[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [isEditingRecipe, setIsEditingRecipe] = useState<FeedRecipe | null>(null);
   const [isAddingRecipe, setIsAddingRecipe] = useState(false);
   const [selectedInModal, setSelectedInModal] = useState<RecipeItem[]>([]);
+
+  const [isEditingIngredient, setIsEditingIngredient] = useState<Ingredient | null>(null);
+  const [isAddingIngredient, setIsAddingIngredient] = useState(false);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function loadData() {
+    try {
+      setLoading(true);
+      const [ingData, recData] = await Promise.all([
+        dbService.getIngredients(),
+        dbService.getRations()
+      ]);
+      setIngredients(ingData || []);
+      setRecipes(recData || []);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (isEditingRecipe) {
@@ -80,17 +75,6 @@ export default function Ration() {
       setSelectedInModal([]);
     }
   }, [isEditingRecipe, isAddingRecipe]);
-
-  const [isEditingIngredient, setIsEditingIngredient] = useState<Ingredient | null>(null);
-  const [isAddingIngredient, setIsAddingIngredient] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem('avs_ingredients', JSON.stringify(ingredients));
-  }, [ingredients]);
-
-  useEffect(() => {
-    localStorage.setItem('avs_feed_recipes', JSON.stringify(recipes));
-  }, [recipes]);
 
   // Recipe Methods
   const toggleIngredientInModal = (id: string) => {
@@ -113,65 +97,87 @@ export default function Ration() {
     items.forEach(item => {
       const ing = ingredients.find(i => i.id === item.ingredientId);
       if (ing) {
-        totalValue += ing.pricePerKg * item.weight;
+        totalValue += (ing.price_per_kg || 0) * item.weight;
         totalWeight += item.weight;
       }
     });
     return totalWeight > 0 ? totalValue / totalWeight : 0;
   };
 
-  const handleSaveRecipe = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveRecipe = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    // Use either manual price or calculated
     const manualPrice = parseFloat(formData.get('pricePerKg') as string) || 0;
     const items = selectedInModal;
     const finalPrice = items.length > 0 ? calculateTotalPrice(items) : manualPrice;
 
-    const newRecipe: FeedRecipe = {
-      id: isEditingRecipe?.id || Math.random().toString(36).substr(2, 9),
+    const newRecipe: any = {
+      id: isEditingRecipe?.id,
       name: formData.get('name') as string,
       items: items,
-      pricePerKg: finalPrice || manualPrice,
+      price_per_kg: finalPrice || manualPrice,
     };
 
-    if (isEditingRecipe) {
-      setRecipes(recipes.map(r => r.id === isEditingRecipe.id ? newRecipe : r));
-    } else {
-      setRecipes([...recipes, newRecipe]);
+    try {
+      await dbService.saveRation(newRecipe);
+      await loadData();
+      setIsEditingRecipe(null);
+      setIsAddingRecipe(false);
+      setSelectedInModal([]);
+    } catch (error) {
+      alert('Erro ao salvar ração: ' + error);
     }
-    setIsEditingRecipe(null);
-    setIsAddingRecipe(false);
-    setSelectedInModal([]);
   };
 
-  const removeRecipe = (id: string) => {
-    setRecipes(recipes.filter(r => r.id !== id));
+  const removeRecipe = async (id: string) => {
+    if (!confirm('Deseja excluir esta ração?')) return;
+    try {
+      await dbService.deleteRation(id);
+      await loadData();
+    } catch (error) {
+      alert('Erro ao excluir: ' + error);
+    }
   };
 
   // Ingredient Methods
-  const handleSaveIngredient = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveIngredient = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const newIng: Ingredient = {
-      id: isEditingIngredient?.id || Math.random().toString(36).substr(2, 9),
+    const newIng: any = {
+      id: isEditingIngredient?.id,
       name: formData.get('name') as string,
-      pricePerKg: parseFloat(formData.get('pricePerKg') as string) || 0,
+      price_per_kg: parseFloat(formData.get('pricePerKg') as string) || 0,
     };
 
-    if (isEditingIngredient) {
-      setIngredients(ingredients.map(i => i.id === isEditingIngredient.id ? newIng : i));
-    } else {
-      setIngredients([...ingredients, newIng]);
+    try {
+      await dbService.saveIngredient(newIng);
+      await loadData();
+      setIsEditingIngredient(null);
+      setIsAddingIngredient(false);
+    } catch (error) {
+      alert('Erro ao salvar ingrediente: ' + error);
     }
-    setIsEditingIngredient(null);
-    setIsAddingIngredient(false);
   };
 
-  const removeIngredient = (id: string) => {
-    setIngredients(ingredients.filter(i => i.id !== id));
+  const removeIngredient = async (id: string) => {
+    if (!confirm('Deseja excluir este ingrediente?')) return;
+    try {
+      await dbService.deleteIngredient(id);
+      await loadData();
+    } catch (error) {
+      alert('Erro ao excluir: ' + error);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="animate-spin text-[#3b82f6]" size={48} />
+        <p className="text-[#94a3b8] font-bold uppercase tracking-widest text-xs">Carregando Dados...</p>
+      </div>
+    );
+  }
 
   return (
     <motion.div 
@@ -274,13 +280,18 @@ export default function Ration() {
                   <span className="text-[10px] font-bold text-[#94a3b8] uppercase">Custo Unitário</span>
                   <div className="flex items-center gap-1 text-[#3b82f6]">
                     <span className="text-sm font-bold">R$</span>
-                    <span className="text-2xl font-black">{recipe.pricePerKg.toFixed(2)}</span>
+                    <span className="text-2xl font-black">{(recipe.price_per_kg || 0).toFixed(2)}</span>
                     <span className="text-[10px] font-bold text-[#94a3b8] ml-1">/ KG</span>
                   </div>
                 </div>
               </div>
             </motion.div>
           ))}
+          {recipes.length === 0 && (
+            <div className="col-span-full py-20 text-center text-[#94a3b8] font-medium opacity-40 italic">
+              Nenhuma ração cadastrada no banco.
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -307,12 +318,17 @@ export default function Ration() {
                 <h4 className="text-lg font-bold text-white font-headline mb-4">{ing.name}</h4>
                 <div className="flex items-baseline gap-1 text-[#10b981]">
                   <span className="text-[10px] font-bold">R$</span>
-                  <span className="text-xl font-black">{ing.pricePerKg.toFixed(2)}</span>
+                  <span className="text-xl font-black">{(ing.price_per_kg || 0).toFixed(2)}</span>
                   <span className="text-[9px] font-bold text-[#94a3b8] ml-1">/ KG</span>
                 </div>
               </div>
             </motion.div>
           ))}
+          {ingredients.length === 0 && (
+            <div className="col-span-full py-20 text-center text-[#94a3b8] font-medium opacity-40 italic">
+              Nenhum ingrediente cadastrado no banco.
+            </div>
+          )}
         </div>
       )}
 
@@ -324,7 +340,7 @@ export default function Ration() {
             <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-2xl bg-[#1e293b] border border-[#334155] p-10 rounded-[40px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-bold text-white font-headline tracking-tighter">{isEditingRecipe ? 'Editar Fórmula' : 'Desenvolver Ração'}</h3>
-                <button onClick={() => { setIsAddingRecipe(false); setIsEditingRecipe(null); }} className="text-[#94a3b8] hover:text-white"><X size={20} /></button>
+                <button type="button" onClick={() => { setIsAddingRecipe(false); setIsEditingRecipe(null); }} className="text-[#94a3b8] hover:text-white"><X size={20} /></button>
               </div>
               <form onSubmit={handleSaveRecipe} className="space-y-8">
                 <div className="space-y-2">
@@ -407,7 +423,7 @@ export default function Ration() {
                   <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Preço por KG (R$)</label>
                   <div className="relative">
                     <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-[#10b981]" size={16} />
-                    <input required name="pricePerKg" defaultValue={isEditingIngredient?.pricePerKg} type="number" step="0.01" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#10b981]/50 font-bold" />
+                    <input required name="pricePerKg" defaultValue={isEditingIngredient?.price_per_kg} type="number" step="0.01" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#10b981]/50 font-bold" />
                   </div>
                 </div>
                 <div className="pt-4 flex gap-3">
