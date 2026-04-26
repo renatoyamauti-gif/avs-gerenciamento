@@ -33,7 +33,7 @@ const plans = [
       'Custos de alimentação',
       'Exportação de relatórios'
     ],
-    buttonText: 'Assinar Profissional',
+    buttonText: 'Assine Mensal',
     isPopular: true,
     icon: <Zap size={24} className="text-[#eab308]" />,
     gradient: 'from-[#eab308]/20 to-[#eab308]/5',
@@ -54,7 +54,7 @@ const plans = [
       'Custos de alimentação',
       'Exportação de relatórios'
     ],
-    buttonText: 'Assinar Empresarial',
+    buttonText: 'Assine Anual',
     isPopular: false,
     icon: <Shield size={24} className="text-[#3b82f6]" />,
     gradient: 'from-[#3b82f6]/20 to-[#3b82f6]/5',
