@@ -23,7 +23,7 @@ const plans = [
   {
     name: 'Profissional',
     description: 'Para criadores experientes que precisam de ferramentas avançadas.',
-    price: 'R$ 49',
+    price: 'R$ 39,99',
     period: '/mês',
     features: [
       'Aves ilimitadas',
@@ -38,7 +38,7 @@ const plans = [
     icon: <Zap size={24} className="text-[#eab308]" />,
     gradient: 'from-[#eab308]/20 to-[#eab308]/5',
     border: 'border-[#eab308]/50',
-    link: '#', // Substitua por um link de pagamento do Stripe
+    link: 'https://buy.stripe.com/14A14m5g1feJac5c3t4Rq00',
   },
   {
     name: 'Anual',
@@ -58,7 +58,7 @@ const plans = [
     icon: <Shield size={24} className="text-[#3b82f6]" />,
     gradient: 'from-[#3b82f6]/20 to-[#3b82f6]/5',
     border: 'border-[#3b82f6]/30',
-    link: '#', // Substitua por um link de pagamento do Stripe
+    link: 'https://buy.stripe.com/6oU28q4bX8Ql9815F54Rq01',
   }
 ];
 
@@ -74,8 +74,8 @@ export default function Subscription() {
           <CreditCard size={14} />
           Assinaturas e Pagamentos
         </motion.div>
-        
-        <motion.h1 
+
+        <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -83,8 +83,8 @@ export default function Subscription() {
         >
           Evolua seu <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3b82f6] to-[#eab308]">Criatório</span>
         </motion.h1>
-        
-        <motion.p 
+
+        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -123,7 +123,7 @@ export default function Subscription() {
             <h3 className="text-2xl font-black text-white font-headline tracking-tighter italic uppercase mb-2">
               {plan.name}
             </h3>
-            
+
             <p className="text-[#94a3b8] text-xs font-semibold mb-6 h-8">
               {plan.description}
             </p>
@@ -137,14 +137,14 @@ export default function Subscription() {
               </span>
             </div>
 
-            <a 
+            <a
               href={plan.link}
               target={plan.link !== '#' ? "_blank" : undefined}
               rel="noopener noreferrer"
               className={`
                 w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest text-center transition-all duration-300 mb-8
-                ${plan.isPopular 
-                  ? 'bg-gradient-to-r from-[#eab308] to-[#f59e0b] text-[#1e293b] hover:shadow-[0_0_20px_rgba(234,179,8,0.4)]' 
+                ${plan.isPopular
+                  ? 'bg-gradient-to-r from-[#eab308] to-[#f59e0b] text-[#1e293b] hover:shadow-[0_0_20px_rgba(234,179,8,0.4)]'
                   : plan.name === 'Anual'
                     ? 'bg-[#3b82f6] text-white hover:bg-[#2563eb] hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'
                     : 'bg-[#334155] text-white hover:bg-[#475569]'
@@ -167,8 +167,8 @@ export default function Subscription() {
           </motion.div>
         ))}
       </div>
-      
-      <motion.div 
+
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
@@ -184,16 +184,16 @@ export default function Subscription() {
 // Pequeno ícone extra
 function Lock({ size = 24, ...props }) {
   return (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width={size} 
-      height={size} 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       {...props}
     >
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
