@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Egg, Plus, Trash2, Clock, AlertCircle, CheckCircle2, Thermometer, Droplets, Loader2, X } from 'lucide-react';
+import { Egg, Plus, Trash2, Clock, AlertCircle, CheckCircle2, Thermometer, Droplets, Loader2, X, Lock } from 'lucide-react';
 import { dbService } from '../lib/dbService';
+import { useSubscription } from '../hooks/useSubscription';
 
 interface Batch {
   id: string;
@@ -29,6 +30,7 @@ export default function Chocadeira() {
   const [isAddingIncubator, setIsAddingIncubator] = useState(false);
   const [isAddingBatch, setIsAddingBatch] = useState<string | null>(null);
   const [isEditingBatch, setIsEditingBatch] = useState<{ incubatorId: string, batch: Batch } | null>(null);
+  const { isFreePlan, limits } = useSubscription();
 
   useEffect(() => {
     loadIncubators();
@@ -171,10 +173,20 @@ export default function Chocadeira() {
           <p className="text-[#94a3b8] font-medium text-sm italic">Monitoramento e controle de eclosão (21 dias).</p>
         </div>
         <button 
-          onClick={() => setIsAddingIncubator(true)}
-          className="flex items-center gap-2 bg-[#3b82f6] text-white px-6 py-4 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all"
+          onClick={() => {
+            if (isFreePlan && incubators.length >= limits.incubators) {
+              alert(`Você atingiu o limite de ${limits.incubators} chocadeira do plano Iniciante. Acesse o menu Assinatura para fazer o upgrade!`);
+              return;
+            }
+            setIsAddingIncubator(true);
+          }}
+          className={`flex items-center gap-2 px-6 py-4 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-xl transition-all ${
+            isFreePlan && incubators.length >= limits.incubators
+              ? 'bg-[#334155] text-[#94a3b8] cursor-not-allowed opacity-70'
+              : 'bg-[#3b82f6] text-white hover:scale-105 active:scale-95'
+          }`}
         >
-          <Plus size={20} /> ADICIONAR CHOCADEIRA
+          {isFreePlan && incubators.length >= limits.incubators ? <Lock size={20} /> : <Plus size={20} />} ADICIONAR CHOCADEIRA
         </button>
       </header>
 

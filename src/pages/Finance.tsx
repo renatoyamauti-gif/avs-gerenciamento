@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Wallet, TrendingUp, TrendingDown, DollarSign, Download, Filter, Plus, X, Trash2, ArrowUpCircle, ArrowDownCircle, BarChart3, Calendar, Loader2 } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, DollarSign, Download, Filter, Plus, X, Trash2, ArrowUpCircle, ArrowDownCircle, BarChart3, Calendar, Loader2, Lock } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from 'recharts';
 import { dbService } from '../lib/dbService';
+import { useSubscription } from '../hooks/useSubscription';
 
 interface Transaction {
   id: string;
@@ -18,6 +19,7 @@ export default function Finance() {
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [filterType, setFilterType] = useState<'All' | 'Entrada' | 'Saída'>('All');
+  const { isFreePlan } = useSubscription();
 
   useEffect(() => {
     loadTransactions();
@@ -126,8 +128,21 @@ export default function Finance() {
           <p className="text-[#94a3b8] font-medium text-sm">Controle de fluxo de caixa e gestão de resultados.</p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] px-4 py-2 rounded-xl text-[#94a3b8] font-bold text-xs uppercase tracking-widest transition-all hover:bg-[#334155] hover:text-white">
-            <Download size={16} /> Exportar
+          <button 
+            onClick={() => {
+              if (isFreePlan) {
+                alert('A exportação de relatórios é uma funcionalidade dos planos Profissional e Anual. Acesse o menu Assinatura para fazer o upgrade!');
+                return;
+              }
+              alert('Exportação de dados iniciada.');
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest transition-all border ${
+              isFreePlan
+                ? 'bg-[#1e293b] border-[#334155] text-[#94a3b8] cursor-not-allowed opacity-70'
+                : 'bg-[#1e293b] border-[#334155] text-[#94a3b8] hover:bg-[#334155] hover:text-white'
+            }`}
+          >
+            {isFreePlan ? <Lock size={16} /> : <Download size={16} />} Exportar
           </button>
           <button 
             onClick={() => setIsAdding(true)}

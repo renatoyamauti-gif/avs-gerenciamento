@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Filter, Plus, MoreVertical, Hash, Info, History, X, Camera, Trash2, Loader2 } from 'lucide-react';
+import { Search, Filter, Plus, MoreVertical, Hash, Info, History, X, Camera, Trash2, Loader2, Lock } from 'lucide-react';
 import { IMAGES } from '../constants';
 import { dbService } from '../lib/dbService';
+import { useSubscription } from '../hooks/useSubscription';
 
 interface Bird {
   id: string;
@@ -29,6 +30,7 @@ export default function Plantel() {
   const [isAdding, setIsAdding] = useState(false);
   const [editingBird, setEditingBird] = useState<Bird | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const { isFreePlan, limits } = useSubscription();
   const [filterStatus, setFilterStatus] = useState('All');
   const [birdOrigin, setBirdOrigin] = useState<'Própria' | 'Adquirida'>('Própria');
   const [selectedRecipePrice, setSelectedRecipePrice] = useState(0);
@@ -190,6 +192,10 @@ export default function Plantel() {
           </button>
           <button 
             onClick={() => {
+              if (isFreePlan && birds.length >= limits.birds) {
+                alert(`Você atingiu o limite de ${limits.birds} aves do plano Iniciante. Acesse o menu Assinatura para fazer o upgrade!`);
+                return;
+              }
               setEditingBird(null);
               setBirdOrigin('Própria');
               setFormStatus('Active');
@@ -199,9 +205,13 @@ export default function Plantel() {
               setFeedRecipeId('');
               setIsAdding(true);
             }}
-            className="flex items-center gap-2 bg-[#3b82f6] text-white px-6 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow-md transition-all hover:scale-105 active:scale-95"
+            className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow-md transition-all ${
+              isFreePlan && birds.length >= limits.birds
+                ? 'bg-[#334155] text-[#94a3b8] cursor-not-allowed opacity-70'
+                : 'bg-[#3b82f6] text-white hover:scale-105 active:scale-95'
+            }`}
           >
-            <Plus size={16} />
+            {isFreePlan && birds.length >= limits.birds ? <Lock size={16} /> : <Plus size={16} />}
             ADICIONAR AVE
           </button>
         </div>
