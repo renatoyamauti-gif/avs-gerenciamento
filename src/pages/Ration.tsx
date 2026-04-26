@@ -12,9 +12,12 @@ import {
   CheckSquare, 
   Square,
   Wheat,
-  Loader2
+  Loader2,
+  Lock,
+  Star
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
+import { useSubscription } from '../hooks/useSubscription';
 
 interface Ingredient {
   id: string;
@@ -47,6 +50,7 @@ export default function Ration() {
 
   const [isEditingIngredient, setIsEditingIngredient] = useState<Ingredient | null>(null);
   const [isAddingIngredient, setIsAddingIngredient] = useState(false);
+  const { isFreePlan } = useSubscription();
 
   useEffect(() => {
     loadData();
@@ -211,7 +215,9 @@ export default function Ration() {
           </div>
         </div>
         
-        {activeTab === 'recipes' ? (
+        {isFreePlan ? (
+          <></>
+        ) : activeTab === 'recipes' ? (
           <button 
             onClick={() => setIsAddingRecipe(true)}
             className="flex items-center gap-2 bg-[#3b82f6] text-white px-8 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all"
@@ -228,7 +234,22 @@ export default function Ration() {
         )}
       </header>
 
-      {activeTab === 'recipes' ? (
+      {isFreePlan ? (
+        <div className="bg-[#1e293b] border border-[#f59e0b]/30 p-10 rounded-[32px] text-center flex flex-col items-center gap-6 mt-8">
+          <div className="bg-[#f59e0b]/10 p-6 rounded-full">
+            <Lock size={48} className="text-[#f59e0b]" />
+          </div>
+          <div className="max-w-lg">
+            <h3 className="text-2xl font-black text-white font-headline tracking-tighter italic mb-4">Funcionalidade Premium</h3>
+            <p className="text-[#94a3b8] font-medium leading-relaxed mb-8">
+              O módulo de Nutrição Técnica e gestão de ingredientes está disponível apenas nos planos Profissional e Anual. Assine agora para ter controle total sobre a dieta e os custos de alimentação das suas aves!
+            </p>
+            <a href="/subscription" className="inline-flex items-center gap-2 bg-gradient-to-r from-[#eab308] to-[#f59e0b] text-[#1e293b] px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:scale-105 active:scale-95 transition-all">
+              <Star size={16} /> Fazer Upgrade
+            </a>
+          </div>
+        </div>
+      ) : activeTab === 'recipes' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {recipes.map((recipe) => (
             <motion.div 
