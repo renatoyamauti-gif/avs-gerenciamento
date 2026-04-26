@@ -12,7 +12,8 @@ import {
   Settings, 
   Plus,
   ArrowRight,
-  X
+  X,
+  CreditCard
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -30,6 +31,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     { path: '/ration', label: 'Ração', icon: <ArrowRight size={18} /> },
     { path: '/finance', label: 'Financeiro', icon: <Wallet size={18} /> },
     { path: '/settings', label: 'CONFIGURAÇÕES', icon: <Settings size={18} /> },
+    { path: '/subscription', label: 'Assinatura', icon: <CreditCard size={18} /> },
   ];
 
   return (

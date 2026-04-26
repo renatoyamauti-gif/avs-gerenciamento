@@ -16,6 +16,7 @@ import Chocadeira from './pages/Chocadeira';
 import Finance from './pages/Finance';
 import Ration from './pages/Ration';
 import SettingsPage from './pages/Settings';
+import Subscription from './pages/Subscription';
 import Auth from './components/Auth';
 import { supabase } from './lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
@@ -118,6 +119,7 @@ export default function App() {
                 <Route path="/ration" element={<Ration />} />
                 <Route path="/finance" element={<Finance />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/subscription" element={<Subscription />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
             </AnimatePresence>
