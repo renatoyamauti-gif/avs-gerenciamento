@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Wallet, TrendingUp, TrendingDown, DollarSign, Download, Filter, Plus, X, Trash2, ArrowUpCircle, ArrowDownCircle, BarChart3, Calendar, Loader2, Lock } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, DollarSign, Download, Filter, Plus, X, Trash2, ArrowUpCircle, ArrowDownCircle, BarChart3, Calendar, Loader2, Lock, Star } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from 'recharts';
 import { dbService } from '../lib/dbService';
 import { useSubscription } from '../hooks/useSubscription';
@@ -128,33 +128,43 @@ export default function Finance() {
           <p className="text-[#94a3b8] font-medium text-sm">Controle de fluxo de caixa e gestão de resultados.</p>
         </div>
         <div className="flex gap-3">
-          <button 
-            onClick={() => {
-              if (isFreePlan) {
-                alert('A exportação de relatórios é uma funcionalidade dos planos Profissional e Anual. Acesse o menu Assinatura para fazer o upgrade!');
-                return;
-              }
-              alert('Exportação de dados iniciada.');
-            }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest transition-all border ${
-              isFreePlan
-                ? 'bg-[#1e293b] border-[#334155] text-[#94a3b8] cursor-not-allowed opacity-70'
-                : 'bg-[#1e293b] border-[#334155] text-[#94a3b8] hover:bg-[#334155] hover:text-white'
-            }`}
-          >
-            {isFreePlan ? <Lock size={16} /> : <Download size={16} />} Exportar
-          </button>
-          <button 
-            onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 bg-[#3b82f6] text-white px-6 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow-md transition-all hover:scale-105 active:scale-95"
-          >
-            <Plus size={16} />
-            NOVA TRANSAÇÃO
-          </button>
+          {!isFreePlan && (
+            <>
+              <button 
+                className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] px-4 py-2 rounded-xl text-[#94a3b8] font-bold text-xs uppercase tracking-widest transition-all hover:bg-[#334155] hover:text-white"
+              >
+                <Download size={16} /> Exportar
+              </button>
+              <button 
+                onClick={() => setIsAdding(true)}
+                className="flex items-center gap-2 bg-[#3b82f6] text-white px-6 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow-md transition-all hover:scale-105 active:scale-95"
+              >
+                <Plus size={16} />
+                NOVA TRANSAÇÃO
+              </button>
+            </>
+          )}
         </div>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {isFreePlan ? (
+        <div className="bg-[#1e293b] border border-[#f59e0b]/30 p-10 rounded-[32px] text-center flex flex-col items-center gap-6 mt-8">
+          <div className="bg-[#f59e0b]/10 p-6 rounded-full">
+            <Lock size={48} className="text-[#f59e0b]" />
+          </div>
+          <div className="max-w-lg">
+            <h3 className="text-2xl font-black text-white font-headline tracking-tighter italic mb-4">Funcionalidade Premium</h3>
+            <p className="text-[#94a3b8] font-medium leading-relaxed mb-8">
+              O controle financeiro completo, com gráficos de fluxo de caixa, relatórios e gestão de resultados, está disponível apenas nos planos Profissional e Anual. Assine agora para ter visão total sobre o lucro do seu plantel!
+            </p>
+            <a href="/subscription" className="inline-flex items-center gap-2 bg-gradient-to-r from-[#eab308] to-[#f59e0b] text-[#1e293b] px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:scale-105 active:scale-95 transition-all">
+              <Star size={16} /> Fazer Upgrade
+            </a>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Entradas */}
         <div className="bg-[#1e293b] border border-[#334155] p-8 rounded-[32px] relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform">
@@ -433,6 +443,8 @@ export default function Finance() {
           </div>
         )}
       </AnimatePresence>
+        </>
+      )}
     </motion.div>
   );
 }
