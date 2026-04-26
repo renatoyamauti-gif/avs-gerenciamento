@@ -9,7 +9,7 @@ const plans = [
     price: 'Grátis',
     period: '/para sempre',
     features: [
-      'Gestão de até 50 aves',
+      'Gestão de até 5 aves',
       'Controle básico de chocadeiras',
       'Registro simples de finanças',
       'Suporte comunitário'
@@ -30,7 +30,7 @@ const plans = [
       'Múltiplas chocadeiras e lotes',
       'Análises financeiras avançadas',
       'Alertas de eclosão via e-mail',
-      'Suporte prioritário 24/7',
+      'Custos de alimentação',
       'Exportação de relatórios'
     ],
     buttonText: 'Assinar Profissional',
@@ -41,19 +41,19 @@ const plans = [
     link: '#', // Substitua por um link de pagamento do Stripe
   },
   {
-    name: 'Empresarial',
-    description: 'Solução completa para grandes criatórios e fazendas.',
-    price: 'R$ 149',
-    period: '/mês',
+    name: 'Anual',
+    description: 'Plano Anual com 20% de desconto.',
+    price: 'R$ 470',
+    period: '/ano',
     features: [
-      'Tudo do plano Profissional',
-      'Múltiplos usuários/funcionários',
-      'Auditoria completa de sistema',
-      'API para integrações',
-      'Backup automático na nuvem',
-      'Gerente de conta dedicado'
+      'Aves ilimitadas',
+      'Múltiplas chocadeiras e lotes',
+      'Análises financeiras avançadas',
+      'Alertas de eclosão via e-mail',
+      'Custos de alimentação',
+      'Exportação de relatórios'
     ],
-    buttonText: 'Falar com Vendas',
+    buttonText: 'Assinar Empresarial',
     isPopular: false,
     icon: <Shield size={24} className="text-[#3b82f6]" />,
     gradient: 'from-[#3b82f6]/20 to-[#3b82f6]/5',
@@ -145,7 +145,7 @@ export default function Subscription() {
                 w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest text-center transition-all duration-300 mb-8
                 ${plan.isPopular 
                   ? 'bg-gradient-to-r from-[#eab308] to-[#f59e0b] text-[#1e293b] hover:shadow-[0_0_20px_rgba(234,179,8,0.4)]' 
-                  : plan.name === 'Empresarial'
+                  : plan.name === 'Anual'
                     ? 'bg-[#3b82f6] text-white hover:bg-[#2563eb] hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'
                     : 'bg-[#334155] text-white hover:bg-[#475569]'
                 }
