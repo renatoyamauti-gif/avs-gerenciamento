@@ -21,7 +21,7 @@ const plans = [
     link: '#',
   },
   {
-    name: 'Profissional',
+    name: 'Completo Mensal',
     description: 'Para criadores experientes que precisam de ferramentas avançadas.',
     price: 'R$ 39,99',
     period: '/mês',
@@ -41,9 +41,10 @@ const plans = [
     link: 'https://buy.stripe.com/14A14m5g1feJac5c3t4Rq00',
   },
   {
-    name: 'Anual',
+    name: 'Completo Anual',
     description: 'Plano Anual com 20% de desconto.',
-    price: 'R$ 470',
+    originalPrice: 'R$ 479,88',
+    price: 'R$ 383,99',
     period: '/ano',
     features: [
       'Aves ilimitadas',
@@ -129,6 +130,11 @@ export default function Subscription() {
             </p>
 
             <div className="flex items-baseline gap-1 mb-8">
+              {plan.originalPrice && (
+                <span className="text-[#f43f5e] text-sm font-bold line-through mr-1">
+                  {plan.originalPrice}
+                </span>
+              )}
               <span className="text-4xl font-black text-white font-headline tracking-tighter italic">
                 {plan.price}
               </span>
@@ -145,7 +151,7 @@ export default function Subscription() {
                 w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest text-center transition-all duration-300 mb-8
                 ${plan.isPopular
                   ? 'bg-gradient-to-r from-[#eab308] to-[#f59e0b] text-[#1e293b] hover:shadow-[0_0_20px_rgba(234,179,8,0.4)]'
-                  : plan.name === 'Anual'
+                  : plan.name === 'Completo Anual'
                     ? 'bg-[#3b82f6] text-white hover:bg-[#2563eb] hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'
                     : 'bg-[#334155] text-white hover:bg-[#475569]'
                 }
