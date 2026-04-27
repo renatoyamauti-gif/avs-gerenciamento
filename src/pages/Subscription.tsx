@@ -1,6 +1,7 @@
-import React from 'react';
-import { Check, Zap, Shield, Star, CreditCard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Check, Zap, Shield, Star, CreditCard, Lock } from 'lucide-react';
 import { motion } from 'motion/react';
+import { supabase } from '../lib/supabaseClient';
 
 const plans = [
   {
@@ -64,6 +65,16 @@ const plans = [
 ];
 
 export default function Subscription() {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUserId(data.user.id);
+      }
+    });
+  }, []);
+
   return (
     <div className="max-w-6xl mx-auto py-8">
       <div className="text-center mb-16">
@@ -144,7 +155,7 @@ export default function Subscription() {
             </div>
 
             <a
-              href={plan.link}
+              href={plan.link !== '#' && userId ? `${plan.link}?client_reference_id=${userId}` : plan.link}
               target={plan.link !== '#' ? "_blank" : undefined}
               rel="noopener noreferrer"
               className={`
