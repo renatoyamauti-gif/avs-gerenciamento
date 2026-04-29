@@ -41,6 +41,7 @@ export default function Plantel() {
   const [activeTab, setActiveTab] = useState<'dados' | 'historico'>('dados');
   const [birdHistory, setBirdHistory] = useState<any[]>([]);
   const [isAddingHistory, setIsAddingHistory] = useState(false);
+  const [editingHistoryItem, setEditingHistoryItem] = useState<any>(null);
 
   async function loadBirdHistory(birdId: string) {
     try {
@@ -84,6 +85,7 @@ export default function Plantel() {
       setActiveTab('dados');
       setBirdHistory([]);
       setIsAddingHistory(false);
+      setEditingHistoryItem(null);
     }
   }, [editingBird, recipes]);
 
@@ -92,7 +94,7 @@ export default function Plantel() {
     if (!editingBird) return;
     
     const formData = new FormData(e.currentTarget);
-    const historyData = {
+    const historyData: any = {
       bird_id: editingBird.id,
       date: formData.get('date') as string,
       weight_grams: parseFloat(formData.get('weight') as string) || null,
@@ -100,10 +102,15 @@ export default function Plantel() {
       notes: formData.get('notes') as string,
     };
 
+    if (editingHistoryItem?.id) {
+      historyData.id = editingHistoryItem.id;
+    }
+
     try {
       await dbService.saveBirdHistory(historyData);
       await loadBirdHistory(editingBird.id);
       setIsAddingHistory(false);
+      setEditingHistoryItem(null);
     } catch (error) {
       alert('Erro ao salvar histórico: ' + error);
     }
@@ -658,7 +665,10 @@ export default function Plantel() {
                   <div className="flex justify-between items-center">
                     <h4 className="text-white font-bold text-sm uppercase tracking-widest">Registros de Histórico</h4>
                     <button 
-                      onClick={() => setIsAddingHistory(!isAddingHistory)} 
+                      onClick={() => {
+                        setIsAddingHistory(!isAddingHistory);
+                        if (isAddingHistory) setEditingHistoryItem(null);
+                      }} 
                       className="flex items-center gap-2 bg-[#3b82f6] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-[#2563eb] transition-colors"
                     >
                       {isAddingHistory ? <X size={14} /> : <Plus size={14} />} 
@@ -678,15 +688,15 @@ export default function Plantel() {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div className="space-y-2">
                             <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Data</label>
-                            <input required name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium" />
+                            <input required name="date" type="date" defaultValue={editingHistoryItem?.date || new Date().toISOString().split('T')[0]} className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium" />
                           </div>
                           <div className="space-y-2">
                             <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Peso (g)</label>
-                            <input name="weight" type="number" step="any" placeholder="Ex: 850" className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium" />
+                            <input name="weight" type="number" step="any" defaultValue={editingHistoryItem?.weight_grams || ''} placeholder="Ex: 850" className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium" />
                           </div>
                           <div className="space-y-2">
                             <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Saúde</label>
-                            <select name="healthStatus" className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium">
+                            <select name="healthStatus" defaultValue={editingHistoryItem?.health_status || 'Normal'} className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium">
                               <option value="Normal">Normal</option>
                               <option value="Em Tratamento">Em Tratamento</option>
                               <option value="Observação">Observação</option>
@@ -696,7 +706,7 @@ export default function Plantel() {
                         </div>
                         <div className="space-y-2">
                           <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Anotações (Postura, Alimentação, etc)</label>
-                          <textarea name="notes" rows={3} placeholder="Ex: Iniciou postura hoje. / Mudança de ração para mix de sementes..." className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium resize-none"></textarea>
+                          <textarea name="notes" rows={3} defaultValue={editingHistoryItem?.notes || ''} placeholder="Ex: Iniciou postura hoje. / Mudança de ração para mix de sementes..." className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium resize-none"></textarea>
                         </div>
                         <button type="submit" className="w-full py-3 bg-[#3b82f6] text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg hover:bg-[#2563eb] transition-all">
                           Salvar Registro
@@ -730,9 +740,14 @@ export default function Plantel() {
                                 {history.health_status}
                               </span>
                             </div>
-                            <button onClick={() => removeHistory(history.id)} className="text-[#94a3b8] hover:text-[#f43f5e] transition-colors p-1">
-                              <Trash2 size={14} />
-                            </button>
+                            <div className="flex gap-2">
+                              <button onClick={() => { setEditingHistoryItem(history); setIsAddingHistory(true); }} className="text-[#94a3b8] hover:text-[#3b82f6] transition-colors p-1">
+                                <MoreVertical size={14} />
+                              </button>
+                              <button onClick={() => removeHistory(history.id)} className="text-[#94a3b8] hover:text-[#f43f5e] transition-colors p-1">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </div>
                           {history.notes && (
                             <p className="text-sm text-[#94a3b8] bg-[#1e293b] p-3 rounded-lg border border-[#334155] italic">
