@@ -38,6 +38,18 @@ export default function Plantel() {
   const [formStatus, setFormStatus] = useState('Active');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [feedRecipeId, setFeedRecipeId] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'dados' | 'historico'>('dados');
+  const [birdHistory, setBirdHistory] = useState<any[]>([]);
+  const [isAddingHistory, setIsAddingHistory] = useState(false);
+
+  async function loadBirdHistory(birdId: string) {
+    try {
+      const history = await dbService.getBirdHistory(birdId);
+      setBirdHistory(history || []);
+    } catch (error) {
+      console.error('Erro ao carregar histórico:', error);
+    }
+  }
 
   useEffect(() => {
     loadData();
@@ -67,8 +79,45 @@ export default function Plantel() {
       setImagePreview(editingBird.img_url || null);
       const recipe = recipes.find(r => r.id === editingBird.feed_recipe_id);
       setSelectedRecipePrice(recipe?.price_per_kg || 0);
+      loadBirdHistory(editingBird.id);
+    } else {
+      setActiveTab('dados');
+      setBirdHistory([]);
+      setIsAddingHistory(false);
     }
   }, [editingBird, recipes]);
+
+  const handleSaveHistory = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingBird) return;
+    
+    const formData = new FormData(e.currentTarget);
+    const historyData = {
+      bird_id: editingBird.id,
+      date: formData.get('date') as string,
+      weight_grams: parseFloat(formData.get('weight') as string) || null,
+      health_status: formData.get('healthStatus') as string,
+      notes: formData.get('notes') as string,
+    };
+
+    try {
+      await dbService.saveBirdHistory(historyData);
+      await loadBirdHistory(editingBird.id);
+      setIsAddingHistory(false);
+    } catch (error) {
+      alert('Erro ao salvar histórico: ' + error);
+    }
+  };
+
+  const removeHistory = async (id: string) => {
+    if (!confirm('Deseja excluir este registro?')) return;
+    try {
+      await dbService.deleteBirdHistory(id);
+      if (editingBird) await loadBirdHistory(editingBird.id);
+    } catch (error) {
+      alert('Erro ao excluir registro: ' + error);
+    }
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -413,16 +462,34 @@ export default function Plantel() {
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               className="relative w-full max-w-2xl bg-[#1e293b] border border-[#334155] p-10 rounded-[32px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar"
             >
-              <div className="flex justify-between items-center mb-8">
+              <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-bold text-white font-headline tracking-tighter italic">
                   {editingBird ? 'Editar Ave' : 'Adicionar Nova Ave'}
                 </h3>
-                <button onClick={() => { setIsAdding(false); setEditingBird(null); }} className="text-[#94a3b8] hover:text-white transition-colors">
+                <button onClick={() => { setIsAdding(false); setEditingBird(null); setActiveTab('dados'); setIsAddingHistory(false); }} className="text-[#94a3b8] hover:text-white transition-colors">
                   <X size={24} />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveBird} className="space-y-8">
+              {editingBird && (
+                <div className="flex gap-4 mb-6 border-b border-[#334155]">
+                  <button 
+                    onClick={() => setActiveTab('dados')}
+                    className={`pb-3 text-sm font-bold uppercase tracking-widest transition-colors ${activeTab === 'dados' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#94a3b8] hover:text-white'}`}
+                  >
+                    Dados Cadastrais
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('historico')}
+                    className={`pb-3 text-sm font-bold uppercase tracking-widest transition-colors ${activeTab === 'historico' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#94a3b8] hover:text-white'}`}
+                  >
+                    Histórico
+                  </button>
+                </div>
+              )}
+
+              {activeTab === 'dados' ? (
+                <form onSubmit={handleSaveBird} className="space-y-8">
                 <div className="flex justify-center mb-8">
                   <label className="w-32 h-32 rounded-3xl bg-[#0f172a] border border-dashed border-[#334155] flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-[#3b82f6] transition-colors group relative overflow-hidden">
                     {imagePreview ? (
@@ -585,7 +652,99 @@ export default function Plantel() {
                     {editingBird ? 'Salvar Alterações' : 'Finalizar Cadastro'}
                   </button>
                 </div>
-              </form>
+                </form>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-white font-bold text-sm uppercase tracking-widest">Registros de Histórico</h4>
+                    <button 
+                      onClick={() => setIsAddingHistory(!isAddingHistory)} 
+                      className="flex items-center gap-2 bg-[#3b82f6] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-[#2563eb] transition-colors"
+                    >
+                      {isAddingHistory ? <X size={14} /> : <Plus size={14} />} 
+                      {isAddingHistory ? 'Cancelar' : 'Novo Registro'}
+                    </button>
+                  </div>
+
+                  <AnimatePresence>
+                    {isAddingHistory && (
+                      <motion.form 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        onSubmit={handleSaveHistory} 
+                        className="bg-[#0f172a] p-5 rounded-2xl border border-[#3b82f6]/50 space-y-4 mb-6 overflow-hidden"
+                      >
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Data</label>
+                            <input required name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Peso (g)</label>
+                            <input name="weight" type="number" step="any" placeholder="Ex: 850" className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Saúde</label>
+                            <select name="healthStatus" className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium">
+                              <option value="Normal">Normal</option>
+                              <option value="Em Tratamento">Em Tratamento</option>
+                              <option value="Observação">Observação</option>
+                              <option value="Doente">Doente</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Anotações (Postura, Alimentação, etc)</label>
+                          <textarea name="notes" rows={3} placeholder="Ex: Iniciou postura hoje. / Mudança de ração para mix de sementes..." className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium resize-none"></textarea>
+                        </div>
+                        <button type="submit" className="w-full py-3 bg-[#3b82f6] text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg hover:bg-[#2563eb] transition-all">
+                          Salvar Registro
+                        </button>
+                      </motion.form>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="space-y-3">
+                    {birdHistory.length === 0 ? (
+                      <div className="py-10 text-center text-[#94a3b8] font-medium opacity-50 italic">
+                        Nenhum registro de histórico encontrado.
+                      </div>
+                    ) : (
+                      birdHistory.map((history) => (
+                        <div key={history.id} className="bg-[#0f172a] border border-[#334155] p-4 rounded-xl flex flex-col gap-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-[#1e293b] px-3 py-1 rounded-lg border border-[#334155]">
+                                <span className="text-xs font-bold text-white">{new Date(history.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                              </div>
+                              {history.weight_grams && (
+                                <span className="text-xs font-black text-[#10b981]">{history.weight_grams}g</span>
+                              )}
+                              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                history.health_status === 'Normal' ? 'bg-[#10b981]/20 text-[#10b981]' : 
+                                history.health_status === 'Em Tratamento' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' : 
+                                history.health_status === 'Observação' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' : 
+                                'bg-[#f43f5e]/20 text-[#f43f5e]'
+                              }`}>
+                                {history.health_status}
+                              </span>
+                            </div>
+                            <button onClick={() => removeHistory(history.id)} className="text-[#94a3b8] hover:text-[#f43f5e] transition-colors p-1">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                          {history.notes && (
+                            <p className="text-sm text-[#94a3b8] bg-[#1e293b] p-3 rounded-lg border border-[#334155] italic">
+                              {history.notes}
+                            </p>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
         )}

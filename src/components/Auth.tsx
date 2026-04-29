@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Mail, Lock, LogIn, UserPlus, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot_password'>('login');
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,7 +17,14 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      if (!isLogin) {
+      if (mode === 'forgot_password') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/`,
+        });
+        if (error) throw error;
+        alert('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
+        setMode('login');
+      } else if (mode === 'register') {
         if (password !== confirmPassword) {
           throw new Error('As senhas não coincidem.');
         }
@@ -49,10 +56,10 @@ export default function Auth() {
             <LogIn className="text-primary" size={32} />
           </div>
           <h2 className="text-3xl font-black text-white font-headline tracking-tighter italic uppercase">
-            {isLogin ? 'Bem-vindo de volta' : 'Crie sua conta'}
+            {mode === 'login' ? 'Bem-vindo de volta' : mode === 'register' ? 'Crie sua conta' : 'Recuperar senha'}
           </h2>
           <p className="text-[#94a3b8] font-medium text-sm mt-2">
-            {isLogin ? 'Acesse o seu criatório para gerenciar seu plantel.' : 'Comece a gerenciar suas aves e finanças hoje.'}
+            {mode === 'login' ? 'Acesse o seu criatório para gerenciar seu plantel.' : mode === 'register' ? 'Comece a gerenciar suas aves e finanças hoje.' : 'Digite seu e-mail para receber um link de recuperação.'}
           </p>
         </div>
 
@@ -71,21 +78,23 @@ export default function Auth() {
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1 flex items-center gap-2">
-              <Lock size={12} /> Senha
-            </label>
-            <input
-              required
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none text-sm"
-            />
-          </div>
+          {mode !== 'forgot_password' && (
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1 flex items-center gap-2">
+                <Lock size={12} /> Senha
+              </label>
+              <input
+                required={mode !== 'forgot_password'}
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none text-sm"
+              />
+            </div>
+          )}
 
-          {!isLogin && (
+          {mode === 'register' && (
             <motion.div 
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -95,7 +104,7 @@ export default function Auth() {
                 <Lock size={12} /> Confirmar Senha
               </label>
               <input
-                required
+                required={mode === 'register'}
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -126,20 +135,32 @@ export default function Auth() {
           >
             {loading ? (
               <Loader2 className="animate-spin" size={18} />
-            ) : isLogin ? (
+            ) : mode === 'login' ? (
               <><LogIn size={18} /> Entrar</>
-            ) : (
+            ) : mode === 'register' ? (
               <><UserPlus size={18} /> Cadastrar</>
+            ) : (
+              <><Mail size={18} /> Enviar Link</>
             )}
           </button>
         </form>
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 flex flex-col gap-3 text-center">
+          {mode === 'login' && (
+            <button
+              type="button"
+              onClick={() => { setMode('forgot_password'); setError(null); }}
+              className="text-[10px] font-black text-[#94a3b8] uppercase tracking-widest hover:text-primary transition-colors"
+            >
+              Esqueci minha senha
+            </button>
+          )}
           <button
-            onClick={() => { setIsLogin(!isLogin); setError(null); }}
+            type="button"
+            onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null); }}
             className="text-[10px] font-black text-[#94a3b8] uppercase tracking-widest hover:text-primary transition-colors"
           >
-            {isLogin ? 'Ainda não tem conta? Cadastrar-se' : 'Já tem uma conta? Fazer Login'}
+            {mode === 'login' ? 'Ainda não tem conta? Cadastrar-se' : 'Voltar para o Login'}
           </button>
         </div>
       </motion.div>
