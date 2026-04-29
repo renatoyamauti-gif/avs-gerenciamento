@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Check, Zap, Shield, Star, CreditCard, Lock } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabaseClient';
+import { useSubscription } from '../hooks/useSubscription';
 
 const plans = [
   {
+    id: 'free',
     name: 'Iniciante',
     description: 'Para pequenos criadores começando no gerenciamento.',
     price: 'Grátis',
@@ -22,6 +24,7 @@ const plans = [
     link: '#',
   },
   {
+    id: 'pro',
     name: 'Completo Mensal',
     description: 'Para criadores experientes que precisam de ferramentas avançadas.',
     price: 'R$ 39,99',
@@ -42,6 +45,7 @@ const plans = [
     link: 'https://buy.stripe.com/14A14m5g1feJac5c3t4Rq00',
   },
   {
+    id: 'anual',
     name: 'Completo Anual',
     description: 'Plano Anual com 20% de desconto.',
     originalPrice: 'R$ 479,88',
@@ -66,6 +70,7 @@ const plans = [
 
 export default function Subscription() {
   const [userId, setUserId] = useState<string | null>(null);
+  const { plan: currentPlan } = useSubscription();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -107,7 +112,10 @@ export default function Subscription() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-        {plans.map((plan, index) => (
+        {plans.map((plan, index) => {
+          const isCurrentPlan = plan.id === currentPlan;
+          
+          return (
           <motion.div
             key={plan.name}
             initial={{ opacity: 0, y: 30 }}
@@ -155,20 +163,23 @@ export default function Subscription() {
             </div>
 
             <a
-              href={plan.link !== '#' && userId ? `${plan.link}?client_reference_id=${userId}` : plan.link}
-              target={plan.link !== '#' ? "_blank" : undefined}
+              href={isCurrentPlan ? '#' : plan.link !== '#' && userId ? `${plan.link}?client_reference_id=${userId}` : plan.link}
+              target={isCurrentPlan || plan.link === '#' ? undefined : "_blank"}
               rel="noopener noreferrer"
+              onClick={(e) => { if (isCurrentPlan) e.preventDefault(); }}
               className={`
-                w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest text-center transition-all duration-300 mb-8
-                ${plan.isPopular
-                  ? 'bg-gradient-to-r from-[#eab308] to-[#f59e0b] text-[#1e293b] hover:shadow-[0_0_20px_rgba(234,179,8,0.4)]'
-                  : plan.name === 'Completo Anual'
-                    ? 'bg-[#3b82f6] text-white hover:bg-[#2563eb] hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'
-                    : 'bg-[#334155] text-white hover:bg-[#475569]'
+                w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest text-center transition-all duration-300 mb-8 block
+                ${isCurrentPlan
+                  ? 'bg-[#10b981] text-white cursor-default shadow-[0_0_20px_rgba(16,185,129,0.2)]'
+                  : plan.isPopular
+                    ? 'bg-gradient-to-r from-[#eab308] to-[#f59e0b] text-[#1e293b] hover:shadow-[0_0_20px_rgba(234,179,8,0.4)]'
+                    : plan.name === 'Completo Anual'
+                      ? 'bg-[#3b82f6] text-white hover:bg-[#2563eb] hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]'
+                      : 'bg-[#334155] text-white hover:bg-[#475569]'
                 }
               `}
             >
-              {plan.buttonText}
+              {isCurrentPlan ? 'Plano Atual' : plan.buttonText}
             </a>
 
             <div className="space-y-4 flex-1">
@@ -182,7 +193,7 @@ export default function Subscription() {
               ))}
             </div>
           </motion.div>
-        ))}
+        )})}
       </div>
 
       <motion.div
