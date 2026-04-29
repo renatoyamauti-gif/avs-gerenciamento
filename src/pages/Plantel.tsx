@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Filter, Plus, MoreVertical, Hash, Info, History, X, Camera, Trash2, Loader2, Lock } from 'lucide-react';
+import { Search, Filter, Plus, MoreVertical, Hash, Info, History, X, Camera, Trash2, Loader2, Lock, Mars, Venus } from 'lucide-react';
 import { IMAGES } from '../constants';
 import { dbService } from '../lib/dbService';
 import { useSubscription } from '../hooks/useSubscription';
@@ -20,6 +20,7 @@ interface Bird {
   breeder_name?: string;
   acquisition_price?: number;
   sale_price?: number;
+  gender?: 'Macho' | 'Fêmea';
 }
 
 export default function Plantel() {
@@ -163,6 +164,7 @@ export default function Plantel() {
       feed_recipe_id: recipeId || null,
       monthly_feed_cost: monthlyCost,
       img_url: imagePreview || editingBird?.img_url || IMAGES.bird1,
+      gender: formData.get('gender') as 'Macho' | 'Fêmea' || undefined,
     };
 
     try {
@@ -356,7 +358,11 @@ export default function Plantel() {
                         <img src={bird.img_url} alt={bird.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-headline font-bold text-white group-hover:translate-x-1 transition-transform">{bird.name}</span>
+                        <span className="font-headline font-bold text-white group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                          {bird.name}
+                          {bird.gender === 'Macho' && <Mars size={14} className="text-[#3b82f6]" />}
+                          {bird.gender === 'Fêmea' && <Venus size={14} className="text-[#f43f5e]" />}
+                        </span>
                         <span className="text-[9px] text-[#475569] font-bold uppercase">{bird.origin}</span>
                       </div>
                     </div>
@@ -425,7 +431,11 @@ export default function Plantel() {
                     <img src={bird.img_url} alt={bird.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   </div>
                   <div>
-                    <h4 className="font-black text-white text-lg tracking-tight font-headline italic">{bird.name}</h4>
+                    <h4 className="font-black text-white text-lg tracking-tight font-headline italic flex items-center gap-1">
+                      {bird.name}
+                      {bird.gender === 'Macho' && <Mars size={16} className="text-[#3b82f6]" />}
+                      {bird.gender === 'Fêmea' && <Venus size={16} className="text-[#f43f5e]" />}
+                    </h4>
                     <div className="flex items-center gap-2">
                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${bird.status === 'Breeding' ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : 'bg-[#334155] text-[#94a3b8]'}`}>
                         {bird.status === 'Breeding' ? 'Reprodução' : bird.status}
@@ -519,6 +529,27 @@ export default function Plantel() {
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Número da Anilha</label>
                     <input required name="ringNumber" defaultValue={editingBird?.ring_number} type="text" placeholder="Ex: MC-2024-001" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-mono" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Sexo</label>
+                    <div className="flex gap-4">
+                      {['Macho', 'Fêmea'].map(option => (
+                        <label key={option} className="flex-1 flex items-center justify-center gap-2 bg-[#0f172a] border border-[#334155] rounded-xl py-3 cursor-pointer transition-colors hover:border-[#3b82f6] has-[:checked]:bg-[#3b82f6]/10 has-[:checked]:border-[#3b82f6] has-[:checked]:text-[#3b82f6]">
+                          <input 
+                            type="radio" 
+                            name="gender" 
+                            value={option} 
+                            defaultChecked={editingBird?.gender === option}
+                            className="hidden" 
+                          />
+                          {option === 'Macho' ? <Mars size={16} /> : <Venus size={16} />}
+                          <span className="text-xs font-bold uppercase tracking-widest">{option}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </div>
 

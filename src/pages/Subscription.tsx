@@ -205,6 +205,25 @@ export default function Subscription() {
         <Lock size={14} />
         Pagamento seguro processado por <span className="text-white">Stripe</span>
       </motion.div>
+
+      {currentPlan !== 'free' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="mt-12 flex flex-col items-center justify-center gap-4 border-t border-[#334155] pt-8"
+        >
+          <p className="text-[#94a3b8] text-sm font-medium">Deseja gerenciar ou cancelar sua assinatura atual?</p>
+          <a
+            href="https://billing.stripe.com/p/login/test_8wM4iqc7ZcUh7M4288" // Substitua pelo link real do seu portal de clientes do Stripe
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#1e293b] border border-[#334155] text-white font-bold text-xs uppercase tracking-widest transition-all hover:bg-[#334155] hover:text-[#f43f5e]"
+          >
+            Cancelar Assinatura
+          </a>
+        </motion.div>
+      )}
     </div>
   );
 }
