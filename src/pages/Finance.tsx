@@ -36,11 +36,18 @@ export default function Finance() {
     }
   }
 
-  const totalIncome = transactions
+  const currentDate = new Date();
+  const currentMonthStr = String(currentDate.getMonth() + 1).padStart(2, '0');
+  const currentYearStr = String(currentDate.getFullYear());
+  const currentMonthPrefix = `${currentYearStr}-${currentMonthStr}`;
+
+  const currentMonthTransactions = transactions.filter(t => t.date.startsWith(currentMonthPrefix));
+
+  const totalIncome = currentMonthTransactions
     .filter(t => t.type === 'Entrada')
     .reduce((acc, t) => acc + t.amount, 0);
 
-  const totalExpense = transactions
+  const totalExpense = currentMonthTransactions
     .filter(t => t.type === 'Saída')
     .reduce((acc, t) => acc + t.amount, 0);
 
@@ -170,7 +177,7 @@ export default function Finance() {
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform">
             <TrendingUp size={80} className="text-[#10b981]" />
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Total de Entradas</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Total de Entradas (Mês Atual)</p>
           <p className="text-4xl font-black font-headline tracking-tighter text-[#10b981]">R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </div>
 
@@ -179,7 +186,7 @@ export default function Finance() {
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform">
             <TrendingDown size={80} className="text-[#f43f5e]" />
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Total de Saídas</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Total de Saídas (Mês Atual)</p>
           <p className="text-4xl font-black font-headline tracking-tighter text-[#f43f5e]">R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </div>
 
@@ -193,7 +200,7 @@ export default function Finance() {
               {isProfit ? 'LUCRO' : 'PREJUÍZO'}
             </span>
           </div>
-          <p className={`text-[10px] font-bold uppercase tracking-[0.2em] mb-1 ${isProfit ? 'text-[#10b981]/70' : 'text-[#f43f5e]/70'}`}>Saldo Atual</p>
+          <p className={`text-[10px] font-bold uppercase tracking-[0.2em] mb-1 ${isProfit ? 'text-[#10b981]/70' : 'text-[#f43f5e]/70'}`}>Saldo (Mês Atual)</p>
           <p className={`text-4xl font-black font-headline tracking-tighter ${isProfit ? 'text-[#10b981]' : 'text-[#f43f5e]'}`}>
             R$ {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>

@@ -36,7 +36,15 @@ export default function Auth() {
         if (error) throw error;
       }
     } catch (err: any) {
-      setError(err.message || 'Ocorreu um erro inesperado.');
+      let errorMsg = err.message || 'Ocorreu um erro inesperado.';
+      if (errorMsg.toLowerCase().includes('rate limit')) {
+        errorMsg = 'Muitas tentativas. Por favor, aguarde cerca de 1 hora para tentar novamente ou verifique sua caixa de entrada/spam.';
+      } else if (errorMsg.includes('Invalid login credentials')) {
+        errorMsg = 'E-mail ou senha inválidos.';
+      } else if (errorMsg.includes('User already registered')) {
+        errorMsg = 'Este e-mail já está cadastrado.';
+      }
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
