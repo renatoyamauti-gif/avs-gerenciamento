@@ -10,6 +10,12 @@ export default function Settings() {
   const [profile, setProfile] = useState<any>(null);
   const [userEmail, setUserEmail] = useState<string>('');
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  
+  // Password update states
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
     loadProfile();
@@ -38,6 +44,7 @@ export default function Settings() {
     const formData = new FormData(e.currentTarget);
     const updates = {
       full_name: formData.get('full_name'),
+      phone: formData.get('phone'),
     };
 
     try {
@@ -53,6 +60,35 @@ export default function Settings() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+  }
+
+  async function handleUpdatePassword(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setPasswordMessage(null);
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordMessage({ type: 'error', text: 'As senhas não coincidem.' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordMessage({ type: 'error', text: 'A senha deve ter pelo menos 6 caracteres.' });
+      return;
+    }
+
+    setUpdatingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      
+      setPasswordMessage({ type: 'success', text: 'Senha atualizada com sucesso!' });
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (error: any) {
+      setPasswordMessage({ type: 'error', text: 'Falha ao atualizar senha: ' + error.message });
+    } finally {
+      setUpdatingPassword(false);
+    }
   }
 
   if (loading) {
@@ -85,20 +121,33 @@ export default function Settings() {
           <section className="bg-[#1e293b] border border-[#334155] rounded-[32px] p-8 shadow-sm">
             <div className="flex items-center gap-3 mb-8">
               <User className="text-primary" size={24} />
-              <h3 className="text-xl font-bold text-white font-headline tracking-tight uppercase italic">Perfil do Usuário</h3>
+              <h3 className="text-xl font-bold text-white font-headline tracking-tight uppercase italic">Configurações de Usuário</h3>
             </div>
 
             <form onSubmit={handleUpdateProfile} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Nome Completo</label>
-                <input 
-                  required 
-                  name="full_name" 
-                  type="text" 
-                  defaultValue={profile?.full_name || ''}
-                  placeholder="Seu nome" 
-                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none" 
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Nome Completo</label>
+                  <input 
+                    required 
+                    name="full_name" 
+                    type="text" 
+                    defaultValue={profile?.full_name || ''}
+                    placeholder="Seu nome completo" 
+                    className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none" 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Telefone / WhatsApp</label>
+                  <input 
+                    name="phone" 
+                    type="tel" 
+                    defaultValue={profile?.phone || ''}
+                    placeholder="(00) 00000-0000" 
+                    className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none" 
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -141,8 +190,60 @@ export default function Settings() {
           </section>
         </div>
 
-        {/* Danger Zone & Session */}
+        {/* Danger Zone & Session & Security */}
         <div className="space-y-8">
+          {/* Security (Password Update) */}
+          <section className="bg-[#1e293b] border border-[#334155] rounded-[32px] p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-8">
+              <Shield className="text-primary" size={24} />
+              <h3 className="text-xl font-bold text-white font-headline tracking-tight uppercase italic">Segurança</h3>
+            </div>
+            
+            <form onSubmit={handleUpdatePassword} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Nova Senha</label>
+                <input 
+                  required
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Confirmar Nova Senha</label>
+                <input 
+                  required
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none"
+                />
+              </div>
+
+              {passwordMessage && (
+                <div className={`p-4 rounded-xl text-xs font-bold flex items-center gap-2 ${passwordMessage.type === 'success' ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : 'bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/20'}`}>
+                  {passwordMessage.type === 'success' ? <CheckCircle2 size={16} /> : <Shield size={16} />}
+                  {passwordMessage.text}
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button 
+                  type="submit" 
+                  disabled={updatingPassword}
+                  className="w-full flex items-center justify-center gap-2 bg-primary/10 text-primary border border-primary/20 px-6 py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:bg-primary/20 disabled:opacity-50"
+                >
+                  {updatingPassword ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                  ATUALIZAR SENHA
+                </button>
+              </div>
+            </form>
+          </section>
+
           <section className="bg-[#1e293b] border border-[#334155] rounded-[32px] p-8 shadow-sm">
             <div className="flex items-center gap-3 mb-8">
               <LogOut className="text-[#f43f5e]" size={24} />

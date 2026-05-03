@@ -4,6 +4,7 @@
  */
 
 import { Bell, CheckCircle2, Settings, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { IMAGES } from '../constants';
 
 const Header = () => (
@@ -29,14 +30,14 @@ const Header = () => (
         <Bell className="text-[#94a3b8] cursor-pointer hover:text-[#3b82f6] transition-colors size-5" />
         <span className="absolute top-0 right-0 w-2 h-2 bg-[#f43f5e] rounded-full"></span>
       </div>
-      <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-[#1e293b] shadow-sm">
+      <Link to="/settings" className="h-10 w-10 rounded-full overflow-hidden border-2 border-[#1e293b] shadow-sm hover:border-primary transition-colors cursor-pointer block">
         <img 
           src={IMAGES.curator} 
           alt="Curator Profile" 
           className="w-full h-full object-cover" 
           referrerPolicy="no-referrer" 
         />
-      </div>
+      </Link>
     </div>
   </header>
 );
