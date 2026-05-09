@@ -99,7 +99,7 @@ export default function EggCollection() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="animate-spin text-[#f43f5e]" size={48} />
-        <p className="text-[#94a3b8] font-bold uppercase tracking-widest text-xs">Carregando Coletas...</p>
+        <p className="text-slate-200 font-bold uppercase tracking-widest text-sm">Carregando Coletas...</p>
       </div>
     );
   }
@@ -114,13 +114,13 @@ export default function EggCollection() {
       <section className="flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
           <h2 className="text-4xl font-bold text-white font-headline tracking-tighter italic">Coleta de Ovos</h2>
-          <p className="mt-2 text-[#94a3b8] font-medium text-sm">Registro diário e monitoramento de incubação.</p>
+          <p className="mt-2 text-slate-200 font-medium text-sm">Registro diário e monitoramento de incubação.</p>
         </div>
         <div className="flex gap-4">
           <div className="bg-[#1e293b] border border-[#334155] px-6 py-4 rounded-[24px] flex items-center gap-4 shadow-sm">
             <Egg className="text-[#f43f5e] size-8" />
             <div>
-              <p className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-[0.1em]">Total este mês</p>
+              <p className="text-sm font-bold text-slate-200 uppercase tracking-[0.1em]">Total este mês</p>
               <p className="text-2xl font-black text-[#f8fafc] font-headline">{totalMonthly} Ovos</p>
             </div>
           </div>
@@ -146,13 +146,13 @@ export default function EggCollection() {
             <div className="flex gap-2">
               <button 
                 onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))}
-                className="p-2 hover:bg-[#334155] rounded-full text-[#94a3b8] transition-colors"
+                className="p-2 hover:bg-[#334155] rounded-full text-slate-200 transition-colors"
               >
                 <ChevronLeft size={20} />
               </button>
               <button 
                 onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))}
-                className="p-2 hover:bg-[#334155] rounded-full text-[#94a3b8] transition-colors"
+                className="p-2 hover:bg-[#334155] rounded-full text-slate-200 transition-colors"
               >
                 <ChevronRight size={20} />
               </button>
@@ -161,7 +161,7 @@ export default function EggCollection() {
 
           <div className="grid grid-cols-7 gap-4">
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'].map(d => (
-              <div key={d} className="text-center text-[10px] font-black text-[#475569] uppercase tracking-widest pb-4">{d}</div>
+              <div key={d} className="text-center text-sm font-black text-[#475569] uppercase tracking-widest pb-4">{d}</div>
             ))}
             {/* Pad calendar for first day of month if needed - simplification here, just showing days */}
             {daysArray.map(day => {
@@ -184,12 +184,12 @@ export default function EggCollection() {
                     ${isToday ? 'border-2 border-[#f59e0b] shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border border-transparent'}
                   `}
                 >
-                  <span className={`text-xs ${isToday ? 'font-black text-[#f59e0b]' : 'font-bold'} ${log && !isToday ? 'text-[#3b82f6]' : (!isToday ? 'text-[#475569]' : '')}`}>
+                  <span className={`text-sm ${isToday ? 'font-black text-[#f59e0b]' : 'font-bold'} ${log && !isToday ? 'text-[#3b82f6]' : (!isToday ? 'text-[#475569]' : '')}`}>
                     {day}
                   </span>
                   {log && (
                     <div className="flex flex-col items-center">
-                      <div className="bg-[#3b82f6] text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shadow-md z-10">{log.count}</div>
+                      <div className="bg-[#3b82f6] text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold shadow-md z-10">{log.count}</div>
                     </div>
                   )}
                 </div>
@@ -214,18 +214,18 @@ export default function EggCollection() {
                 className="bg-[#0f172a] p-4 rounded-xl border border-[#334155] group hover:border-[#3b82f6]/50 transition-all cursor-pointer"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <div className="text-[10px] font-black text-[#94a3b8] uppercase tracking-widest">{log.day}/{log.month}/{log.year}</div>
-                  <div className="bg-[#334155] text-[#3b82f6] text-[10px] font-black px-2 py-0.5 rounded-full uppercase italic">{log.count} Ovos</div>
+                  <div className="text-sm font-black text-slate-200 uppercase tracking-widest">{log.day}/{log.month}/{log.year}</div>
+                  <div className="bg-[#334155] text-[#3b82f6] text-sm font-black px-2 py-0.5 rounded-full uppercase italic">{log.count} Ovos</div>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {(log.pairs || []).map(p => (
-                    <span key={p} className="text-[10px] font-bold text-[#94a3b8]/60 bg-[#1e293b] px-2 py-1 rounded border border-[#334155]">{p}</span>
+                    <span key={p} className="text-sm font-bold text-slate-200/60 bg-[#1e293b] px-2 py-1 rounded border border-[#334155]">{p}</span>
                   ))}
                 </div>
               </motion.div>
             ))}
             {logs.length === 0 && (
-              <div className="text-center py-10 opacity-20 text-[#94a3b8]">
+              <div className="text-center py-10 opacity-20 text-slate-200">
                 Nenhuma coleta registrada
               </div>
             )}
@@ -253,13 +253,13 @@ export default function EggCollection() {
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <h3 className="text-2xl font-bold text-white font-headline tracking-tighter">Coleta: Dia {editingDay}</h3>
-                  <p className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest">
+                  <p className="text-sm font-bold text-slate-200 uppercase tracking-widest">
                     {viewDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                   </p>
                 </div>
                 <button 
                   onClick={() => setEditingDay(null)}
-                  className="text-[#94a3b8] hover:text-white transition-colors"
+                  className="text-slate-200 hover:text-white transition-colors"
                 >
                   <X size={20} />
                 </button>
@@ -267,7 +267,7 @@ export default function EggCollection() {
 
               <form onSubmit={handleUpdateDay} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Quantidade de Ovos</label>
+                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Quantidade de Ovos</label>
                   <div className="flex items-center gap-4">
                     <input 
                       required 
@@ -282,7 +282,7 @@ export default function EggCollection() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Casais (Separe por vírgula)</label>
+                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Casais (Separe por vírgula)</label>
                   <textarea 
                     name="pairs" 
                     defaultValue={(currentEditLog.pairs || []).join(', ')}
@@ -310,7 +310,7 @@ export default function EggCollection() {
                   </button>
                   <button 
                     type="submit" 
-                    className="flex-1 px-6 py-4 bg-[#3b82f6] text-white rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg hover:bg-[#2563eb] transition-colors"
+                    className="flex-1 px-6 py-4 bg-[#3b82f6] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg hover:bg-[#2563eb] transition-colors"
                   >
                     Salvar Registro
                   </button>

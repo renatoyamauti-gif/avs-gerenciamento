@@ -63,7 +63,7 @@ export default function Auth() {
             <div className="p-3 bg-primary text-white rounded-xl shadow-lg shadow-primary/20">
               <Sparkles size={24} />
             </div>
-            <span className="text-xl font-bold tracking-tight">AVS System</span>
+            <span className="text-xl font-bold tracking-tight">AVS GERENCIAMENTO</span>
           </div>
 
           <motion.div

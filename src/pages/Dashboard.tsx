@@ -88,7 +88,7 @@ export default function Dashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="animate-spin text-[#3b82f6]" size={48} />
-        <p className="text-[#94a3b8] font-bold uppercase tracking-widest text-xs">Carregando Painel...</p>
+        <p className="text-slate-200 font-bold uppercase tracking-widest text-sm">Carregando Painel...</p>
       </div>
     );
   }
@@ -104,7 +104,7 @@ export default function Dashboard() {
       <section className="flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
           <h2 className="text-4xl font-bold text-white font-headline tracking-tighter italic uppercase">PAINEL DE CONTROLE</h2>
-          <p className="text-[#94a3b8] font-medium text-sm">Resumo operacional do sistema de gerenciamento.</p>
+          <p className="text-slate-200 font-medium text-sm">Resumo operacional do sistema de gerenciamento.</p>
         </div>
       </section>
 
@@ -121,10 +121,10 @@ export default function Dashboard() {
               <Bird size={28} className="text-[#3b82f6]" />
             </div>
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Plantel Total</p>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Plantel Total</p>
           <div className="flex items-baseline gap-2">
             <p className="text-5xl font-black font-headline tracking-tighter text-white">{birdCount}</p>
-            <span className="text-xs font-bold text-[#475569]">AVES</span>
+            <span className="text-sm font-bold text-[#475569]">AVES</span>
           </div>
         </div>
 
@@ -138,10 +138,10 @@ export default function Dashboard() {
               <Egg size={28} className="text-[#f43f5e]" />
             </div>
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Ovos Coletados</p>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Ovos Coletados</p>
           <div className="flex items-baseline gap-2">
             <p className="text-5xl font-black font-headline tracking-tighter text-white">{eggCount}</p>
-            <span className="text-xs font-bold text-[#475569]">TOTAL</span>
+            <span className="text-sm font-bold text-[#475569]">TOTAL</span>
           </div>
         </div>
 
@@ -155,10 +155,10 @@ export default function Dashboard() {
               <Activity size={28} className="text-[#f59e0b]" />
             </div>
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Em Incubação</p>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Em Incubação</p>
           <div className="flex items-baseline gap-2">
             <p className="text-5xl font-black font-headline tracking-tighter text-white">{incubatorEggs}</p>
-            <span className="text-xs font-bold text-[#475569]">UNIDADES</span>
+            <span className="text-sm font-bold text-[#475569]">UNIDADES</span>
           </div>
         </div>
 
@@ -172,9 +172,9 @@ export default function Dashboard() {
               <Wallet size={28} className={financeSummary.balance >= 0 ? 'text-[#10b981]' : 'text-[#f43f5e]'} />
             </div>
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Saldo Atual</p>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Saldo Atual</p>
           <div className="flex items-baseline gap-1">
-            <span className={`text-[10px] font-bold ${financeSummary.balance >= 0 ? 'text-[#10b981]' : 'text-[#f43f5e]'}`}>R$</span>
+            <span className={`text-sm font-bold ${financeSummary.balance >= 0 ? 'text-[#10b981]' : 'text-[#f43f5e]'}`}>R$</span>
             <p className={`text-4xl font-black font-headline tracking-tighter ${financeSummary.balance >= 0 ? 'text-white' : 'text-[#f43f5e]'}`}>{financeSummary.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
           </div>
         </div>
@@ -186,7 +186,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center mb-10">
             <div>
               <h3 className="text-xl sm:text-2xl font-bold text-white font-headline tracking-tight italic">Performance Financeira</h3>
-              <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest">Evolução do Fluxo de Caixa</p>
+              <p className="text-sm font-bold text-[#475569] uppercase tracking-widest">Evolução do Fluxo de Caixa</p>
             </div>
           </div>
           <div className="h-[300px] w-full">
@@ -203,7 +203,7 @@ export default function Dashboard() {
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#475569', fontSize: 10, fontWeight: 'bold' }} 
+                  tick={{ fill: '#475569', fontSize: 12, fontWeight: 'bold' }} 
                   dy={10}
                 />
                 <YAxis 
@@ -232,7 +232,7 @@ export default function Dashboard() {
                         <Activity size={24} className="text-[#f59e0b] animate-pulse" />
                       )}
                       <div>
-                        <p className="text-[10px] font-black text-[#475569] uppercase tracking-widest">Eclosão</p>
+                        <p className="text-sm font-black text-[#475569] uppercase tracking-widest">Eclosão</p>
                         <h4 className={`font-bold tracking-tight ${nextHatch.finished ? 'text-[#10b981]' : 'text-white'}`}>
                           {nextHatch.finished ? 'Lote Pronto!' : 'Em Incubação'}
                         </h4>
@@ -242,13 +242,13 @@ export default function Dashboard() {
                       <span className={`text-3xl sm:text-4xl font-black font-headline tracking-tighter ${nextHatch.finished ? 'text-[#10b981]' : 'text-white'}`}>
                         {nextHatch.finished ? 'ECLOSÃO' : `${nextHatch.days}d ${nextHatch.hours}h`}
                       </span>
-                      {!nextHatch.finished && <span className="text-[10px] font-bold text-[#475569] uppercase ml-1">Restantes</span>}
+                      {!nextHatch.finished && <span className="text-sm font-bold text-[#475569] uppercase ml-1">Restantes</span>}
                    </div>
                 </div>
              ) : (
                 <div className="text-center py-10 opacity-20 flex flex-col items-center gap-2">
-                   <Activity size={40} className="text-[#94a3b8]" />
-                   <p className="text-xs font-medium">Sem eventos próximos</p>
+                   <Activity size={40} className="text-slate-200" />
+                   <p className="text-sm font-medium">Sem eventos próximos</p>
                 </div>
              )}
 
@@ -256,8 +256,8 @@ export default function Dashboard() {
                 <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#0f172a] border border-[#334155]/30">
                    <div className="h-2 w-2 rounded-full bg-[#10b981]" />
                    <div className="flex-1">
-                      <p className="text-[10px] font-bold text-[#475569] uppercase tracking-tighter">Status Geral</p>
-                      <p className="text-xs font-bold text-white tracking-tight italic">Operacional: 100%</p>
+                      <p className="text-sm font-bold text-[#475569] uppercase tracking-tighter">Status Geral</p>
+                      <p className="text-sm font-bold text-white tracking-tight italic">Operacional: 100%</p>
                    </div>
                 </div>
              </div>

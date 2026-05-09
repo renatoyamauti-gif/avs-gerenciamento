@@ -226,7 +226,7 @@ export default function Plantel() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="animate-spin text-[#3b82f6]" size={48} />
-        <p className="text-[#94a3b8] font-bold uppercase tracking-widest text-xs">Carregando Plantel...</p>
+        <p className="text-slate-200 font-bold uppercase tracking-widest text-sm">Carregando Plantel...</p>
       </div>
     );
   }
@@ -241,10 +241,10 @@ export default function Plantel() {
       <section className="flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
           <h2 className="text-4xl font-bold text-white font-headline tracking-tighter italic">Gestão de Aves</h2>
-          <p className="text-[#94a3b8] font-medium text-sm">Gerenciamento completo das aves do sistema.</p>
+          <p className="text-slate-200 font-medium text-sm">Gerenciamento completo das aves do sistema.</p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] px-4 py-2 rounded-xl text-[#94a3b8] font-bold text-xs uppercase tracking-widest transition-all hover:bg-[#334155] hover:text-white">
+          <button className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] px-4 py-2 rounded-xl text-slate-200 font-bold text-sm uppercase tracking-widest transition-all hover:bg-[#334155] hover:text-white">
             <Filter size={16} />
             Filtrar
           </button>
@@ -263,9 +263,9 @@ export default function Plantel() {
               setFeedRecipeId('');
               setIsAdding(true);
             }}
-            className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow-md transition-all ${
+            className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold text-sm uppercase tracking-widest shadow-md transition-all ${
               isFreePlan && birds.length >= limits.birds
-                ? 'bg-[#334155] text-[#94a3b8] cursor-not-allowed opacity-70'
+                ? 'bg-[#334155] text-slate-200 cursor-not-allowed opacity-70'
                 : 'bg-[#3b82f6] text-white hover:scale-105 active:scale-95'
             }`}
           >
@@ -282,7 +282,7 @@ export default function Plantel() {
             <Hash className="text-[#3b82f6]" size={24} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest">Total de Aves</p>
+            <p className="text-sm font-bold text-[#475569] uppercase tracking-widest">Total de Aves</p>
             <p className="text-xl sm:text-2xl font-black text-white italic">{totalBirds}</p>
           </div>
         </div>
@@ -292,7 +292,7 @@ export default function Plantel() {
             <Info className="text-[#10b981]" size={24} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest">Peso Mensal (Total)</p>
+            <p className="text-sm font-bold text-[#475569] uppercase tracking-widest">Peso Mensal (Total)</p>
             <p className="text-xl sm:text-2xl font-black text-white italic">
               {totalMonthlyWeight >= 1000 ? `${(totalMonthlyWeight / 1000).toFixed(2)} kg` : `${totalMonthlyWeight} g`}
             </p>
@@ -304,7 +304,7 @@ export default function Plantel() {
             <span className="text-[#10b981] font-black text-xl">R$</span>
           </div>
           <div>
-            <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest">Custo Mensal (Total)</p>
+            <p className="text-sm font-bold text-[#475569] uppercase tracking-widest">Custo Mensal (Total)</p>
             <p className="text-xl sm:text-2xl font-black text-[#10b981] italic">
               R$ {totalMonthlyCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
@@ -315,16 +315,16 @@ export default function Plantel() {
       <div className="bg-[#1e293b] border border-[#334155] rounded-[24px] overflow-hidden shadow-sm">
         <div className="p-6 border-b border-[#334155] flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="relative w-full md:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] size-4" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-200 size-4" />
             <input 
               type="text" 
               placeholder="Pesquisar por nome, anilha ou espécie..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#0f172a] text-white rounded-full pl-10 pr-4 py-2 text-xs focus:ring-2 focus:ring-[#3b82f6]/20 transition-all border-none placeholder-[#94a3b8]/50"
+              className="w-full bg-[#0f172a] text-white rounded-full pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-[#3b82f6]/20 transition-all border-none placeholder-slate-300/50"
             />
           </div>
-          <div className="flex gap-6 text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest overflow-x-auto pb-2">
+          <div className="flex gap-6 text-sm font-bold text-slate-200 uppercase tracking-widest overflow-x-auto pb-2">
             {['All', 'Breeding', 'Juvenile', 'Active', 'Resting', 'Vendida', 'Reservada', 'Doente'].map(status => (
               <span 
                 key={status}
@@ -340,7 +340,7 @@ export default function Plantel() {
         <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#1e293b] text-[10px] uppercase tracking-[0.2em] font-black text-[#94a3b8]/60">
+              <tr className="bg-[#1e293b] text-sm uppercase tracking-[0.2em] font-black text-slate-200/60">
                 <th className="px-6 py-4">Ave</th>
                 <th className="px-6 py-4">Anilha</th>
                 <th className="px-6 py-4">Espécie</th>
@@ -352,7 +352,7 @@ export default function Plantel() {
             <tbody>
               {filteredBirds.map((bird) => (
                 <tr key={bird.id} className="group border-b border-[#334155] hover:bg-[#334155]/30 transition-colors">
-                  <td className="px-6 py-4 text-xs">
+                  <td className="px-6 py-4 text-sm">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#334155]">
                         <img src={bird.img_url} alt={bird.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
@@ -363,17 +363,17 @@ export default function Plantel() {
                           {bird.gender === 'Macho' && <Mars size={14} className="text-[#3b82f6]" />}
                           {bird.gender === 'Fêmea' && <Venus size={14} className="text-[#f43f5e]" />}
                         </span>
-                        <span className="text-[9px] text-[#475569] font-bold uppercase">{bird.origin}</span>
+                        <span className="text-sm text-[#475569] font-bold uppercase">{bird.origin}</span>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-1 text-[#94a3b8] font-mono text-xs">
+                    <div className="flex items-center gap-1 text-slate-200 font-mono text-sm">
                       <Hash size={12} className="text-[#475569]" />
                       {bird.ring_number}
                     </div>
                   </td>
-                  <td className="px-6 py-4 italic text-xs text-[#94a3b8] font-medium transition-all">
+                  <td className="px-6 py-4 italic text-sm text-slate-200 font-medium transition-all">
                     {bird.species}
                   </td>
                   <td className="px-6 py-4">
@@ -394,7 +394,7 @@ export default function Plantel() {
                           bird.status === 'Active' ? 'bg-[#10b981]/20 text-[#10b981]' : 
                           bird.status === 'Doente' ? 'bg-[#f43f5e]/20 text-[#f43f5e]' :
                           bird.status === 'Vendida' ? 'bg-[#f43f5e]/20 text-[#f43f5e]' :
-                          'bg-[#334155] text-[#94a3b8]'}
+                          'bg-[#334155] text-slate-200'}
                       `}>
                         {bird.status === 'Breeding' ? 'Reprodução' : bird.status}
                       </span>
@@ -402,17 +402,17 @@ export default function Plantel() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
-                      <button className="p-2 hover:bg-[#334155] rounded-xl transition-colors text-[#94a3b8] hover:text-white"><Info size={14} /></button>
+                      <button className="p-2 hover:bg-[#334155] rounded-xl transition-colors text-slate-200 hover:text-white"><Info size={14} /></button>
                       <button 
                         onClick={() => {
                           setEditingBird(bird);
                           setIsAdding(true);
                         }}
-                        className="p-2 hover:bg-[#334155] rounded-xl transition-colors text-[#94a3b8] hover:text-[#3b82f6]"
+                        className="p-2 hover:bg-[#334155] rounded-xl transition-colors text-slate-200 hover:text-[#3b82f6]"
                       >
                         <MoreVertical size={14} />
                       </button>
-                      <button onClick={() => removeBird(bird.id)} className="p-2 hover:bg-[#334155] rounded-xl transition-colors text-[#94a3b8] hover:text-[#f43f5e]"><Trash2 size={14} /></button>
+                      <button onClick={() => removeBird(bird.id)} className="p-2 hover:bg-[#334155] rounded-xl transition-colors text-slate-200 hover:text-[#f43f5e]"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -437,10 +437,10 @@ export default function Plantel() {
                       {bird.gender === 'Fêmea' && <Venus size={16} className="text-[#f43f5e]" />}
                     </h4>
                     <div className="flex items-center gap-2">
-                       <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${bird.status === 'Breeding' ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : 'bg-[#334155] text-[#94a3b8]'}`}>
+                       <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${bird.status === 'Breeding' ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : 'bg-[#334155] text-slate-200'}`}>
                         {bird.status === 'Breeding' ? 'Reprodução' : bird.status}
                       </span>
-                      <span className="text-[10px] text-[#475569] font-mono font-bold">#{bird.ring_number}</span>
+                      <span className="text-sm text-[#475569] font-mono font-bold">#{bird.ring_number}</span>
                     </div>
                   </div>
                 </div>
@@ -462,7 +462,7 @@ export default function Plantel() {
             </div>
           ))}
           {filteredBirds.length === 0 && (
-            <div className="py-20 text-center text-[#94a3b8] font-medium opacity-40 italic">
+            <div className="py-20 text-center text-slate-200 font-medium opacity-40 italic">
               Nenhuma ave encontrada.
             </div>
           )}
@@ -483,7 +483,7 @@ export default function Plantel() {
                 <h3 className="text-2xl font-bold text-white font-headline tracking-tighter italic">
                   {editingBird ? 'Editar Ave' : 'Adicionar Nova Ave'}
                 </h3>
-                <button onClick={() => { setIsAdding(false); setEditingBird(null); setActiveTab('dados'); setIsAddingHistory(false); }} className="text-[#94a3b8] hover:text-white transition-colors">
+                <button onClick={() => { setIsAdding(false); setEditingBird(null); setActiveTab('dados'); setIsAddingHistory(false); }} className="text-slate-200 hover:text-white transition-colors">
                   <X size={24} />
                 </button>
               </div>
@@ -492,13 +492,13 @@ export default function Plantel() {
                 <div className="flex gap-4 mb-6 border-b border-[#334155]">
                   <button 
                     onClick={() => setActiveTab('dados')}
-                    className={`pb-3 text-sm font-bold uppercase tracking-widest transition-colors ${activeTab === 'dados' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#94a3b8] hover:text-white'}`}
+                    className={`pb-3 text-sm font-bold uppercase tracking-widest transition-colors ${activeTab === 'dados' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-slate-200 hover:text-white'}`}
                   >
                     Dados Cadastrais
                   </button>
                   <button 
                     onClick={() => setActiveTab('historico')}
-                    className={`pb-3 text-sm font-bold uppercase tracking-widest transition-colors ${activeTab === 'historico' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-[#94a3b8] hover:text-white'}`}
+                    className={`pb-3 text-sm font-bold uppercase tracking-widest transition-colors ${activeTab === 'historico' ? 'text-[#3b82f6] border-b-2 border-[#3b82f6]' : 'text-slate-200 hover:text-white'}`}
                   >
                     Histórico
                   </button>
@@ -514,7 +514,7 @@ export default function Plantel() {
                     ) : (
                       <>
                         <Camera className="text-[#475569] group-hover:text-[#3b82f6]" size={32} />
-                        <span className="text-[10px] font-bold text-[#475569] uppercase group-hover:text-[#3b82f6]">Foto</span>
+                        <span className="text-sm font-bold text-[#475569] uppercase group-hover:text-[#3b82f6]">Foto</span>
                       </>
                     )}
                     <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageChange} />
@@ -523,18 +523,18 @@ export default function Plantel() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Nome da Ave</label>
+                    <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Nome da Ave</label>
                     <input required name="name" defaultValue={editingBird?.name} type="text" placeholder="Ex: Blue Jewel" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Número da Anilha</label>
+                    <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Número da Anilha</label>
                     <input required name="ringNumber" defaultValue={editingBird?.ring_number} type="text" placeholder="Ex: MC-2024-001" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-mono" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Sexo</label>
+                    <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Sexo</label>
                     <div className="flex gap-4">
                       {['Macho', 'Fêmea'].map(option => (
                         <label key={option} className="flex-1 flex items-center justify-center gap-2 bg-[#0f172a] border border-[#334155] rounded-xl py-3 cursor-pointer transition-colors hover:border-[#3b82f6] has-[:checked]:bg-[#3b82f6]/10 has-[:checked]:border-[#3b82f6] has-[:checked]:text-[#3b82f6]">
@@ -546,7 +546,7 @@ export default function Plantel() {
                             className="hidden" 
                           />
                           {option === 'Macho' ? <Mars size={16} /> : <Venus size={16} />}
-                          <span className="text-xs font-bold uppercase tracking-widest">{option}</span>
+                          <span className="text-sm font-bold uppercase tracking-widest">{option}</span>
                         </label>
                       ))}
                     </div>
@@ -555,11 +555,11 @@ export default function Plantel() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Espécie</label>
+                    <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Espécie</label>
                     <input required name="species" defaultValue={editingBird?.species} type="text" placeholder="Ex: Arara Azul" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Status</label>
+                    <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Status</label>
                     <select 
                       name="status" 
                       value={formStatus}
@@ -583,21 +583,21 @@ export default function Plantel() {
                     animate={{ opacity: 1, height: 'auto' }}
                     className="space-y-2"
                   >
-                    <label className="text-[10px] font-bold text-[#f59e0b] uppercase tracking-widest pl-1">Valor de Venda (R$)</label>
+                    <label className="text-sm font-bold text-[#f59e0b] uppercase tracking-widest pl-1">Valor de Venda (R$)</label>
                     <input name="salePrice" defaultValue={editingBird?.sale_price} type="number" step="0.01" placeholder="Ex: 2500" className="w-full bg-[#0f172a] border border-[#f59e0b]/30 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#f59e0b]/50 outline-none text-sm font-bold" />
                   </motion.div>
                 )}
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Coloração / Mutação</label>
+                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Coloração / Mutação</label>
                   <input name="color" defaultValue={editingBird?.color} type="text" placeholder="Ex: Azul e Ouro" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium" />
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-[#334155]">
-                  <h4 className="text-[10px] font-black text-[#3b82f6] uppercase tracking-widest">Protocolo Alimentar</h4>
+                  <h4 className="text-sm font-black text-[#3b82f6] uppercase tracking-widest">Protocolo Alimentar</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Tipo de Ração</label>
+                      <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Tipo de Ração</label>
                       <select 
                         name="feedRecipeId" 
                         value={feedRecipeId}
@@ -619,11 +619,11 @@ export default function Plantel() {
                         ))}
                       </select>
                       {recipes.length === 0 && (
-                        <p className="text-[10px] text-[#f59e0b] mt-1 font-bold">Cadastre uma ração no menu lateral primeiro.</p>
+                        <p className="text-sm text-[#f59e0b] mt-1 font-bold">Cadastre uma ração no menu lateral primeiro.</p>
                       )}
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Consumo Diário (gramas)</label>
+                      <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Consumo Diário (gramas)</label>
                       <input 
                         name="dailyFeedGrams" 
                         defaultValue={editingBird ? (editingBird.monthly_feed_grams || 0) / 30 : ''}
@@ -638,11 +638,11 @@ export default function Plantel() {
                   {monthlyGrams > 0 && selectedRecipePrice > 0 && (
                     <div className="bg-[#3b82f6]/10 px-4 py-3 rounded-xl border border-[#3b82f6]/30 flex flex-col gap-1">
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-[#3b82f6] uppercase tracking-tighter">Consumo Mensal Estimado:</span>
+                        <span className="text-sm font-bold text-[#3b82f6] uppercase tracking-tighter">Consumo Mensal Estimado:</span>
                         <span className="text-[11px] font-black text-white">{(monthlyGrams).toFixed(0)}g</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold text-[#3b82f6] uppercase tracking-tighter">Custo Mensal Estimado:</span>
+                        <span className="text-sm font-bold text-[#3b82f6] uppercase tracking-tighter">Custo Mensal Estimado:</span>
                         <span className="text-sm font-black text-[#10b981]">R$ {((monthlyGrams / 1000) * selectedRecipePrice).toFixed(2)}</span>
                       </div>
                     </div>
@@ -650,10 +650,10 @@ export default function Plantel() {
                 </div>
 
                 <div className="space-y-4 pt-4 border-t border-[#334155]">
-                  <h4 className="text-[10px] font-black text-[#10b981] uppercase tracking-widest">Origem e Aquisição</h4>
+                  <h4 className="text-sm font-black text-[#10b981] uppercase tracking-widest">Origem e Aquisição</h4>
                   <div className="flex gap-4 mb-4">
                     {['Própria', 'Adquirida'].map(option => (
-                      <label key={option} className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${birdOrigin === option ? 'bg-[#10b981]/10 border-[#10b981] text-[#10b981]' : 'bg-[#0f172a] border-[#334155] text-[#94a3b8]'}`}>
+                      <label key={option} className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${birdOrigin === option ? 'bg-[#10b981]/10 border-[#10b981] text-[#10b981]' : 'bg-[#0f172a] border-[#334155] text-slate-200'}`}>
                         <input 
                           type="radio" 
                           name="origin" 
@@ -662,7 +662,7 @@ export default function Plantel() {
                           onChange={() => setBirdOrigin(option as any)}
                           className="hidden" 
                         />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{option}</span>
+                        <span className="text-sm font-black uppercase tracking-widest">{option}</span>
                       </label>
                     ))}
                   </div>
@@ -674,11 +674,11 @@ export default function Plantel() {
                       className="grid grid-cols-1 sm:grid-cols-2 gap-6"
                     >
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Nome do Criatório</label>
+                        <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Nome do Criatório</label>
                         <input name="breederName" defaultValue={editingBird?.breederName} type="text" placeholder="Ex: Criatório Central" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#10b981]/50 outline-none text-sm font-medium" />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Valor de Aquisição (R$)</label>
+                        <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Valor de Aquisição (R$)</label>
                         <input name="acquisitionPrice" defaultValue={editingBird?.acquisitionPrice} type="number" placeholder="Ex: 1500" className="w-full bg-[#0f172a] border border-[#10b981]/50 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#10b981]/50 outline-none text-sm font-medium" />
                       </div>
                     </motion.div>
@@ -686,7 +686,7 @@ export default function Plantel() {
                 </div>
 
                 <div className="pt-6">
-                  <button type="submit" className="w-full py-4 bg-[#3b82f6] text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg hover:bg-[#2563eb] transition-all hover:scale-[1.02] active:scale-95">
+                  <button type="submit" className="w-full py-4 bg-[#3b82f6] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg hover:bg-[#2563eb] transition-all hover:scale-[1.02] active:scale-95">
                     {editingBird ? 'Salvar Alterações' : 'Finalizar Cadastro'}
                   </button>
                 </div>
@@ -700,7 +700,7 @@ export default function Plantel() {
                         setIsAddingHistory(!isAddingHistory);
                         if (isAddingHistory) setEditingHistoryItem(null);
                       }} 
-                      className="flex items-center gap-2 bg-[#3b82f6] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-[#2563eb] transition-colors"
+                      className="flex items-center gap-2 bg-[#3b82f6] text-white px-3 py-1.5 rounded-lg text-sm font-bold uppercase tracking-widest hover:bg-[#2563eb] transition-colors"
                     >
                       {isAddingHistory ? <X size={14} /> : <Plus size={14} />} 
                       {isAddingHistory ? 'Cancelar' : 'Novo Registro'}
@@ -718,15 +718,15 @@ export default function Plantel() {
                       >
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Data</label>
+                            <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Data</label>
                             <input required name="date" type="date" defaultValue={editingHistoryItem?.date || new Date().toISOString().split('T')[0]} className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium" />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Peso (g)</label>
+                            <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Peso (g)</label>
                             <input name="weight" type="number" step="any" defaultValue={editingHistoryItem?.weight_grams || ''} placeholder="Ex: 850" className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium" />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Saúde</label>
+                            <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Saúde</label>
                             <select name="healthStatus" defaultValue={editingHistoryItem?.health_status || 'Normal'} className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium">
                               <option value="Normal">Normal</option>
                               <option value="Em Tratamento">Em Tratamento</option>
@@ -736,10 +736,10 @@ export default function Plantel() {
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Anotações (Postura, Alimentação, etc)</label>
+                          <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Anotações (Postura, Alimentação, etc)</label>
                           <textarea name="notes" rows={3} defaultValue={editingHistoryItem?.notes || ''} placeholder="Ex: Iniciou postura hoje. / Mudança de ração para mix de sementes..." className="w-full bg-[#1e293b] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium resize-none"></textarea>
                         </div>
-                        <button type="submit" className="w-full py-3 bg-[#3b82f6] text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg hover:bg-[#2563eb] transition-all">
+                        <button type="submit" className="w-full py-3 bg-[#3b82f6] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg hover:bg-[#2563eb] transition-all">
                           Salvar Registro
                         </button>
                       </motion.form>
@@ -748,7 +748,7 @@ export default function Plantel() {
 
                   <div className="space-y-3">
                     {birdHistory.length === 0 ? (
-                      <div className="py-10 text-center text-[#94a3b8] font-medium opacity-50 italic">
+                      <div className="py-10 text-center text-slate-200 font-medium opacity-50 italic">
                         Nenhum registro de histórico encontrado.
                       </div>
                     ) : (
@@ -757,12 +757,12 @@ export default function Plantel() {
                           <div className="flex justify-between items-start">
                             <div className="flex items-center gap-3">
                               <div className="bg-[#1e293b] px-3 py-1 rounded-lg border border-[#334155]">
-                                <span className="text-xs font-bold text-white">{new Date(history.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                                <span className="text-sm font-bold text-white">{new Date(history.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
                               </div>
                               {history.weight_grams && (
-                                <span className="text-xs font-black text-[#10b981]">{history.weight_grams}g</span>
+                                <span className="text-sm font-black text-[#10b981]">{history.weight_grams}g</span>
                               )}
-                              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                              <span className={`text-sm font-black uppercase px-2 py-0.5 rounded-full ${
                                 history.health_status === 'Normal' ? 'bg-[#10b981]/20 text-[#10b981]' : 
                                 history.health_status === 'Em Tratamento' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' : 
                                 history.health_status === 'Observação' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' : 
@@ -772,16 +772,16 @@ export default function Plantel() {
                               </span>
                             </div>
                             <div className="flex gap-2">
-                              <button onClick={() => { setEditingHistoryItem(history); setIsAddingHistory(true); }} className="text-[#94a3b8] hover:text-[#3b82f6] transition-colors p-1">
+                              <button onClick={() => { setEditingHistoryItem(history); setIsAddingHistory(true); }} className="text-slate-200 hover:text-[#3b82f6] transition-colors p-1">
                                 <MoreVertical size={14} />
                               </button>
-                              <button onClick={() => removeHistory(history.id)} className="text-[#94a3b8] hover:text-[#f43f5e] transition-colors p-1">
+                              <button onClick={() => removeHistory(history.id)} className="text-slate-200 hover:text-[#f43f5e] transition-colors p-1">
                                 <Trash2 size={14} />
                               </button>
                             </div>
                           </div>
                           {history.notes && (
-                            <p className="text-sm text-[#94a3b8] bg-[#1e293b] p-3 rounded-lg border border-[#334155] italic">
+                            <p className="text-sm text-slate-200 bg-[#1e293b] p-3 rounded-lg border border-[#334155] italic">
                               {history.notes}
                             </p>
                           )}

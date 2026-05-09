@@ -113,7 +113,7 @@ export default function Finance() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="animate-spin text-[#3b82f6]" size={48} />
-        <p className="text-[#94a3b8] font-bold uppercase tracking-widest text-xs">Carregando Financeiro...</p>
+        <p className="text-slate-200 font-bold uppercase tracking-widest text-sm">Carregando Financeiro...</p>
       </div>
     );
   }
@@ -132,19 +132,19 @@ export default function Finance() {
       <section className="flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
           <h2 className="text-4xl font-bold text-white font-headline tracking-tighter italic">Financeiro</h2>
-          <p className="text-[#94a3b8] font-medium text-sm">Controle de fluxo de caixa e gestão de resultados.</p>
+          <p className="text-slate-200 font-medium text-sm">Controle de fluxo de caixa e gestão de resultados.</p>
         </div>
         <div className="flex gap-3">
           {!isFreePlan && (
             <>
               <button 
-                className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] px-4 py-2 rounded-xl text-[#94a3b8] font-bold text-xs uppercase tracking-widest transition-all hover:bg-[#334155] hover:text-white"
+                className="flex items-center gap-2 bg-[#1e293b] border border-[#334155] px-4 py-2 rounded-xl text-slate-200 font-bold text-sm uppercase tracking-widest transition-all hover:bg-[#334155] hover:text-white"
               >
                 <Download size={16} /> Exportar
               </button>
               <button 
                 onClick={() => setIsAdding(true)}
-                className="flex items-center gap-2 bg-[#3b82f6] text-white px-6 py-2 rounded-xl font-bold text-xs uppercase tracking-widest shadow-md transition-all hover:scale-105 active:scale-95"
+                className="flex items-center gap-2 bg-[#3b82f6] text-white px-6 py-2 rounded-xl font-bold text-sm uppercase tracking-widest shadow-md transition-all hover:scale-105 active:scale-95"
               >
                 <Plus size={16} />
                 NOVA TRANSAÇÃO
@@ -161,10 +161,10 @@ export default function Finance() {
           </div>
           <div className="max-w-lg">
             <h3 className="text-2xl font-black text-white font-headline tracking-tighter italic mb-4">Funcionalidade Premium</h3>
-            <p className="text-[#94a3b8] font-medium leading-relaxed mb-8">
+            <p className="text-slate-200 font-medium leading-relaxed mb-8">
               O controle financeiro completo, com gráficos de fluxo de caixa, relatórios e gestão de resultados, está disponível apenas nos planos Profissional e Anual. Assine agora para ter visão total sobre o lucro do seu plantel!
             </p>
-            <a href="/subscription" className="inline-flex items-center gap-2 bg-gradient-to-r from-[#eab308] to-[#f59e0b] text-[#1e293b] px-8 py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:scale-105 active:scale-95 transition-all">
+            <a href="/subscription" className="inline-flex items-center gap-2 bg-gradient-to-r from-[#eab308] to-[#f59e0b] text-[#1e293b] px-8 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:scale-105 active:scale-95 transition-all">
               <Star size={16} /> Fazer Upgrade
             </a>
           </div>
@@ -177,7 +177,7 @@ export default function Finance() {
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform">
             <TrendingUp size={80} className="text-[#10b981]" />
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Total de Entradas (Mês Atual)</p>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Total de Entradas (Mês Atual)</p>
           <p className="text-4xl font-black font-headline tracking-tighter text-[#10b981]">R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </div>
 
@@ -186,7 +186,7 @@ export default function Finance() {
           <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-110 transition-transform">
             <TrendingDown size={80} className="text-[#f43f5e]" />
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Total de Saídas (Mês Atual)</p>
+          <p className="text-sm font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Total de Saídas (Mês Atual)</p>
           <p className="text-4xl font-black font-headline tracking-tighter text-[#f43f5e]">R$ {totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </div>
 
@@ -196,11 +196,11 @@ export default function Finance() {
             <Wallet size={80} className={isProfit ? 'text-[#10b981]' : 'text-[#f43f5e]'} />
           </div>
           <div className="flex justify-between items-start mb-6">
-            <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full border ${isProfit ? 'bg-[#10b981]/20 border-[#10b981]/40 text-[#10b981]' : 'bg-[#f43f5e]/20 border-[#f43f5e]/40 text-[#f43f5e]'}`}>
+            <span className={`text-sm font-black uppercase px-3 py-1 rounded-full border ${isProfit ? 'bg-[#10b981]/20 border-[#10b981]/40 text-[#10b981]' : 'bg-[#f43f5e]/20 border-[#f43f5e]/40 text-[#f43f5e]'}`}>
               {isProfit ? 'LUCRO' : 'PREJUÍZO'}
             </span>
           </div>
-          <p className={`text-[10px] font-bold uppercase tracking-[0.2em] mb-1 ${isProfit ? 'text-[#10b981]/70' : 'text-[#f43f5e]/70'}`}>Saldo (Mês Atual)</p>
+          <p className={`text-sm font-bold uppercase tracking-[0.2em] mb-1 ${isProfit ? 'text-[#10b981]/70' : 'text-[#f43f5e]/70'}`}>Saldo (Mês Atual)</p>
           <p className={`text-4xl font-black font-headline tracking-tighter ${isProfit ? 'text-[#10b981]' : 'text-[#f43f5e]'}`}>
             R$ {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
@@ -216,18 +216,18 @@ export default function Finance() {
             </div>
             <div>
               <h3 className="font-headline font-bold text-2xl text-white italic tracking-tight">Fluxo Mensal</h3>
-              <p className="text-[10px] font-bold text-[#475569] uppercase tracking-widest">Comparativo de entradas e saídas</p>
+              <p className="text-sm font-bold text-[#475569] uppercase tracking-widest">Comparativo de entradas e saídas</p>
             </div>
           </div>
           
           <div className="flex gap-4 items-center bg-[#0f172a] p-2 rounded-2xl border border-[#334155]">
             <div className="flex items-center gap-2 px-3">
               <div className="w-2.5 h-2.5 rounded-full bg-[#10b981]" />
-              <span className="text-[9px] font-bold text-white uppercase tracking-tighter">Entradas</span>
+              <span className="text-sm font-bold text-white uppercase tracking-tighter">Entradas</span>
             </div>
             <div className="flex items-center gap-2 px-3">
               <div className="w-2.5 h-2.5 rounded-full bg-[#f43f5e]" />
-              <span className="text-[9px] font-bold text-white uppercase tracking-tighter">Saídas</span>
+              <span className="text-sm font-bold text-white uppercase tracking-tighter">Saídas</span>
             </div>
           </div>
         </div>
@@ -240,13 +240,13 @@ export default function Finance() {
                 dataKey="month" 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: '800' }} 
+                tick={{ fill: '#cbd5e1', fontSize: 12, fontWeight: '800' }} 
                 dy={12}
               />
               <YAxis 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: '#475569', fontSize: 10, fontWeight: '700' }}
+                tick={{ fill: '#475569', fontSize: 12, fontWeight: '700' }}
                 tickFormatter={(value) => `R$ ${value}`}
               />
               <Tooltip 
@@ -260,7 +260,7 @@ export default function Finance() {
                   boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.4)'
                 }}
                 itemStyle={{ padding: '2px 0' }}
-                labelStyle={{ color: '#94a3b8', marginBottom: '8px', borderBottom: '1px solid #334155', paddingBottom: '4px' }}
+                labelStyle={{ color: '#cbd5e1', marginBottom: '8px', borderBottom: '1px solid #334155', paddingBottom: '4px' }}
                 formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
               />
               <Bar 
@@ -285,7 +285,7 @@ export default function Finance() {
       <div className="bg-[#1e293b] border border-[#334155] rounded-[24px] overflow-hidden shadow-sm">
         <div className="p-6 border-b border-[#334155] flex flex-col md:flex-row justify-between items-center gap-4">
           <h3 className="font-headline font-bold text-xl text-white italic tracking-tight">Histórico de Transações</h3>
-          <div className="flex gap-6 text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest overflow-x-auto">
+          <div className="flex gap-6 text-sm font-bold text-slate-200 uppercase tracking-widest overflow-x-auto">
             {['All', 'Entrada', 'Saída'].map(type => (
               <span 
                 key={type}
@@ -300,7 +300,7 @@ export default function Finance() {
         <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-left">
             <thead>
-              <tr className="text-[10px] uppercase font-black text-[#94a3b8]/60 tracking-[0.2em] bg-[#0f172a]/30">
+              <tr className="text-sm uppercase font-black text-slate-200/60 tracking-[0.2em] bg-[#0f172a]/30">
                 <th className="px-6 py-4">Data</th>
                 <th className="px-6 py-4">Tipo</th>
                 <th className="px-6 py-4">Motivo / Categoria</th>
@@ -311,7 +311,7 @@ export default function Finance() {
             <tbody>
               {filteredTransactions.map((t) => (
                 <tr key={t.id} className="group border-b border-[#334155] hover:bg-[#334155]/30 transition-colors">
-                  <td className="px-6 py-4 text-xs text-[#94a3b8] font-mono">{t.date}</td>
+                  <td className="px-6 py-4 text-sm text-slate-200 font-mono">{t.date}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       {t.type === 'Entrada' ? (
@@ -319,7 +319,7 @@ export default function Finance() {
                       ) : (
                         <ArrowDownCircle size={16} className="text-[#f43f5e]" />
                       )}
-                      <span className={`text-[10px] font-black uppercase tracking-widest ${t.type === 'Entrada' ? 'text-[#10b981]' : 'text-[#f43f5e]'}`}>
+                      <span className={`text-sm font-black uppercase tracking-widest ${t.type === 'Entrada' ? 'text-[#10b981]' : 'text-[#f43f5e]'}`}>
                         {t.type}
                       </span>
                     </div>
@@ -327,14 +327,14 @@ export default function Finance() {
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-white tracking-tight">{t.reason}</span>
-                      <span className="text-[10px] font-bold text-[#475569] uppercase tracking-tighter">{t.category}</span>
+                      <span className="text-sm font-bold text-[#475569] uppercase tracking-tighter">{t.category}</span>
                     </div>
                   </td>
                   <td className={`px-6 py-4 text-right font-black ${t.type === 'Entrada' ? 'text-[#10b981]' : 'text-[#f43f5e]'}`}>
                     {t.type === 'Entrada' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button onClick={() => removeTransaction(t.id)} className="p-2 hover:bg-[#334155] rounded-xl transition-colors text-[#94a3b8] hover:text-[#f43f5e]">
+                    <button onClick={() => removeTransaction(t.id)} className="p-2 hover:bg-[#334155] rounded-xl transition-colors text-slate-200 hover:text-[#f43f5e]">
                       <Trash2 size={16} />
                     </button>
                   </td>
@@ -356,13 +356,13 @@ export default function Finance() {
                   <div>
                     <span className="text-[8px] font-black uppercase text-[#475569] tracking-widest mb-1 block">{t.date}</span>
                     <h4 className="font-bold text-white text-sm leading-tight">{t.reason}</h4>
-                    <span className="text-[10px] font-bold text-[#3b82f6] uppercase">{t.category}</span>
+                    <span className="text-sm font-bold text-[#3b82f6] uppercase">{t.category}</span>
                   </div>
                 </div>
-                <button onClick={() => removeTransaction(t.id)} className="p-2 text-[#94a3b8] hover:text-[#f43f5e]"><Trash2 size={16} /></button>
+                <button onClick={() => removeTransaction(t.id)} className="p-2 text-slate-200 hover:text-[#f43f5e]"><Trash2 size={16} /></button>
               </div>
               <div className="flex justify-between items-center bg-[#0f172a] p-3 rounded-xl border border-[#334155]">
-                <span className="text-[10px] font-black text-[#475569] uppercase">Valor Total</span>
+                <span className="text-sm font-black text-[#475569] uppercase">Valor Total</span>
                 <span className={`text-lg font-black ${t.type === 'Entrada' ? 'text-[#10b981]' : 'text-[#f43f5e]'}`}>
                   {t.type === 'Entrada' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
@@ -370,7 +370,7 @@ export default function Finance() {
             </div>
           ))}
           {filteredTransactions.length === 0 && (
-            <div className="py-20 text-center text-[#94a3b8] font-medium opacity-40 italic">
+            <div className="py-20 text-center text-slate-200 font-medium opacity-40 italic">
               Nenhuma transação registrada.
             </div>
           )}
@@ -389,7 +389,7 @@ export default function Finance() {
             >
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-bold text-white font-headline tracking-tighter italic">Nova Transação</h3>
-                <button onClick={() => setIsAdding(false)} className="text-[#94a3b8] hover:text-white transition-colors">
+                <button onClick={() => setIsAdding(false)} className="text-slate-200 hover:text-white transition-colors">
                   <X size={24} />
                 </button>
               </div>
@@ -398,38 +398,38 @@ export default function Finance() {
                 <div className="grid grid-cols-2 gap-4 p-2 bg-[#0f172a] rounded-2xl border border-[#334155]">
                   <label className="relative cursor-pointer group">
                     <input type="radio" name="type" value="Entrada" defaultChecked className="hidden peer" />
-                    <div className="flex items-center justify-center gap-2 py-3 rounded-xl border border-transparent peer-checked:bg-[#10b981]/10 peer-checked:border-[#10b981] peer-checked:text-[#10b981] text-[#94a3b8] transition-all">
+                    <div className="flex items-center justify-center gap-2 py-3 rounded-xl border border-transparent peer-checked:bg-[#10b981]/10 peer-checked:border-[#10b981] peer-checked:text-[#10b981] text-slate-200 transition-all">
                       <TrendingUp size={16} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Entrada</span>
+                      <span className="text-sm font-black uppercase tracking-widest">Entrada</span>
                     </div>
                   </label>
                   <label className="relative cursor-pointer group">
                     <input type="radio" name="type" value="Saída" className="hidden peer" />
-                    <div className="flex items-center justify-center gap-2 py-3 rounded-xl border border-transparent peer-checked:bg-[#f43f5e]/10 peer-checked:border-[#f43f5e] peer-checked:text-[#f43f5e] text-[#94a3b8] transition-all">
+                    <div className="flex items-center justify-center gap-2 py-3 rounded-xl border border-transparent peer-checked:bg-[#f43f5e]/10 peer-checked:border-[#f43f5e] peer-checked:text-[#f43f5e] text-slate-200 transition-all">
                       <TrendingDown size={16} />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Saída</span>
+                      <span className="text-sm font-black uppercase tracking-widest">Saída</span>
                     </div>
                   </label>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Valor (R$)</label>
+                    <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Valor (R$)</label>
                     <input required name="amount" type="number" step="0.01" placeholder="0.00" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-bold" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Data</label>
+                    <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Data</label>
                     <input name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium" />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Motivo / Descrição</label>
+                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Motivo / Descrição</label>
                   <input required name="reason" type="text" placeholder="Ex: Venda de Filhote" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium" />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Categoria</label>
+                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Categoria</label>
                   <select name="category" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[#3b82f6]/50 outline-none text-sm font-medium appearance-none">
                     <option value="Venda de Aves">Venda de Aves</option>
                     <option value="Aquisição de Aves">Aquisição de Aves</option>
@@ -441,7 +441,7 @@ export default function Finance() {
                 </div>
 
                 <div className="pt-4">
-                  <button type="submit" className="w-full py-4 bg-[#3b82f6] text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg hover:bg-[#2563eb] transition-all hover:scale-[1.02] active:scale-95">
+                  <button type="submit" className="w-full py-4 bg-[#3b82f6] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg hover:bg-[#2563eb] transition-all hover:scale-[1.02] active:scale-95">
                     Registrar Transação
                   </button>
                 </div>

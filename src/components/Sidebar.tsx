@@ -52,11 +52,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         <div className="flex justify-between items-center mb-8">
           <div className="text-4xl font-black text-white font-headline tracking-tighter italic flex flex-col">
             AVS
-            <span className="text-[10px] font-black tracking-[0.4em] text-[#3b82f6] uppercase -mt-1 leading-none">GERENCIAMENTO</span>
+            <span className="text-sm font-black tracking-[0.4em] text-[#3b82f6] uppercase -mt-1 leading-none">GERENCIAMENTO</span>
           </div>
           <button 
             onClick={onClose}
-            className="lg:hidden text-[#94a3b8] hover:text-white transition-colors"
+            className="lg:hidden text-slate-200 hover:text-white transition-colors"
           >
             <X size={24} />
           </button>
@@ -71,10 +71,10 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 if (window.innerWidth < 1024) onClose();
               }}
               className={`
-                flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-headline font-semibold uppercase tracking-widest text-[10px]
+                flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-headline font-semibold uppercase tracking-widest text-sm
                 ${location.pathname === item.path 
                   ? 'bg-[#334155] text-[#3b82f6] shadow-sm' 
-                  : 'text-[#94a3b8] hover:bg-[#334155]/50 hover:text-white'
+                  : 'text-slate-200 hover:bg-[#334155]/50 hover:text-white'
                 }
               `}
             >

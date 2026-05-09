@@ -78,7 +78,7 @@ export default function App() {
             </div>
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="text-[#94a3b8] hover:text-white transition-colors"
+              className="text-slate-200 hover:text-white transition-colors"
             >
               <Menu size={24} />
             </button>
@@ -99,12 +99,12 @@ export default function App() {
                 </div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-black text-white font-headline tracking-tighter italic uppercase break-all">Bem-vindo, {session.user.email}</h2>
-                  <p className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest">Sua sessão está ativa no AVS Gerenciamento</p>
+                  <p className="text-sm font-bold text-slate-200 uppercase tracking-widest">Sua sessão está ativa no AVS Gerenciamento</p>
                 </div>
               </div>
               <button 
                 onClick={handleSignOut}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#f43f5e]/20 transition-all"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/20 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-[#f43f5e]/20 transition-all"
               >
                 <LogOut size={16} /> Sair
               </button>
@@ -124,7 +124,7 @@ export default function App() {
               </Routes>
             </AnimatePresence>
 
-            <footer className="pt-12 border-t border-outline-variant/15 flex flex-col sm:flex-row justify-between items-center text-[8px] sm:text-[10px] font-bold text-outline-variant uppercase tracking-[0.2em] mt-20 gap-4 text-center sm:text-left">
+            <footer className="pt-12 border-t border-outline-variant/15 flex flex-col sm:flex-row justify-between items-center text-[8px] sm:text-sm font-bold text-outline-variant uppercase tracking-[0.2em] mt-20 gap-4 text-center sm:text-left">
               <div>® 2026 AVS GERENCIAMENTOS - Criado e desenvolvido por Criatório Sitieiro. Todos os direitos reservados.</div>
               <div className="flex flex-wrap justify-center gap-4 sm:gap-8">
                 <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>

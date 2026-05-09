@@ -111,7 +111,7 @@ export default function Settings() {
         </div>
         <div>
           <h2 className="text-4xl font-bold text-white font-headline tracking-tighter italic uppercase">Configurações</h2>
-          <p className="text-[#94a3b8] font-medium text-sm italic">Gerencie seu perfil e preferências do sistema.</p>
+          <p className="text-slate-200 font-medium text-sm italic">Gerencie seu perfil e preferências do sistema.</p>
         </div>
       </header>
 
@@ -127,7 +127,7 @@ export default function Settings() {
             <form onSubmit={handleUpdateProfile} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Nome Completo</label>
+                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Nome Completo</label>
                   <input 
                     required 
                     name="full_name" 
@@ -139,7 +139,7 @@ export default function Settings() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Telefone / WhatsApp</label>
+                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Telefone / WhatsApp</label>
                   <input 
                     name="phone" 
                     type="tel" 
@@ -151,17 +151,17 @@ export default function Settings() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">E-mail (Não editável)</label>
+                <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">E-mail (Não editável)</label>
                 <input 
                   disabled 
                   value={userEmail}
                   className="w-full bg-[#0f172a]/50 border border-[#334155] rounded-xl px-4 py-3 text-[#475569] outline-none cursor-not-allowed" 
                 />
-                <p className="text-[10px] text-[#475569] mt-1 italic italic">O e-mail é gerenciado pelo sistema de autenticação.</p>
+                <p className="text-sm text-[#475569] mt-1 italic italic">O e-mail é gerenciado pelo sistema de autenticação.</p>
               </div>
 
               {message && (
-                <div className={`p-4 rounded-xl text-xs font-bold flex items-center gap-2 ${message.type === 'success' ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : 'bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/20'}`}>
+                <div className={`p-4 rounded-xl text-sm font-bold flex items-center gap-2 ${message.type === 'success' ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : 'bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/20'}`}>
                   {message.type === 'success' ? <CheckCircle2 size={16} /> : <Shield size={16} />}
                   {message.text}
                 </div>
@@ -171,7 +171,7 @@ export default function Settings() {
                 <button 
                   type="submit" 
                   disabled={saving}
-                  className="flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold text-xs uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold text-sm uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
                 >
                   {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                   SALVAR ALTERAÇÕES
@@ -186,7 +186,7 @@ export default function Settings() {
               <Bell className="text-[#f59e0b]" size={24} />
               <h3 className="text-xl font-bold text-white font-headline tracking-tight uppercase italic">Notificações</h3>
             </div>
-            <p className="text-sm text-[#94a3b8]">Configurações de notificação serão implementadas em versões futuras.</p>
+            <p className="text-sm text-slate-200">Configurações de notificação serão implementadas em versões futuras.</p>
           </section>
         </div>
 
@@ -201,7 +201,7 @@ export default function Settings() {
             
             <form onSubmit={handleUpdatePassword} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Nova Senha</label>
+                <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Nova Senha</label>
                 <input 
                   required
                   type="password"
@@ -213,7 +213,7 @@ export default function Settings() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Confirmar Nova Senha</label>
+                <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Confirmar Nova Senha</label>
                 <input 
                   required
                   type="password"
@@ -225,7 +225,7 @@ export default function Settings() {
               </div>
 
               {passwordMessage && (
-                <div className={`p-4 rounded-xl text-xs font-bold flex items-center gap-2 ${passwordMessage.type === 'success' ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : 'bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/20'}`}>
+                <div className={`p-4 rounded-xl text-sm font-bold flex items-center gap-2 ${passwordMessage.type === 'success' ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : 'bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/20'}`}>
                   {passwordMessage.type === 'success' ? <CheckCircle2 size={16} /> : <Shield size={16} />}
                   {passwordMessage.text}
                 </div>
@@ -235,7 +235,7 @@ export default function Settings() {
                 <button 
                   type="submit" 
                   disabled={updatingPassword}
-                  className="w-full flex items-center justify-center gap-2 bg-primary/10 text-primary border border-primary/20 px-6 py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:bg-primary/20 disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 bg-primary/10 text-primary border border-primary/20 px-6 py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all hover:bg-primary/20 disabled:opacity-50"
                 >
                   {updatingPassword ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                   ATUALIZAR SENHA
@@ -249,10 +249,10 @@ export default function Settings() {
               <LogOut className="text-[#f43f5e]" size={24} />
               <h3 className="text-xl font-bold text-white font-headline tracking-tight uppercase italic">Sessão</h3>
             </div>
-            <p className="text-xs text-[#94a3b8] mb-6 tracking-widest uppercase font-bold">Encerrar acesso ao sistema</p>
+            <p className="text-sm text-slate-200 mb-6 tracking-widest uppercase font-bold">Encerrar acesso ao sistema</p>
             <button 
               onClick={handleSignOut}
-              className="w-full flex items-center justify-center gap-2 bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/20 px-6 py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:bg-[#f43f5e]/20"
+              className="w-full flex items-center justify-center gap-2 bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/20 px-6 py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all hover:bg-[#f43f5e]/20"
             >
               <LogOut size={16} /> ENCERRAR SESSÃO
             </button>
@@ -263,9 +263,9 @@ export default function Settings() {
               <Shield className="text-[#f43f5e]" size={24} />
               <h3 className="text-xl font-bold text-white font-headline tracking-tight uppercase italic">Zona de Perigo</h3>
             </div>
-            <p className="text-xs text-[#94a3b8] mb-6">A exclusão da conta é irreversível e apagará todos os seus registros de aves, financeiro e incubação.</p>
+            <p className="text-sm text-slate-200 mb-6">A exclusão da conta é irreversível e apagará todos os seus registros de aves, financeiro e incubação.</p>
             <button 
-              className="w-full text-[#475569] text-[10px] font-bold uppercase tracking-widest hover:text-[#f43f5e] transition-colors"
+              className="w-full text-[#475569] text-sm font-bold uppercase tracking-widest hover:text-[#f43f5e] transition-colors"
               onClick={() => alert('Para sua segurança, contate o administrador para excluir sua conta.')}
             >
               Excluir minha conta

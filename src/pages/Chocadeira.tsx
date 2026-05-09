@@ -155,7 +155,7 @@ export default function Chocadeira() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="animate-spin text-[#f59e0b]" size={48} />
-        <p className="text-[#94a3b8] font-bold uppercase tracking-widest text-xs">Carregando Chocadeiras...</p>
+        <p className="text-slate-200 font-bold uppercase tracking-widest text-sm">Carregando Chocadeiras...</p>
       </div>
     );
   }
@@ -170,7 +170,7 @@ export default function Chocadeira() {
       <header className="flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
           <h2 className="text-4xl font-bold text-white font-headline tracking-tighter italic uppercase">SISTEMA DE INCUBAÇÃO</h2>
-          <p className="text-[#94a3b8] font-medium text-sm italic">Monitoramento e controle de eclosão (21 dias).</p>
+          <p className="text-slate-200 font-medium text-sm italic">Monitoramento e controle de eclosão (21 dias).</p>
         </div>
         <button 
           onClick={() => {
@@ -180,9 +180,9 @@ export default function Chocadeira() {
             }
             setIsAddingIncubator(true);
           }}
-          className={`flex items-center gap-2 px-6 py-4 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-xl transition-all ${
+          className={`flex items-center gap-2 px-6 py-4 rounded-xl font-bold text-sm uppercase tracking-widest shadow-xl transition-all ${
             isFreePlan && incubators.length >= limits.incubators
-              ? 'bg-[#334155] text-[#94a3b8] cursor-not-allowed opacity-70'
+              ? 'bg-[#334155] text-slate-200 cursor-not-allowed opacity-70'
               : 'bg-[#3b82f6] text-white hover:scale-105 active:scale-95'
           }`}
         >
@@ -206,12 +206,12 @@ export default function Chocadeira() {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-white font-headline tracking-tight italic">{inc.name}</h3>
-                    <p className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest">Capacidade: {currentTotal} / {inc.capacity} Ovos</p>
+                    <p className="text-sm font-bold text-slate-200 uppercase tracking-widest">Capacidade: {currentTotal} / {inc.capacity} Ovos</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => removeIncubator(inc.id)}
-                  className="text-[#94a3b8] hover:text-[#f43f5e] transition-colors p-2"
+                  className="text-slate-200 hover:text-[#f43f5e] transition-colors p-2"
                 >
                   <Trash2 size={20} />
                 </button>
@@ -221,14 +221,14 @@ export default function Chocadeira() {
                 <div className="bg-[#0f172a] p-4 rounded-2xl flex items-center gap-3">
                   <Thermometer className="text-[#f59e0b]" size={20} />
                   <div>
-                    <p className="text-[9px] font-bold text-[#94a3b8] uppercase">Temp.</p>
+                    <p className="text-sm font-bold text-slate-200 uppercase">Temp.</p>
                     <p className="text-sm font-bold text-white">37.5°C</p>
                   </div>
                 </div>
                 <div className="bg-[#0f172a] p-4 rounded-2xl flex items-center gap-3">
                   <Droplets className="text-[#3b82f6]" size={20} />
                   <div>
-                    <p className="text-[9px] font-bold text-[#94a3b8] uppercase">Umidade</p>
+                    <p className="text-sm font-bold text-slate-200 uppercase">Umidade</p>
                     <p className="text-sm font-bold text-white">55%</p>
                   </div>
                 </div>
@@ -236,11 +236,11 @@ export default function Chocadeira() {
 
               <div className="space-y-4 flex-1">
                 <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-[10px] font-black text-[#475569] uppercase tracking-widest">Lotes em Incubação</h4>
+                  <h4 className="text-sm font-black text-[#475569] uppercase tracking-widest">Lotes em Incubação</h4>
                   <button 
                     disabled={currentTotal >= inc.capacity}
                     onClick={() => setIsAddingBatch(inc.id)}
-                    className="text-[#3b82f6] text-[10px] font-black uppercase hover:underline disabled:opacity-30 tracking-tight"
+                    className="text-[#3b82f6] text-sm font-black uppercase hover:underline disabled:opacity-30 tracking-tight"
                   >
                     + Novo Lote
                   </button>
@@ -249,8 +249,8 @@ export default function Chocadeira() {
                 <div className="space-y-4">
                   {(!inc.incubator_batches || inc.incubator_batches.length === 0) && (
                     <div className="text-center py-10 opacity-20 flex flex-col items-center gap-2">
-                      <Egg size={40} className="text-[#94a3b8]" />
-                      <p className="text-xs font-medium">Chocadeira Vazia</p>
+                      <Egg size={40} className="text-slate-200" />
+                      <p className="text-sm font-medium">Chocadeira Vazia</p>
                     </div>
                   )}
                   {(inc.incubator_batches || []).map(batch => {
@@ -264,17 +264,17 @@ export default function Chocadeira() {
                             </div>
                             <div>
                               <p className="text-sm font-bold text-white tracking-tight italic">{batch.name}</p>
-                              <p className="text-[10px] text-[#94a3b8] font-bold">{batch.count} UNIDADES</p>
+                              <p className="text-sm text-slate-200 font-bold">{batch.count} UNIDADES</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <button 
                               onClick={() => setIsEditingBatch({ incubatorId: inc.id, batch })}
-                              className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-[#94a3b8] hover:text-[#3b82f6] text-[10px] font-bold uppercase tracking-widest"
+                              className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-slate-200 hover:text-[#3b82f6] text-sm font-bold uppercase tracking-widest"
                             >
                               Editar
                             </button>
-                            <button onClick={() => removeBatch(batch.id)} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-[#94a3b8] hover:text-[#f43f5e] p-2"><Trash2 size={16} /></button>
+                            <button onClick={() => removeBatch(batch.id)} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-slate-200 hover:text-[#f43f5e] p-2"><Trash2 size={16} /></button>
                           </div>
                         </div>
 
@@ -282,19 +282,19 @@ export default function Chocadeira() {
                         <div className="grid grid-cols-4 gap-2 mb-4">
                           <div className="bg-[#1e293b]/50 p-2 rounded-lg text-center">
                             <p className="text-[8px] font-black text-[#475569] uppercase tracking-tighter">Fértil</p>
-                            <p className="text-xs font-black text-[#10b981]">{batch.fertile || 0}</p>
+                            <p className="text-sm font-black text-[#10b981]">{batch.fertile || 0}</p>
                           </div>
                           <div className="bg-[#1e293b]/50 p-2 rounded-lg text-center">
                             <p className="text-[8px] font-black text-[#475569] uppercase tracking-tighter">Claro</p>
-                            <p className="text-xs font-black text-[#94a3b8]">{batch.infertile || 0}</p>
+                            <p className="text-sm font-black text-slate-200">{batch.infertile || 0}</p>
                           </div>
                           <div className="bg-[#1e293b]/50 p-2 rounded-lg text-center">
                             <p className="text-[8px] font-black text-[#475569] uppercase tracking-tighter">Nasceu</p>
-                            <p className="text-xs font-black text-[#3b82f6]">{batch.hatched || 0}</p>
+                            <p className="text-sm font-black text-[#3b82f6]">{batch.hatched || 0}</p>
                           </div>
                           <div className="bg-[#1e293b]/50 p-2 rounded-lg text-center">
                             <p className="text-[8px] font-black text-[#475569] uppercase tracking-tighter">M. Casca</p>
-                            <p className="text-xs font-black text-[#f43f5e]">{batch.dead_in_shell || 0}</p>
+                            <p className="text-sm font-black text-[#f43f5e]">{batch.dead_in_shell || 0}</p>
                           </div>
                         </div>
                         
@@ -306,7 +306,7 @@ export default function Chocadeira() {
                                 {status.finished ? 'Eclosão Pronta!' : `${status.days}d ${status.hours}h restantes`}
                               </span>
                             </div>
-                            <span className="text-[9px] font-black text-[#475569] uppercase">{Math.round(status.progress)}%</span>
+                            <span className="text-sm font-black text-[#475569] uppercase">{Math.round(status.progress)}%</span>
                           </div>
                           <div className="h-1 bg-[#1e293b] rounded-full overflow-hidden">
                             <motion.div 
@@ -338,14 +338,14 @@ export default function Chocadeira() {
               </div>
               <form onSubmit={handleAddIncubator} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Identificação da Máquina</label>
+                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Identificação da Máquina</label>
                   <input required name="name" type="text" placeholder="Ex: Master Hatch 500" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#3b82f6]/50 transition-all font-medium" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Capacidade Total (Ovos)</label>
+                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Capacidade Total (Ovos)</label>
                   <input required name="capacity" type="number" placeholder="Ex: 24" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#3b82f6]/50 transition-all" />
                 </div>
-                <button type="submit" className="w-full py-4 bg-[#3b82f6] text-white rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg hover:bg-opacity-90 transition-all">Salvar Chocadeira</button>
+                <button type="submit" className="w-full py-4 bg-[#3b82f6] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg hover:bg-opacity-90 transition-all">Salvar Chocadeira</button>
               </form>
             </motion.div>
           </div>
@@ -361,14 +361,14 @@ export default function Chocadeira() {
               </div>
               <form onSubmit={(e) => handleAddBatch(e, isAddingBatch)} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Identificação / Casal</label>
+                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Identificação / Casal</label>
                   <input required name="name" type="text" placeholder="Ex: Casal MR-42" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#3b82f6]/50 transition-all font-medium" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Quantidade de Ovos</label>
+                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Quantidade de Ovos</label>
                   <input required name="count" type="number" placeholder="Ex: 4" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#3b82f6]/50 transition-all" />
                 </div>
-                <button type="submit" className="w-full py-4 bg-[#f59e0b] text-white rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg hover:bg-opacity-90 transition-all">Iniciar Incubação</button>
+                <button type="submit" className="w-full py-4 bg-[#f59e0b] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg hover:bg-opacity-90 transition-all">Iniciar Incubação</button>
               </form>
             </motion.div>
           </div>
@@ -385,36 +385,36 @@ export default function Chocadeira() {
               <form onSubmit={handleUpdateBatch} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Nome do Lote</label>
+                    <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Nome do Lote</label>
                     <input required name="name" defaultValue={isEditingBatch.batch.name} type="text" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white outline-none" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Total Ovos</label>
+                    <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Total Ovos</label>
                     <input required name="count" defaultValue={isEditingBatch.batch.count} type="number" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white outline-none" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#334155]">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#10b981] uppercase tracking-widest pl-1">Ovos Férteis</label>
+                    <label className="text-sm font-bold text-[#10b981] uppercase tracking-widest pl-1">Ovos Férteis</label>
                     <input name="fertile" defaultValue={isEditingBatch.batch.fertile} type="number" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#10b981]/30" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest pl-1">Ovos Claros</label>
+                    <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Ovos Claros</label>
                     <input name="infertile" defaultValue={isEditingBatch.batch.infertile} type="number" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white outline-none" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#3b82f6] uppercase tracking-widest pl-1">Nasceram</label>
+                    <label className="text-sm font-bold text-[#3b82f6] uppercase tracking-widest pl-1">Nasceram</label>
                     <input name="hatched" defaultValue={isEditingBatch.batch.hatched} type="number" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#3b82f6]/30" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#f43f5e] uppercase tracking-widest pl-1">Morto na Casca</label>
+                    <label className="text-sm font-bold text-[#f43f5e] uppercase tracking-widest pl-1">Morto na Casca</label>
                     <input name="dead_in_shell" defaultValue={isEditingBatch.batch.dead_in_shell} type="number" className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#f43f5e]/30" />
                   </div>
                 </div>
 
                 <div className="pt-4 flex gap-3">
-                   <button type="submit" className="flex-1 py-4 bg-[#3b82f6] text-white rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg hover:bg-opacity-90 transition-all">Salvar Alterações</button>
+                   <button type="submit" className="flex-1 py-4 bg-[#3b82f6] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg hover:bg-opacity-90 transition-all">Salvar Alterações</button>
                 </div>
               </form>
             </motion.div>

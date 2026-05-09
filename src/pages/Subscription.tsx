@@ -19,7 +19,7 @@ const plans = [
     ],
     buttonText: 'Plano Atual',
     isPopular: false,
-    icon: <Star size={24} className="text-[#94a3b8]" />,
+    icon: <Star size={24} className="text-slate-200" />,
     gradient: 'from-[#334155] to-[#1e293b]',
     link: '#',
   },
@@ -86,7 +86,7 @@ export default function Subscription() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#3b82f6] text-[10px] font-black uppercase tracking-widest mb-6"
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#3b82f6]/10 border border-[#3b82f6]/20 text-[#3b82f6] text-sm font-black uppercase tracking-widest mb-6"
         >
           <CreditCard size={14} />
           Assinaturas e Pagamentos
@@ -105,7 +105,7 @@ export default function Subscription() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-[#94a3b8] max-w-2xl mx-auto text-sm sm:text-base font-semibold"
+          className="text-slate-200 max-w-2xl mx-auto text-sm sm:text-base font-semibold"
         >
           Escolha o plano ideal para gerenciar suas aves, finanças e chocadeiras com a máxima eficiência. Cancele quando quiser.
         </motion.p>
@@ -130,7 +130,7 @@ export default function Subscription() {
           >
             {plan.isPopular && (
               <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                <div className="bg-gradient-to-r from-[#eab308] to-[#f59e0b] text-[#1e293b] text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+                <div className="bg-gradient-to-r from-[#eab308] to-[#f59e0b] text-[#1e293b] text-sm font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
                   Mais Popular
                 </div>
               </div>
@@ -144,7 +144,7 @@ export default function Subscription() {
               {plan.name}
             </h3>
 
-            <p className="text-[#94a3b8] text-xs font-semibold mb-6 h-8">
+            <p className="text-slate-200 text-sm font-semibold mb-6 h-8">
               {plan.description}
             </p>
 
@@ -157,7 +157,7 @@ export default function Subscription() {
               <span className="text-4xl font-black text-white font-headline tracking-tighter italic">
                 {plan.price}
               </span>
-              <span className="text-[#94a3b8] text-xs font-bold uppercase tracking-widest">
+              <span className="text-slate-200 text-sm font-bold uppercase tracking-widest">
                 {plan.period}
               </span>
             </div>
@@ -168,7 +168,7 @@ export default function Subscription() {
               rel="noopener noreferrer"
               onClick={(e) => { if (isCurrentPlan) e.preventDefault(); }}
               className={`
-                w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest text-center transition-all duration-300 mb-8 block
+                w-full py-4 rounded-xl text-sm font-black uppercase tracking-widest text-center transition-all duration-300 mb-8 block
                 ${isCurrentPlan
                   ? 'bg-[#10b981] text-white cursor-default shadow-[0_0_20px_rgba(16,185,129,0.2)]'
                   : plan.isPopular
@@ -188,7 +188,7 @@ export default function Subscription() {
                   <div className={`mt-0.5 rounded-full p-0.5 ${plan.isPopular ? 'bg-[#eab308]/20 text-[#eab308]' : 'bg-[#3b82f6]/20 text-[#3b82f6]'}`}>
                     <Check size={12} strokeWidth={4} />
                   </div>
-                  <span className="text-[#cbd5e1] text-xs font-semibold">{feature}</span>
+                  <span className="text-[#cbd5e1] text-sm font-semibold">{feature}</span>
                 </div>
               ))}
             </div>
@@ -200,7 +200,7 @@ export default function Subscription() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
-        className="mt-16 text-center text-[#94a3b8] text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+        className="mt-16 text-center text-slate-200 text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-2"
       >
         <Lock size={14} />
         Pagamento seguro processado por <span className="text-white">Stripe</span>
@@ -213,12 +213,12 @@ export default function Subscription() {
           transition={{ delay: 0.8 }}
           className="mt-12 flex flex-col items-center justify-center gap-4 border-t border-[#334155] pt-8"
         >
-          <p className="text-[#94a3b8] text-sm font-medium">Deseja gerenciar ou cancelar sua assinatura atual?</p>
+          <p className="text-slate-200 text-sm font-medium">Deseja gerenciar ou cancelar sua assinatura atual?</p>
           <a
             href="https://billing.stripe.com/p/login/test_8wM4iqc7ZcUh7M4288" // Substitua pelo link real do seu portal de clientes do Stripe
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#1e293b] border border-[#334155] text-white font-bold text-xs uppercase tracking-widest transition-all hover:bg-[#334155] hover:text-[#f43f5e]"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#1e293b] border border-[#334155] text-white font-bold text-sm uppercase tracking-widest transition-all hover:bg-[#334155] hover:text-[#f43f5e]"
           >
             Cancelar Assinatura
           </a>

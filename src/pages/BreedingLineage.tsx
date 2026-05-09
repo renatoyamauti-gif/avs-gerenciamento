@@ -19,9 +19,9 @@ const LineageNode = ({ name, id, img, color, role, level }: { name: string, id: 
       </div>
     </div>
     <div className="mt-4 text-center">
-      <p className="text-[10px] font-black uppercase text-outline tracking-wider mb-0.5">{role}</p>
-      <h4 className="text-xs font-bold text-primary font-headline tracking-tighter">{name}</h4>
-      <p className="text-[9px] font-mono text-on-surface-variant">{id}</p>
+      <p className="text-sm font-black uppercase text-outline tracking-wider mb-0.5">{role}</p>
+      <h4 className="text-sm font-bold text-primary font-headline tracking-tighter">{name}</h4>
+      <p className="text-sm font-mono text-on-surface-variant">{id}</p>
     </div>
   </motion.div>
 );
@@ -37,15 +37,15 @@ export default function BreedingLineage() {
       <section className="flex flex-col md:flex-row justify-between items-start gap-8">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <span className="bg-primary-fixed text-primary px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Active Pair #04</span>
+            <span className="bg-primary-fixed text-primary px-3 py-1 rounded-full text-sm font-black uppercase tracking-widest">Active Pair #04</span>
             <GitBranch size={16} className="text-outline" />
           </div>
           <h2 className="text-5xl font-extrabold text-primary font-headline tracking-tighter leading-none">Pedigree & Genetic Lineage</h2>
           <p className="text-on-surface-variant font-medium text-sm max-w-lg">Rastreabilidade completa até a 3ª geração. Monitoramento de consanguinidade e pureza genética.</p>
         </div>
         <div className="flex bg-surface-container-low p-2 rounded-2xl shadow-sm">
-          <button className="px-6 py-3 rounded-xl bg-white text-primary font-bold text-[10px] uppercase tracking-widest shadow-sm">Map View</button>
-          <button className="px-6 py-3 rounded-xl text-on-surface-variant font-bold text-[10px] uppercase tracking-widest">List Analysis</button>
+          <button className="px-6 py-3 rounded-xl bg-white text-primary font-bold text-sm uppercase tracking-widest shadow-sm">Map View</button>
+          <button className="px-6 py-3 rounded-xl text-on-surface-variant font-bold text-sm uppercase tracking-widest">List Analysis</button>
         </div>
       </section>
 
@@ -95,11 +95,11 @@ export default function BreedingLineage() {
           <div className="space-y-6 flex-1">
             <div>
               <h3 className="text-3xl font-black font-headline tracking-tighter">Genetic Profile: #MC-2024-001</h3>
-              <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mt-1">Classification: High Fidelity Breeder</p>
+              <p className="text-white/60 text-sm font-bold uppercase tracking-widest mt-1">Classification: High Fidelity Breeder</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white/10 p-4 rounded-xl">
-                <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest">Purity Score</p>
+                <p className="text-white/40 text-sm font-bold uppercase tracking-widest">Purity Score</p>
                 <div className="flex items-center gap-3">
                   <p className="text-xl font-black">98.4%</p>
                   <div className="h-1.5 flex-1 bg-white/20 rounded-full overflow-hidden">
@@ -108,7 +108,7 @@ export default function BreedingLineage() {
                 </div>
               </div>
               <div className="bg-white/10 p-4 rounded-xl">
-                <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest">Inbreeding Coeff.</p>
+                <p className="text-white/40 text-sm font-bold uppercase tracking-widest">Inbreeding Coeff.</p>
                 <p className="text-xl font-black">2.1% (Ideal)</p>
               </div>
             </div>
@@ -118,17 +118,17 @@ export default function BreedingLineage() {
           <div className="space-y-4">
             <h4 className="text-primary font-headline font-bold text-xl tracking-tight">Health Records</h4>
             <div className="space-y-2">
-              <div className="flex justify-between py-2 border-b border-outline-variant/10 text-xs font-medium">
+              <div className="flex justify-between py-2 border-b border-outline-variant/10 text-sm font-medium">
                 <span className="text-on-surface-variant">Last DNA Sexing</span>
                 <span className="text-primary font-bold">Confirmed Male</span>
               </div>
-              <div className="flex justify-between py-2 border-b border-outline-variant/10 text-xs font-medium">
+              <div className="flex justify-between py-2 border-b border-outline-variant/10 text-sm font-medium">
                 <span className="text-on-surface-variant">Vaccinations</span>
                 <span className="text-secondary font-bold">Up to date</span>
               </div>
             </div>
           </div>
-          <button className="w-full mt-6 py-3 bg-surface-container-highest rounded-xl text-[10px] font-black uppercase tracking-widest text-primary hover:bg-white transition-all shadow-sm">Download Cert.</button>
+          <button className="w-full mt-6 py-3 bg-surface-container-highest rounded-xl text-sm font-black uppercase tracking-widest text-primary hover:bg-white transition-all shadow-sm">Download Cert.</button>
         </div>
       </div>
     </motion.div>
