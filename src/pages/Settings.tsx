@@ -42,9 +42,9 @@ export default function Settings() {
     setMessage(null);
 
     const formData = new FormData(e.currentTarget);
-    const updates = {
       full_name: formData.get('full_name'),
       phone: formData.get('phone'),
+      criatorio_name: formData.get('criatorio_name'),
     };
 
     try {
@@ -134,6 +134,17 @@ export default function Settings() {
                     type="text" 
                     defaultValue={profile?.full_name || ''}
                     placeholder="Seu nome completo" 
+                    className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none" 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Nome do Criatório</label>
+                  <input 
+                    name="criatorio_name" 
+                    type="text" 
+                    defaultValue={profile?.criatorio_name || ''}
+                    placeholder="Ex: Criatório AVS" 
                     className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none" 
                   />
                 </div>

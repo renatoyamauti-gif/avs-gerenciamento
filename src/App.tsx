@@ -20,9 +20,10 @@ import Subscription from './pages/Subscription';
 import Auth from './components/Auth';
 import { supabase } from './lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
-
+import { dbService } from './lib/dbService';
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -30,10 +31,18 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
+      if (session) {
+        dbService.getProfile().then(setProfile);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session) {
+        dbService.getProfile().then(setProfile);
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -41,6 +50,20 @@ export default function App() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+  };
+
+  const getFirstName = () => {
+    if (profile?.full_name) {
+      return profile.full_name.split(' ')[0].toUpperCase();
+    }
+    return session?.user?.email?.split('@')[0].toUpperCase() || '';
+  };
+
+  const getCriatorioName = () => {
+    if (profile?.criatorio_name) {
+      return profile.criatorio_name.toUpperCase();
+    }
+    return 'CRIATÓRIO NÃO CADASTRADO';
   };
 
   if (loading) {
@@ -98,8 +121,8 @@ export default function App() {
                   <Heart className="text-primary" size={24} />
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-black text-white font-headline tracking-tighter italic uppercase break-all">Bem-vindo, {session.user.email}</h2>
-                  <p className="text-sm font-bold text-slate-200 uppercase tracking-widest">Sua sessão está ativa no AVS Gerenciamento</p>
+                  <h2 className="text-lg sm:text-xl font-black text-white font-headline tracking-tighter italic uppercase break-all">BEM VINDO, {getFirstName()}</h2>
+                  <p className="text-sm font-bold text-slate-200 uppercase tracking-widest">{getCriatorioName()}</p>
                 </div>
               </div>
               <button 
