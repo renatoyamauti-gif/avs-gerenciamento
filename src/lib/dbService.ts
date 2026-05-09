@@ -351,17 +351,15 @@ export const dbService = {
       .eq('id', user.id)
       .single();
 
-    // Fallback à prova de falhas: se a tabela estiver bloqueada, corrompida ou vazia, pega os dados direto do Auth do Supabase!
-    if (!data && user.user_metadata) {
-      return {
-        id: user.id,
-        full_name: user.user_metadata.full_name || '',
-        phone: user.user_metadata.phone || '',
-        criatorio_name: user.user_metadata.criatorio_name || ''
-      };
-    }
-
-    return data || {};
+    // Prioridade absoluta para o Auth Metadata.
+    // Isso previne que Triggers antigos ou corrompidos do banco de dados sobrescrevam o nome.
+    return {
+      ...(data || {}),
+      id: user.id,
+      full_name: user.user_metadata?.full_name || data?.full_name || '',
+      phone: user.user_metadata?.phone || data?.phone || '',
+      criatorio_name: user.user_metadata?.criatorio_name || data?.criatorio_name || ''
+    };
   },
 
   async updateProfile(updates: any) {
