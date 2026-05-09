@@ -45,7 +45,15 @@ export default function App() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    const handleProfileUpdate = () => {
+      dbService.getProfile().then(setProfile);
+    };
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+    };
   }, []);
 
   const handleSignOut = async () => {

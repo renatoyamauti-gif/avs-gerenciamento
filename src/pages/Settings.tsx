@@ -52,6 +52,7 @@ export default function Settings() {
       await dbService.updateProfile(updates);
       setMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' });
       await loadProfile();
+      window.dispatchEvent(new Event('profileUpdated'));
     } catch (error: any) {
       setMessage({ type: 'error', text: 'Falha ao atualizar perfil: ' + error.message });
     } finally {
