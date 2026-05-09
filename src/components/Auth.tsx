@@ -51,7 +51,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-[#0f172a] text-slate-100 font-body selection:bg-primary/30">
+    <div className="min-h-screen w-full flex bg-[#0f172a] text-white font-body selection:bg-primary/30">
       
       {/* Lado Esquerdo - Visual Clean e Direto (Oculto em mobile) */}
       <div className="hidden lg:flex w-1/2 bg-[#1e293b] flex-col justify-between p-16 border-r border-slate-800 relative overflow-hidden">
@@ -74,7 +74,7 @@ export default function Auth() {
             <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight tracking-tight mb-6">
               Gerencie seu plantel com <span className="text-primary">clareza e precisão.</span>
             </h1>
-            <p className="text-slate-300 text-lg max-w-lg leading-relaxed">
+            <p className="text-slate-100 text-lg max-w-lg leading-relaxed font-medium">
               O ecossistema completo para o criador moderno. Controle financeiro, genética e chocadeiras em uma interface limpa, rápida e sem distrações.
             </p>
           </motion.div>
@@ -82,7 +82,7 @@ export default function Auth() {
 
         <div className="relative z-10 flex flex-col gap-2">
           <div className="h-1 w-12 bg-primary rounded-full mb-4" />
-          <p className="text-slate-400 font-medium">© {new Date().getFullYear()} AVS Sistema de Gerenciamento</p>
+          <p className="text-slate-200 font-bold">© {new Date().getFullYear()} AVS Sistema de Gerenciamento</p>
         </div>
       </div>
 
@@ -99,7 +99,7 @@ export default function Auth() {
             <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-4">
               {mode === 'login' ? 'Acessar Conta' : mode === 'register' ? 'Criar Conta' : 'Recuperar Acesso'}
             </h2>
-            <p className="text-slate-300 text-base">
+            <p className="text-slate-100 text-base font-medium">
               {mode === 'login' ? 'Digite suas credenciais para continuar.' : mode === 'register' ? 'Preencha os dados abaixo para começar.' : 'Enviaremos instruções para o seu e-mail.'}
             </p>
           </div>
@@ -107,11 +107,11 @@ export default function Auth() {
           <form onSubmit={handleAuth} className="space-y-5">
             {/* E-mail */}
             <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-medium text-slate-200 ml-1">
+              <label htmlFor="email" className="block text-base font-semibold text-white ml-1">
                 Endereço de E-mail
               </label>
               <div className="relative">
-                <Mail size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Mail size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
                 <input
                   id="email"
                   required
@@ -119,7 +119,7 @@ export default function Auth() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="exemplo@email.com"
-                  className="w-full bg-[#1e293b] border border-slate-700 rounded-xl pl-12 pr-4 py-4 text-white text-base focus:bg-[#283548] focus:border-primary focus:ring-1 focus:ring-primary transition-colors outline-none placeholder:text-slate-500 shadow-sm"
+                  className="w-full bg-[#1e293b] border-2 border-slate-600 rounded-xl pl-12 pr-4 py-4 text-white text-lg font-medium focus:bg-[#283548] focus:border-primary focus:ring-1 focus:ring-primary transition-colors outline-none placeholder:text-slate-400 shadow-sm"
                 />
               </div>
             </div>
@@ -134,21 +134,21 @@ export default function Auth() {
                   className="space-y-2"
                 >
                   <div className="flex items-center justify-between ml-1">
-                    <label htmlFor="password" className="block text-sm font-medium text-slate-200">
+                    <label htmlFor="password" className="block text-base font-semibold text-white">
                       Senha
                     </label>
                     {mode === 'login' && (
                       <button
                         type="button"
                         onClick={() => { setMode('forgot_password'); setError(null); }}
-                        className="text-sm font-medium text-primary hover:text-blue-400 transition-colors"
+                        className="text-base font-bold text-primary hover:text-blue-400 transition-colors"
                       >
                         Esqueceu a senha?
                       </button>
                     )}
                   </div>
                   <div className="relative">
-                    <Lock size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Lock size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
                     <input
                       id="password"
                       required={mode !== 'forgot_password'}
@@ -156,7 +156,7 @@ export default function Auth() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-[#1e293b] border border-slate-700 rounded-xl pl-12 pr-4 py-4 text-white text-base focus:bg-[#283548] focus:border-primary focus:ring-1 focus:ring-primary transition-colors outline-none placeholder:text-slate-500 shadow-sm"
+                      className="w-full bg-[#1e293b] border-2 border-slate-600 rounded-xl pl-12 pr-4 py-4 text-white text-lg font-medium focus:bg-[#283548] focus:border-primary focus:ring-1 focus:ring-primary transition-colors outline-none placeholder:text-slate-400 shadow-sm"
                     />
                   </div>
                 </motion.div>
@@ -172,11 +172,11 @@ export default function Auth() {
                   exit={{ height: 0, opacity: 0 }}
                   className="space-y-2 overflow-hidden pt-1"
                 >
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-200 ml-1">
+                  <label htmlFor="confirmPassword" className="block text-base font-semibold text-white ml-1">
                     Confirmar Senha
                   </label>
                   <div className="relative">
-                    <Lock size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Lock size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
                     <input
                       id="confirmPassword"
                       required={mode === 'register'}
@@ -184,7 +184,7 @@ export default function Auth() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-[#1e293b] border border-slate-700 rounded-xl pl-12 pr-4 py-4 text-white text-base focus:bg-[#283548] focus:border-primary focus:ring-1 focus:ring-primary transition-colors outline-none placeholder:text-slate-500 shadow-sm"
+                      className="w-full bg-[#1e293b] border-2 border-slate-600 rounded-xl pl-12 pr-4 py-4 text-white text-lg font-medium focus:bg-[#283548] focus:border-primary focus:ring-1 focus:ring-primary transition-colors outline-none placeholder:text-slate-400 shadow-sm"
                     />
                   </div>
                 </motion.div>
@@ -198,9 +198,9 @@ export default function Auth() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3 text-red-400 text-sm font-medium"
+                  className="bg-red-500/10 border-2 border-red-500/30 rounded-xl p-4 flex items-start gap-3 text-red-400 text-base font-bold"
                 >
-                  <AlertCircle size={20} className="shrink-0 mt-0.5" />
+                  <AlertCircle size={22} className="shrink-0 mt-0.5" />
                   <span>{error}</span>
                 </motion.div>
               )}
@@ -210,29 +210,29 @@ export default function Auth() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 text-white text-base font-semibold py-4 px-4 rounded-xl shadow-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 mt-8"
+              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 text-white text-lg font-bold py-4 px-4 rounded-xl shadow-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 mt-8"
             >
               {loading ? (
-                <Loader2 className="animate-spin" size={22} />
+                <Loader2 className="animate-spin" size={24} />
               ) : mode === 'login' ? (
-                <>Entrar no Sistema <ArrowRight size={20} /></>
+                <>Entrar no Sistema <ArrowRight size={22} /></>
               ) : mode === 'register' ? (
-                <>Criar minha conta <ArrowRight size={20} /></>
+                <>Criar minha conta <ArrowRight size={22} /></>
               ) : (
-                <>Enviar link por e-mail <Mail size={20} /></>
+                <>Enviar link por e-mail <Mail size={22} /></>
               )}
             </button>
           </form>
 
           {/* Rodapé do Formulário / Troca de Modo */}
           <div className="mt-8 text-center">
-            <p className="text-base text-slate-300">
+            <p className="text-base font-medium text-slate-100">
               {mode === 'login' ? 'Ainda não tem uma conta?' : mode === 'register' ? 'Já possui uma conta?' : 'Lembrou sua senha?'}
               {' '}
               <button
                 type="button"
                 onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null); }}
-                className="text-primary font-semibold hover:text-blue-400 transition-colors underline-offset-4 hover:underline"
+                className="text-primary font-bold hover:text-blue-400 transition-colors underline-offset-4 hover:underline ml-1"
               >
                 {mode === 'login' ? 'Cadastre-se aqui' : 'Faça login'}
               </button>
