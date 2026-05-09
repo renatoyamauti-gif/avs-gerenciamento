@@ -62,9 +62,11 @@ export default function App() {
 
   const getFirstName = () => {
     if (profile?.full_name) {
-      return profile.full_name.split(' ')[0].toUpperCase();
+      const name = profile.full_name.split(' ')[0];
+      return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
     }
-    return session?.user?.email?.split('@')[0].toUpperCase() || '';
+    const emailName = session?.user?.email?.split('@')[0] || '';
+    return emailName.charAt(0).toUpperCase() + emailName.slice(1).toLowerCase();
   };
 
   const getCriatorioName = () => {
@@ -129,7 +131,9 @@ export default function App() {
                   <Heart className="text-primary" size={24} />
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-black text-white font-headline tracking-tighter italic uppercase break-all">BEM VINDO: {getFirstName()}</h2>
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-300 font-headline tracking-wide uppercase break-all">
+                    BEM VINDO, <span className="font-body font-semibold text-white capitalize normal-case text-xl sm:text-2xl">{getFirstName()}</span>
+                  </h2>
                   <p className="text-sm font-bold text-slate-200 uppercase tracking-widest">{getCriatorioName()}</p>
                 </div>
               </div>
