@@ -131,8 +131,8 @@ export default function App() {
                   <Heart className="text-primary" size={24} />
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-300 font-headline tracking-wide uppercase break-all">
-                    BEM VINDO, <span className="font-body font-semibold text-white capitalize normal-case text-xl sm:text-2xl">{getFirstName()}</span>
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-300 font-headline tracking-wide break-all">
+                    <span className="uppercase">BEM VINDO,</span> <span className="font-body font-normal text-white normal-case text-xl sm:text-2xl">{getFirstName()}</span>
                   </h2>
                   <p className="text-sm font-bold text-slate-200 uppercase tracking-widest">{getCriatorioName()}</p>
                 </div>
