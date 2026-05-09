@@ -42,6 +42,7 @@ export default function Settings() {
     setMessage(null);
 
     const formData = new FormData(e.currentTarget);
+    const updates = {
       full_name: formData.get('full_name'),
       phone: formData.get('phone'),
       criatorio_name: formData.get('criatorio_name'),
