@@ -180,7 +180,7 @@ export default function Settings() {
                 </div>
               )}
 
-              <div className="pt-4">
+              <div className="pt-4 flex items-center gap-4">
                 <button 
                   type="submit" 
                   disabled={saving}
@@ -188,6 +188,23 @@ export default function Settings() {
                 >
                   {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                   SALVAR ALTERAÇÕES
+                </button>
+
+                <button 
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      const { data, error } = await supabase.from('profiles').select('*').eq('id', user?.id);
+                      const { data: upsertData, error: upsertErr } = await supabase.from('profiles').upsert({ id: user?.id, full_name: 'Teste Diagnóstico' }).select();
+                      alert(`DIAGNÓSTICO RLS:\nLeitura: ${JSON.stringify(data)} (Erro: ${JSON.stringify(error)})\nEscrita: ${JSON.stringify(upsertData)} (Erro: ${JSON.stringify(upsertErr)})`);
+                    } catch (e: any) {
+                      alert('ERRO CATASTRÓFICO: ' + e.message);
+                    }
+                  }}
+                  className="flex items-center justify-center bg-red-500/20 text-red-500 border border-red-500/50 px-4 py-4 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-500/30 transition-all"
+                >
+                  DIAGNÓSTICO
                 </button>
               </div>
             </form>
