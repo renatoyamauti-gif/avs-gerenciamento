@@ -112,70 +112,83 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {/* Quantidade de Aves */}
-        <div className="bg-[#1e293b] border border-[#334155] p-8 rounded-[32px] relative overflow-hidden group shadow-lg hover:border-[#3b82f6]/50 transition-all">
-          <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-125 transition-transform duration-700">
-            <Bird size={120} className="text-[#3b82f6]" />
+        <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-white/5 p-8 rounded-[40px] relative overflow-hidden group shadow-[0_8px_30px_rgb(0,0,0,0.4)] hover:-translate-y-2 hover:shadow-[0_20px_40px_rgb(59,130,246,0.15)] transition-all duration-500">
+          <div className="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700">
+            <Bird size={180} className="text-[#3b82f6]" />
           </div>
-          <div className="flex items-start justify-between mb-8">
-            <div className="bg-[#3b82f6]/10 p-3 rounded-2xl border border-[#3b82f6]/20 shadow-sm">
-              <Bird size={28} className="text-[#3b82f6]" />
+          <div className="flex flex-col justify-between h-full relative z-10">
+            <div className="flex items-start justify-between mb-8">
+              <div className="bg-gradient-to-br from-[#3b82f6]/20 to-transparent p-4 rounded-full border border-[#3b82f6]/30 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+                <Bird size={32} className="text-[#3b82f6]" />
+              </div>
             </div>
-          </div>
-          <p className="text-sm font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Plantel Total</p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-5xl font-black font-headline tracking-tighter text-white">{birdCount}</p>
-            <span className="text-sm font-bold text-[#475569]">AVES</span>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.25em] mb-2 text-slate-400">Plantel Total</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-6xl font-light font-headline tracking-tighter text-white group-hover:scale-105 origin-left transition-transform duration-500">{birdCount}</p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Coleta de Ovos (Mês) */}
-        <div className="bg-[#1e293b] border border-[#334155] p-8 rounded-[32px] relative overflow-hidden group shadow-lg hover:border-[#f43f5e]/50 transition-all">
-          <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-125 transition-transform duration-700">
-            <Egg size={120} className="text-[#f43f5e]" />
+        <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-white/5 p-8 rounded-[40px] relative overflow-hidden group shadow-[0_8px_30px_rgb(0,0,0,0.4)] hover:-translate-y-2 hover:shadow-[0_20px_40px_rgb(244,63,94,0.15)] transition-all duration-500">
+          <div className="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700">
+            <Egg size={180} className="text-[#f43f5e]" />
           </div>
-          <div className="flex items-start justify-between mb-8">
-            <div className="bg-[#f43f5e]/10 p-3 rounded-2xl border border-[#f43f5e]/20 shadow-sm">
-              <Egg size={28} className="text-[#f43f5e]" />
+          <div className="flex flex-col justify-between h-full relative z-10">
+            <div className="flex items-start justify-between mb-8">
+              <div className="bg-gradient-to-br from-[#f43f5e]/20 to-transparent p-4 rounded-full border border-[#f43f5e]/30 shadow-[0_0_20px_rgba(244,63,94,0.2)]">
+                <Egg size={32} className="text-[#f43f5e]" />
+              </div>
             </div>
-          </div>
-          <p className="text-sm font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Ovos Coletados</p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-5xl font-black font-headline tracking-tighter text-white">{eggCount}</p>
-            <span className="text-sm font-bold text-[#475569]">TOTAL</span>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.25em] mb-2 text-slate-400">Ovos Coletados</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-6xl font-light font-headline tracking-tighter text-white group-hover:scale-105 origin-left transition-transform duration-500">{eggCount}</p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Ovos em Incubação */}
-        <div className="bg-[#1e293b] border border-[#334155] p-8 rounded-[32px] relative overflow-hidden group shadow-lg hover:border-[#f59e0b]/50 transition-all">
-          <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-125 transition-transform duration-700">
-            <Thermometer size={120} className="text-[#f59e0b]" />
+        <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-white/5 p-8 rounded-[40px] relative overflow-hidden group shadow-[0_8px_30px_rgb(0,0,0,0.4)] hover:-translate-y-2 hover:shadow-[0_20px_40px_rgb(245,158,11,0.15)] transition-all duration-500">
+          <div className="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700">
+            <Thermometer size={180} className="text-[#f59e0b]" />
           </div>
-          <div className="flex items-start justify-between mb-8">
-            <div className="bg-[#f59e0b]/10 p-3 rounded-2xl border border-[#f59e0b]/20 shadow-sm">
-              <Activity size={28} className="text-[#f59e0b]" />
+          <div className="flex flex-col justify-between h-full relative z-10">
+            <div className="flex items-start justify-between mb-8">
+              <div className="bg-gradient-to-br from-[#f59e0b]/20 to-transparent p-4 rounded-full border border-[#f59e0b]/30 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                <Activity size={32} className="text-[#f59e0b]" />
+              </div>
             </div>
-          </div>
-          <p className="text-sm font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Em Incubação</p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-5xl font-black font-headline tracking-tighter text-white">{incubatorEggs}</p>
-            <span className="text-sm font-bold text-[#475569]">UNIDADES</span>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.25em] mb-2 text-slate-400">Em Incubação</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-6xl font-light font-headline tracking-tighter text-white group-hover:scale-105 origin-left transition-transform duration-500">{incubatorEggs}</p>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Saldo Financeiro */}
-        <div className={`border p-8 rounded-[32px] relative overflow-hidden group shadow-lg transition-all ${financeSummary.balance >= 0 ? 'bg-[#10b981]/5 border-[#10b981]/30 hover:border-[#10b981]/50' : 'bg-[#f43f5e]/5 border-[#f43f5e]/30 hover:border-[#f43f5e]/50'}`}>
-          <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-125 transition-transform duration-700">
-            <Wallet size={120} className={financeSummary.balance >= 0 ? 'text-[#10b981]' : 'text-[#f43f5e]'} />
+        <div className={`border border-white/5 p-8 rounded-[40px] relative overflow-hidden group shadow-[0_8px_30px_rgb(0,0,0,0.4)] hover:-translate-y-2 transition-all duration-500 ${financeSummary.balance >= 0 ? 'bg-gradient-to-br from-[#10b981]/10 to-[#0f172a] hover:shadow-[0_20px_40px_rgb(16,185,129,0.15)]' : 'bg-gradient-to-br from-[#f43f5e]/10 to-[#0f172a] hover:shadow-[0_20px_40px_rgb(244,63,94,0.15)]'}`}>
+          <div className="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700">
+            <Wallet size={180} className={financeSummary.balance >= 0 ? 'text-[#10b981]' : 'text-[#f43f5e]'} />
           </div>
-          <div className="flex items-start justify-between mb-8">
-            <div className={`p-3 rounded-2xl border shadow-sm ${financeSummary.balance >= 0 ? 'bg-[#10b981]/10 border-[#10b981]/20' : 'bg-[#f43f5e]/10 border-[#f43f5e]/20'}`}>
-              <Wallet size={28} className={financeSummary.balance >= 0 ? 'text-[#10b981]' : 'text-[#f43f5e]'} />
+          <div className="flex flex-col justify-between h-full relative z-10">
+            <div className="flex items-start justify-between mb-8">
+              <div className={`p-4 rounded-full border shadow-[0_0_20px_rgba(0,0,0,0.2)] ${financeSummary.balance >= 0 ? 'bg-gradient-to-br from-[#10b981]/20 to-transparent border-[#10b981]/30' : 'bg-gradient-to-br from-[#f43f5e]/20 to-transparent border-[#f43f5e]/30'}`}>
+                <Wallet size={32} className={financeSummary.balance >= 0 ? 'text-[#10b981]' : 'text-[#f43f5e]'} />
+              </div>
             </div>
-          </div>
-          <p className="text-sm font-bold uppercase tracking-[0.2em] mb-1 text-[#475569]">Saldo Atual</p>
-          <div className="flex items-baseline gap-1">
-            <span className={`text-sm font-bold ${financeSummary.balance >= 0 ? 'text-[#10b981]' : 'text-[#f43f5e]'}`}>R$</span>
-            <p className={`text-4xl font-black font-headline tracking-tighter ${financeSummary.balance >= 0 ? 'text-white' : 'text-[#f43f5e]'}`}>{financeSummary.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.25em] mb-2 text-slate-400">Saldo Atual</p>
+              <div className="flex items-baseline gap-1 group-hover:scale-105 origin-left transition-transform duration-500">
+                <span className={`text-xl font-light ${financeSummary.balance >= 0 ? 'text-[#10b981]/70' : 'text-[#f43f5e]/70'}`}>R$</span>
+                <p className={`text-5xl font-light font-headline tracking-tighter ${financeSummary.balance >= 0 ? 'text-white' : 'text-[#f43f5e]'}`}>{financeSummary.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
