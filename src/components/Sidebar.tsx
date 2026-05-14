@@ -45,18 +45,18 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       )}
 
       <aside className={`
-        fixed left-0 top-0 h-full w-64 z-[70] bg-[#1e293b] flex flex-col p-6 space-y-2 border-r border-[#334155]
+        fixed left-0 top-0 h-full w-64 z-[70] bg-white flex flex-col p-6 space-y-2 border-r border-slate-200
         transition-transform duration-300 ease-in-out lg:translate-x-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="flex justify-between items-center mb-8">
-          <div className="text-4xl font-black text-white font-headline tracking-tighter italic flex flex-col">
+          <div className="text-4xl font-black text-[#2563EB] font-headline tracking-tighter italic flex flex-col">
             AVS
-            <span className="text-sm font-black tracking-[0.4em] text-[#3b82f6] uppercase -mt-1 leading-none">GERENCIAMENTO</span>
+            <span className="text-sm font-black tracking-[0.4em] text-[#3B82F6] uppercase -mt-1 leading-none">GERENCIAMENTO</span>
           </div>
           <button 
             onClick={onClose}
-            className="lg:hidden text-slate-200 hover:text-white transition-colors"
+            className="lg:hidden text-slate-400 hover:text-slate-600 transition-colors"
           >
             <X size={24} />
           </button>
@@ -73,8 +73,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               className={`
                 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-headline font-semibold uppercase tracking-widest text-sm
                 ${location.pathname === item.path 
-                  ? 'bg-[#334155] text-[#3b82f6] shadow-sm' 
-                  : 'text-slate-200 hover:bg-[#334155]/50 hover:text-white'
+                  ? 'bg-[#E0E7FF] text-[#2563EB]' 
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-[#3B82F6]'
                 }
               `}
             >
@@ -83,8 +83,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             </Link>
           ))}
         </nav>
-        <div className="mt-auto pt-6 border-t border-[#334155] opacity-50 flex items-center justify-center">
-          <p className="text-[8px] font-bold text-[#475569] uppercase tracking-[0.2em]">AVS OS v1.0.5</p>
+        <div className="mt-auto pt-6 border-t border-slate-200 opacity-80 flex items-center justify-center">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">AVS OS v1.0.5</p>
         </div>
       </aside>
     </>

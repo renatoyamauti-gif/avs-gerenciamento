@@ -109,97 +109,81 @@ export default function Dashboard() {
       </section>
 
       {/* Metrics Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         
-        {/* Quantidade de Aves */}
-        <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-white/5 p-8 rounded-[40px] relative overflow-hidden group shadow-[0_8px_30px_rgb(0,0,0,0.4)] hover:-translate-y-2 hover:shadow-[0_20px_40px_rgb(59,130,246,0.15)] transition-all duration-500">
-          <div className="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700">
-            <Bird size={180} className="text-[#3b82f6]" />
-          </div>
-          <div className="flex flex-col justify-between h-full relative z-10">
-            <div className="flex items-start justify-between mb-8">
-              <div className="bg-gradient-to-br from-[#3b82f6]/20 to-transparent p-4 rounded-full border border-[#3b82f6]/30 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
-                <Bird size={32} className="text-[#3b82f6]" />
-              </div>
+        {/* Ovos Coletados */}
+        <div className="bg-white border border-slate-100 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="bg-[#FFF7ED] p-3 rounded-full">
+              <Egg size={24} className="text-[#F59E0B]" />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.25em] mb-2 text-slate-400">Plantel Total</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-6xl font-light font-headline tracking-tighter text-white group-hover:scale-105 origin-left transition-transform duration-500">{birdCount}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Ovos Coletados</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <p className="text-2xl font-black text-[#1F2937]">{eggCount}</p>
+                <span className="text-[10px] text-slate-400">Total</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Coleta de Ovos (Mês) */}
-        <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-white/5 p-8 rounded-[40px] relative overflow-hidden group shadow-[0_8px_30px_rgb(0,0,0,0.4)] hover:-translate-y-2 hover:shadow-[0_20px_40px_rgb(244,63,94,0.15)] transition-all duration-500">
-          <div className="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700">
-            <Egg size={180} className="text-[#f43f5e]" />
-          </div>
-          <div className="flex flex-col justify-between h-full relative z-10">
-            <div className="flex items-start justify-between mb-8">
-              <div className="bg-gradient-to-br from-[#f43f5e]/20 to-transparent p-4 rounded-full border border-[#f43f5e]/30 shadow-[0_0_20px_rgba(244,63,94,0.2)]">
-                <Egg size={32} className="text-[#f43f5e]" />
-              </div>
+        {/* Em Incubação */}
+        <div className="bg-white border border-slate-100 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="bg-[#FEF2F2] p-3 rounded-full">
+              <Activity size={24} className="text-[#EF4444]" />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.25em] mb-2 text-slate-400">Ovos Coletados</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-6xl font-light font-headline tracking-tighter text-white group-hover:scale-105 origin-left transition-transform duration-500">{eggCount}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Em Incubação</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <p className="text-2xl font-black text-[#1F2937]">{incubatorEggs}</p>
+                <span className="text-[10px] text-slate-400">Unidades</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Ovos em Incubação */}
-        <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-white/5 p-8 rounded-[40px] relative overflow-hidden group shadow-[0_8px_30px_rgb(0,0,0,0.4)] hover:-translate-y-2 hover:shadow-[0_20px_40px_rgb(245,158,11,0.15)] transition-all duration-500">
-          <div className="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700">
-            <Thermometer size={180} className="text-[#f59e0b]" />
-          </div>
-          <div className="flex flex-col justify-between h-full relative z-10">
-            <div className="flex items-start justify-between mb-8">
-              <div className="bg-gradient-to-br from-[#f59e0b]/20 to-transparent p-4 rounded-full border border-[#f59e0b]/30 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
-                <Activity size={32} className="text-[#f59e0b]" />
-              </div>
+        {/* Saldo Atual */}
+        <div className="bg-white border border-slate-100 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="bg-[#DCFCE7] p-3 rounded-full">
+              <Wallet size={24} className="text-[#16A34A]" />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.25em] mb-2 text-slate-400">Em Incubação</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-6xl font-light font-headline tracking-tighter text-white group-hover:scale-105 origin-left transition-transform duration-500">{incubatorEggs}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Saldo Atual</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="text-sm font-semibold text-slate-400">R$</span>
+                <p className="text-2xl font-black text-[#1F2937]">{financeSummary.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Saldo Financeiro */}
-        <div className={`border border-white/5 p-8 rounded-[40px] relative overflow-hidden group shadow-[0_8px_30px_rgb(0,0,0,0.4)] hover:-translate-y-2 transition-all duration-500 ${financeSummary.balance >= 0 ? 'bg-gradient-to-br from-[#10b981]/10 to-[#0f172a] hover:shadow-[0_20px_40px_rgb(16,185,129,0.15)]' : 'bg-gradient-to-br from-[#f43f5e]/10 to-[#0f172a] hover:shadow-[0_20px_40px_rgb(244,63,94,0.15)]'}`}>
-          <div className="absolute -right-10 -bottom-10 opacity-5 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700">
-            <Wallet size={180} className={financeSummary.balance >= 0 ? 'text-[#10b981]' : 'text-[#f43f5e]'} />
-          </div>
-          <div className="flex flex-col justify-between h-full relative z-10">
-            <div className="flex items-start justify-between mb-8">
-              <div className={`p-4 rounded-full border shadow-[0_0_20px_rgba(0,0,0,0.2)] ${financeSummary.balance >= 0 ? 'bg-gradient-to-br from-[#10b981]/20 to-transparent border-[#10b981]/30' : 'bg-gradient-to-br from-[#f43f5e]/20 to-transparent border-[#f43f5e]/30'}`}>
-                <Wallet size={32} className={financeSummary.balance >= 0 ? 'text-[#10b981]' : 'text-[#f43f5e]'} />
-              </div>
+        {/* Plantel Total */}
+        <div className="bg-white border border-slate-100 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="bg-[#DBEAFE] p-3 rounded-full">
+              <Bird size={24} className="text-[#2563EB]" />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.25em] mb-2 text-slate-400">Saldo Atual</p>
-              <div className="flex items-baseline gap-1 group-hover:scale-105 origin-left transition-transform duration-500">
-                <span className={`text-xl font-light ${financeSummary.balance >= 0 ? 'text-[#10b981]/70' : 'text-[#f43f5e]/70'}`}>R$</span>
-                <p className={`text-5xl font-light font-headline tracking-tighter ${financeSummary.balance >= 0 ? 'text-white' : 'text-[#f43f5e]'}`}>{financeSummary.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Plantel Total</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <p className="text-2xl font-black text-[#1F2937]">{birdCount}</p>
+                <span className="text-[10px] text-slate-400">Aves</span>
               </div>
             </div>
           </div>
         </div>
+
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Performance Chart */}
-        <div className="lg:col-span-2 bg-[#1e293b] border border-[#334155] p-6 sm:p-10 rounded-[32px] sm:rounded-[40px] shadow-sm">
+        <div className="lg:col-span-2 bg-white border border-slate-100 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
           <div className="flex justify-between items-center mb-10">
             <div>
-              <h3 className="text-xl sm:text-2xl font-bold text-white font-headline tracking-tight italic">Performance Financeira</h3>
-              <p className="text-sm font-bold text-[#475569] uppercase tracking-widest">Evolução do Fluxo de Caixa</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937]">Performance Financeira</h3>
+              <p className="text-xs font-medium text-slate-500 mt-1">Evolução do Fluxo de Caixa</p>
             </div>
           </div>
           <div className="h-[300px] w-full">
@@ -207,70 +191,70 @@ export default function Dashboard() {
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                 <XAxis 
                   dataKey="name" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#475569', fontSize: 12, fontWeight: 'bold' }} 
+                  tick={{ fill: '#94A3B8', fontSize: 12 }} 
                   dy={10}
                 />
                 <YAxis 
                   hide
                 />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                  itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                  contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  itemStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#2563EB' }}
                 />
-                <Area type="monotone" dataKey="balance" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorBalance)" />
+                <Area type="monotone" dataKey="balance" stroke="#2563EB" strokeWidth={3} fillOpacity={1} fill="url(#colorBalance)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Real-time Alerts */}
-        <div className="bg-[#1e293b] border border-[#334155] p-6 sm:p-10 rounded-[32px] sm:rounded-[40px] shadow-sm">
-          <h3 className="text-xl sm:text-2xl font-bold text-white font-headline tracking-tight mb-8 italic">Próximos Eventos</h3>
+        <div className="bg-white border border-slate-100 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] mb-8">Próximos Eventos</h3>
           <div className="space-y-6">
              {nextHatch ? (
-                <div className={`p-6 rounded-[24px] border ${nextHatch.finished ? 'bg-[#10b981]/10 border-[#10b981]/30' : 'bg-[#f59e0b]/10 border-[#f59e0b]/30'}`}>
+                <div className={`p-6 rounded-2xl border ${nextHatch.finished ? 'bg-[#DCFCE7] border-[#bbf7d0]' : 'bg-[#FFF7ED] border-[#ffedd5]'}`}>
                    <div className="flex items-center gap-4 mb-4">
                       {nextHatch.finished ? (
-                        <CheckCircle2 size={24} className="text-[#10b981]" />
+                        <CheckCircle2 size={24} className="text-[#16A34A]" />
                       ) : (
-                        <Activity size={24} className="text-[#f59e0b] animate-pulse" />
+                        <Activity size={24} className="text-[#F59E0B] animate-pulse" />
                       )}
                       <div>
-                        <p className="text-sm font-black text-[#475569] uppercase tracking-widest">Eclosão</p>
-                        <h4 className={`font-bold tracking-tight ${nextHatch.finished ? 'text-[#10b981]' : 'text-white'}`}>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Eclosão</p>
+                        <h4 className={`font-bold ${nextHatch.finished ? 'text-[#16A34A]' : 'text-[#F59E0B]'}`}>
                           {nextHatch.finished ? 'Lote Pronto!' : 'Em Incubação'}
                         </h4>
                       </div>
                    </div>
                    <div className="flex items-baseline gap-1">
-                      <span className={`text-3xl sm:text-4xl font-black font-headline tracking-tighter ${nextHatch.finished ? 'text-[#10b981]' : 'text-white'}`}>
+                      <span className={`text-3xl sm:text-4xl font-black ${nextHatch.finished ? 'text-[#16A34A]' : 'text-[#F59E0B]'}`}>
                         {nextHatch.finished ? 'ECLOSÃO' : `${nextHatch.days}d ${nextHatch.hours}h`}
                       </span>
-                      {!nextHatch.finished && <span className="text-sm font-bold text-[#475569] uppercase ml-1">Restantes</span>}
+                      {!nextHatch.finished && <span className="text-[10px] font-bold text-slate-400 uppercase ml-1">Restantes</span>}
                    </div>
                 </div>
              ) : (
-                <div className="text-center py-10 opacity-20 flex flex-col items-center gap-2">
-                   <Activity size={40} className="text-slate-200" />
-                   <p className="text-sm font-medium">Sem eventos próximos</p>
+                <div className="text-center py-10 opacity-50 flex flex-col items-center gap-2">
+                   <Activity size={40} className="text-slate-300" />
+                   <p className="text-sm font-medium text-slate-500">Sem eventos próximos</p>
                 </div>
              )}
 
              <div className="space-y-4">
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#0f172a] border border-[#334155]/30">
-                   <div className="h-2 w-2 rounded-full bg-[#10b981]" />
+                <div className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                   <div className="h-2 w-2 rounded-full bg-[#16A34A]" />
                    <div className="flex-1">
-                      <p className="text-sm font-bold text-[#475569] uppercase tracking-tighter">Status Geral</p>
-                      <p className="text-sm font-bold text-white tracking-tight italic">Operacional: 100%</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status Geral</p>
+                      <p className="text-sm font-bold text-[#1F2937]">Operacional: 100%</p>
                    </div>
                 </div>
              </div>

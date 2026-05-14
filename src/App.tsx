@@ -18,6 +18,7 @@ import Ration from './pages/Ration';
 import SettingsPage from './pages/Settings';
 import Subscription from './pages/Subscription';
 import Auth from './components/Auth';
+import BottomNav from './components/BottomNav';
 import { supabase } from './lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { dbService } from './lib/dbService';
@@ -78,11 +79,11 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <motion.div 
           animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }} 
           transition={{ duration: 2, repeat: Infinity }}
-          className="text-primary font-bold text-xl font-headline tracking-widest italic uppercase"
+          className="text-[#2563EB] font-bold text-xl font-headline tracking-widest italic uppercase"
         >
           Carregando Sistema...
         </motion.div>
@@ -92,7 +93,7 @@ export default function App() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
         <Auth />
       </div>
     );
@@ -100,48 +101,52 @@ export default function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-surface flex flex-col lg:flex-row">
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col lg:flex-row pb-16 lg:pb-0">
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         
         <main className="flex-1 min-h-screen relative lg:ml-64 transition-all">
-          {/* Mobile Header */}
-          <div className="lg:hidden fixed top-0 left-0 w-full bg-[#1e293b] h-16 border-b border-[#334155] z-40 flex items-center justify-between px-6">
+          {/* Mobile Header (Blue background like the mockup) */}
+          <div className="lg:hidden fixed top-0 left-0 w-full bg-[#2563EB] h-16 z-40 flex items-center justify-between px-6 shadow-md">
             <div className="text-2xl font-black text-white font-headline tracking-tighter italic">
-              AVS <span className="text-[8px] text-[#3b82f6] tracking-[0.2em]">GERENCIAMENTO</span>
+              AVS <span className="text-[8px] text-[#DBEAFE] tracking-[0.2em] uppercase">GERENCIAMENTO</span>
             </div>
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="text-slate-200 hover:text-white transition-colors"
+              className="text-white hover:text-white/80 transition-colors"
             >
               <Menu size={24} />
             </button>
           </div>
 
-          <Header />
-          <div className="pt-24 lg:pt-24 pb-12 px-4 sm:px-6 lg:px-10 max-w-7xl mx-auto">
+          {/* Desktop Header is imported here but we probably need it transparent or white on desktop */}
+          <div className="hidden lg:block">
+            <Header />
+          </div>
+          <div className="pt-24 lg:pt-28 pb-12 px-4 sm:px-6 lg:px-10 max-w-7xl mx-auto">
             
-            {/* Boas-vindas Simplificado conforme solicitado */}
+            {/* Boas-vindas Simplificado conforme solicitado no mockup */}
             <motion.div 
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-8 p-6 bg-[#1e293b] border border-[#334155] rounded-[24px] flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm"
+              className="mb-8 p-6 bg-white rounded-3xl flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm border border-slate-100"
             >
               <div className="flex items-center gap-4">
-                <div className="bg-primary/10 p-3 rounded-2xl">
-                  <Heart className="text-primary" size={24} />
+                <div className="bg-[#E0E7FF] p-4 rounded-full">
+                  {/* User icon replacing the Heart to match the mockup */}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#3B82F6]"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-300 font-headline tracking-wide break-all">
-                    <span className="uppercase">BEM VINDO,</span> <span className="font-body font-normal text-white normal-case text-xl sm:text-2xl">{getFirstName()}</span>
+                  <h2 className="text-lg sm:text-xl font-bold text-[#1F2937] font-headline tracking-tight uppercase">
+                    BEM-VINDO,<br className="sm:hidden" /> {getFirstName()}
                   </h2>
-                  <p className="text-sm font-bold text-slate-200 uppercase tracking-widest">{getCriatorioName()}</p>
+                  <p className="text-sm font-medium text-slate-500 mt-1">{session?.user?.email}</p>
                 </div>
               </div>
               <button 
                 onClick={handleSignOut}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/20 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-[#f43f5e]/20 transition-all"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-[#EF4444] border-2 border-[#FCA5A5] rounded-full text-sm font-bold uppercase tracking-widest hover:bg-[#FEF2F2] transition-colors"
               >
-                <LogOut size={16} /> Sair
+                <LogOut size={16} /> Sair da conta
               </button>
             </motion.div>
 
@@ -159,16 +164,19 @@ export default function App() {
               </Routes>
             </AnimatePresence>
 
-            <footer className="pt-12 border-t border-outline-variant/15 flex flex-col sm:flex-row justify-between items-center text-[8px] sm:text-sm font-bold text-outline-variant uppercase tracking-[0.2em] mt-20 gap-4 text-center sm:text-left">
-              <div>® 2026 AVS GERENCIAMENTOS - Criado e desenvolvido por Criatório Sitieiro. Todos os direitos reservados.</div>
+            <footer className="pt-12 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center text-[10px] sm:text-sm font-semibold text-slate-400 uppercase tracking-[0.1em] mt-20 gap-4 text-center sm:text-left mb-6">
+              <div>® 2026 AVS GERENCIAMENTOS - Todos os direitos reservados.</div>
               <div className="flex flex-wrap justify-center gap-4 sm:gap-8">
-                <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-                <a href="#" className="hover:text-primary transition-colors">Export Logs</a>
-                <a href="#" className="hover:text-primary transition-colors">System Status</a>
+                <a href="#" className="hover:text-[#2563EB] transition-colors">Política de Privacidade</a>
+                <a href="#" className="hover:text-[#2563EB] transition-colors">Termos de Uso</a>
+                <a href="#" className="hover:text-[#2563EB] transition-colors">Suporte</a>
               </div>
             </footer>
           </div>
         </main>
+        
+        {/* Bottom Navigation for Mobile */}
+        <BottomNav onOpenMenu={() => setIsSidebarOpen(true)} />
       </div>
     </Router>
   );

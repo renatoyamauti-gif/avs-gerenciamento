@@ -51,13 +51,12 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-[#020617] text-white font-body selection:bg-[#cbd5e1]/20 relative overflow-hidden">
+    <div className="min-h-screen w-full flex bg-[#F8FAFC] text-[#1F2937] font-body selection:bg-[#3B82F6]/20 relative overflow-hidden">
       
-      {/* Background Decorators - Deep Luxury Abstract */}
+      {/* Background Decorators - Clean Light Abstract */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-        <div className="absolute -top-[20%] -left-[10%] w-[70%] h-[70%] bg-gradient-to-br from-[#1e293b]/40 to-transparent rounded-full blur-[150px]" />
-        <div className="absolute top-[40%] -right-[20%] w-[60%] h-[80%] bg-gradient-to-tl from-[#3b82f6]/10 via-[#0ea5e9]/5 to-transparent rounded-full blur-[180px]" />
-        <div className="absolute bottom-0 left-[20%] w-[50%] h-[50%] bg-gradient-to-tr from-[#020617] to-transparent z-10" />
+        <div className="absolute -top-[20%] -left-[10%] w-[70%] h-[70%] bg-gradient-to-br from-[#DBEAFE]/40 to-transparent rounded-full blur-[100px]" />
+        <div className="absolute top-[40%] -right-[20%] w-[60%] h-[80%] bg-gradient-to-tl from-[#EFF6FF]/50 to-transparent rounded-full blur-[120px]" />
       </div>
 
       <div className="w-full flex flex-col lg:flex-row relative z-10">
@@ -70,10 +69,10 @@ export default function Auth() {
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
             className="flex items-center gap-4"
           >
-            <div className="w-12 h-12 bg-gradient-to-br from-[#ffffff] to-[#94a3b8] rounded-xl flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-              <Sparkles size={24} className="text-[#020617]" />
+            <div className="w-12 h-12 bg-[#2563EB] rounded-xl flex items-center justify-center shadow-[0_4px_20px_rgba(37,99,235,0.3)]">
+              <Sparkles size={24} className="text-white" />
             </div>
-            <span className="text-2xl font-headline font-bold tracking-[0.1em] text-white">AVS<span className="text-slate-500 ml-2 font-normal">GERENCIAMENTO</span></span>
+            <span className="text-2xl font-headline font-bold tracking-[0.1em] text-[#2563EB]">AVS<span className="text-[#6B7280] ml-2 font-normal">GERENCIAMENTO</span></span>
           </motion.div>
 
           <motion.div
@@ -82,49 +81,47 @@ export default function Auth() {
             transition={{ duration: 1.5, delay: 0.2 }}
             className="max-w-xl"
           >
-            <h1 className="text-5xl xl:text-6xl font-headline font-light text-white leading-[1.1] tracking-tight mb-8">
-              Precisão absoluta.<br/>
-              <span className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-500">Controle total.</span>
+            <h1 className="text-5xl xl:text-6xl font-headline font-bold text-[#1F2937] leading-[1.1] tracking-tight mb-8">
+              Gestão simplificada.<br/>
+              <span className="text-[#2563EB]">Controle na palma da mão.</span>
             </h1>
-            <p className="text-slate-400 text-lg font-light leading-relaxed tracking-wide">
-              Experimente a interface de criatório mais sofisticada já criada. Onde genética encontra elegância, e dados se tornam arte.
+            <p className="text-slate-500 text-lg font-medium leading-relaxed tracking-wide">
+              Experimente a interface mais limpa e eficiente para gerenciar seu plantel. Rápido, seguro e pensado para o seu dia a dia.
             </p>
           </motion.div>
 
           <div className="flex flex-col gap-2">
-            <div className="h-[1px] w-16 bg-gradient-to-r from-slate-600 to-transparent mb-6" />
-            <p className="text-slate-500 text-sm tracking-[0.2em] uppercase font-semibold">© {new Date().getFullYear()} Edição Premium</p>
+            <div className="h-[1px] w-16 bg-slate-300 mb-6" />
+            <p className="text-slate-400 text-sm tracking-[0.2em] uppercase font-bold">© {new Date().getFullYear()} AVS Sistemas</p>
           </div>
         </div>
 
-        {/* Right Side - The Glassmorphism Form */}
+        {/* Right Side - The Clean Form */}
         <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 lg:p-24">
           <motion.div 
-            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            animate={{ opacity: 1, backdropFilter: "blur(40px)" }}
-            transition={{ duration: 1, delay: 0.1 }}
-            className="w-full max-w-[440px] bg-[#0f172a]/40 border border-[#334155]/50 p-10 sm:p-14 rounded-[32px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] relative overflow-hidden"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="w-full max-w-[440px] bg-white border border-slate-100 p-8 sm:p-12 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden"
           >
-            {/* Subtle inner top glow for 3D effect */}
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-            <div className="mb-12">
-              <h2 className="text-3xl font-headline font-semibold text-white tracking-tight mb-3">
-                {mode === 'login' ? 'Bem-vindo de volta.' : mode === 'register' ? 'Inicie seu legado.' : 'Recuperação.'}
+            <div className="mb-10">
+              <h2 className="text-3xl font-headline font-bold text-[#1F2937] tracking-tight mb-2">
+                {mode === 'login' ? 'Bem-vindo de volta' : mode === 'register' ? 'Crie sua conta' : 'Recuperar senha'}
               </h2>
-              <p className="text-slate-400 text-sm font-medium tracking-wide">
-                {mode === 'login' ? 'Insira suas credenciais blindadas.' : mode === 'register' ? 'Crie sua conta exclusiva.' : 'Restaure seu acesso seguro.'}
+              <p className="text-slate-500 text-sm font-medium">
+                {mode === 'login' ? 'Acesse seu painel de controle.' : mode === 'register' ? 'Comece a gerenciar seu plantel hoje.' : 'Enviaremos instruções para o seu e-mail.'}
               </p>
             </div>
 
             <form onSubmit={handleAuth} className="space-y-6">
               
               <div className="space-y-2">
-                <label htmlFor="email" className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-1">
-                  Endereço de E-mail
+                <label htmlFor="email" className="block text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                  E-mail
                 </label>
                 <div className="relative group">
-                  <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors duration-300" />
+                  <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#2563EB] transition-colors duration-300" />
                   <input
                     id="email"
                     required
@@ -132,7 +129,7 @@ export default function Auth() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="voce@exemplo.com"
-                    className="w-full bg-[#020617]/50 border border-[#334155]/60 rounded-2xl pl-12 pr-4 py-4 text-white text-base font-light focus:bg-[#0f172a]/80 focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all duration-300 outline-none placeholder:text-slate-600"
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-11 pr-4 py-3.5 text-[#1F2937] text-sm font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all duration-300 outline-none placeholder:text-slate-400"
                   />
                 </div>
               </div>
@@ -146,21 +143,21 @@ export default function Auth() {
                     className="space-y-2"
                   >
                     <div className="flex items-center justify-between ml-1">
-                      <label htmlFor="password" className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">
-                        Senha de Acesso
+                      <label htmlFor="password" className="block text-xs font-bold text-slate-500 uppercase tracking-widest">
+                        Senha
                       </label>
                       {mode === 'login' && (
                         <button
                           type="button"
                           onClick={() => { setMode('forgot_password'); setError(null); }}
-                          className="text-[10px] font-bold text-slate-400 hover:text-white uppercase tracking-[0.1em] transition-colors"
+                          className="text-xs font-bold text-[#2563EB] hover:text-[#1E40AF] transition-colors"
                         >
-                          Recuperar
+                          Esqueceu a senha?
                         </button>
                       )}
                     </div>
                     <div className="relative group">
-                      <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors duration-300" />
+                      <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#2563EB] transition-colors duration-300" />
                       <input
                         id="password"
                         required={mode !== 'forgot_password'}
@@ -168,7 +165,7 @@ export default function Auth() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full bg-[#020617]/50 border border-[#334155]/60 rounded-2xl pl-12 pr-4 py-4 text-white text-base font-light focus:bg-[#0f172a]/80 focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all duration-300 outline-none placeholder:text-slate-600 tracking-[0.2em]"
+                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-11 pr-4 py-3.5 text-[#1F2937] text-sm font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all duration-300 outline-none placeholder:text-slate-400"
                       />
                     </div>
                   </motion.div>
@@ -183,11 +180,11 @@ export default function Auth() {
                     exit={{ height: 0, opacity: 0 }}
                     className="space-y-2 overflow-hidden"
                   >
-                    <label htmlFor="confirmPassword" className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-1">
+                    <label htmlFor="confirmPassword" className="block text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
                       Confirmar Senha
                     </label>
                     <div className="relative group">
-                      <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-white transition-colors duration-300" />
+                      <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#2563EB] transition-colors duration-300" />
                       <input
                         id="confirmPassword"
                         required={mode === 'register'}
@@ -195,7 +192,7 @@ export default function Auth() {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full bg-[#020617]/50 border border-[#334155]/60 rounded-2xl pl-12 pr-4 py-4 text-white text-base font-light focus:bg-[#0f172a]/80 focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all duration-300 outline-none placeholder:text-slate-600 tracking-[0.2em]"
+                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-11 pr-4 py-3.5 text-[#1F2937] text-sm font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all duration-300 outline-none placeholder:text-slate-400"
                       />
                     </div>
                   </motion.div>
@@ -208,7 +205,7 @@ export default function Auth() {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="bg-[#4c0519]/40 border border-[#f43f5e]/30 rounded-2xl p-4 flex items-start gap-3 text-[#f43f5e] text-sm font-medium backdrop-blur-md"
+                    className="bg-[#FEF2F2] border border-[#FCA5A5] rounded-xl p-4 flex items-start gap-3 text-[#EF4444] text-sm font-medium"
                   >
                     <AlertCircle size={18} className="shrink-0 mt-0.5" />
                     <span>{error}</span>
@@ -219,37 +216,33 @@ export default function Auth() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full group relative flex items-center justify-center gap-3 bg-white text-[#020617] text-sm font-bold py-4 px-4 rounded-2xl transition-all duration-500 hover:bg-slate-200 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 mt-8 overflow-hidden"
+                className="w-full flex items-center justify-center gap-3 bg-[#2563EB] text-white text-sm font-bold py-4 px-4 rounded-2xl transition-all duration-300 hover:bg-[#1D4ED8] disabled:opacity-50 mt-8 shadow-sm"
               >
-                {/* Shimmer effect */}
-                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
-                
                 {loading ? (
                   <Loader2 className="animate-spin" size={20} />
                 ) : mode === 'login' ? (
-                  <>Autenticar <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>
+                  <>Entrar <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>
                 ) : mode === 'register' ? (
-                  <>Solicitar Acesso <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>
+                  <>Criar Conta <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>
                 ) : (
-                  <>Restaurar Acesso <Mail size={18} /></>
+                  <>Enviar link <Mail size={18} /></>
                 )}
               </button>
             </form>
 
-            <div className="mt-10 text-center">
+            <div className="mt-8 text-center pt-6 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null); }}
-                className="text-[11px] font-bold text-slate-500 hover:text-white uppercase tracking-[0.15em] transition-colors"
+                className="text-sm font-bold text-[#6B7280] hover:text-[#2563EB] transition-colors"
               >
-                {mode === 'login' ? 'Não possui acesso? Registre-se' : 'Retornar para o Login'}
+                {mode === 'login' ? 'Não possui uma conta? Cadastre-se' : 'Já tem uma conta? Faça login'}
               </button>
             </div>
           </motion.div>
         </div>
       </div>
 
-      {/* Shimmer keyframes injected locally for the button */}
       <style>{`
         @keyframes shimmer {
           100% { transform: translateX(100%); }

@@ -96,7 +96,7 @@ export default function Settings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="animate-spin text-primary" size={40} />
+        <Loader2 className="animate-spin text-[#2563EB]" size={40} />
       </div>
     );
   }
@@ -108,86 +108,86 @@ export default function Settings() {
       className="space-y-10"
     >
       <header className="flex items-center gap-4">
-        <div className="bg-primary/20 p-3 rounded-2xl border border-primary/30">
-          <SettingsIcon size={32} className="text-primary" />
+        <div className="bg-[#EFF6FF] p-3 rounded-2xl border border-[#DBEAFE]">
+          <SettingsIcon size={32} className="text-[#2563EB]" />
         </div>
         <div>
-          <h2 className="text-4xl font-bold text-white font-headline tracking-tighter italic uppercase">Configurações</h2>
-          <p className="text-slate-200 font-medium text-sm italic">Gerencie seu perfil e preferências do sistema.</p>
+          <h2 className="text-3xl font-bold text-[#1F2937] font-headline tracking-tight">Configurações</h2>
+          <p className="text-slate-500 font-medium text-sm mt-1">Gerencie seu perfil e preferências do sistema.</p>
         </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Profile Settings */}
         <div className="lg:col-span-2 space-y-8">
-          <section className="bg-[#1e293b] border border-[#334155] rounded-[32px] p-8 shadow-sm">
+          <section className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
             <div className="flex items-center gap-3 mb-8">
-              <User className="text-primary" size={24} />
-              <h3 className="text-xl font-bold text-white font-headline tracking-tight uppercase italic">Configurações de Usuário</h3>
+              <User className="text-[#2563EB]" size={24} />
+              <h3 className="text-xl font-bold text-[#1F2937] font-headline tracking-tight">Configurações de Usuário</h3>
             </div>
 
             <form onSubmit={handleUpdateProfile} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Nome Completo</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nome Completo</label>
                   <input 
                     required 
                     name="full_name" 
                     type="text" 
                     defaultValue={profile?.full_name || ''}
                     placeholder="Seu nome completo" 
-                    className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none" 
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none" 
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Nome do Criatório</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nome do Criatório</label>
                   <input 
                     name="criatorio_name" 
                     type="text" 
                     defaultValue={profile?.criatorio_name || ''}
                     placeholder="Ex: Criatório AVS" 
-                    className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none" 
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none" 
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Telefone / WhatsApp</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Telefone / WhatsApp</label>
                   <input 
                     name="phone" 
                     type="tel" 
                     defaultValue={profile?.phone || ''}
                     placeholder="(00) 00000-0000" 
-                    className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none" 
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none" 
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">E-mail (Não editável)</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">E-mail (Não editável)</label>
                 <input 
                   disabled 
                   value={userEmail}
-                  className="w-full bg-[#0f172a]/50 border border-[#334155] rounded-xl px-4 py-3 text-[#475569] outline-none cursor-not-allowed" 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-slate-400 outline-none cursor-not-allowed font-medium" 
                 />
-                <p className="text-sm text-[#475569] mt-1 italic italic">O e-mail é gerenciado pelo sistema de autenticação.</p>
+                <p className="text-xs text-slate-400 mt-1 font-medium ml-1">O e-mail é gerenciado pelo sistema de autenticação.</p>
               </div>
 
               {message && (
-                <div className={`p-4 rounded-xl text-sm font-bold flex items-center gap-2 ${message.type === 'success' ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : 'bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/20'}`}>
-                  {message.type === 'success' ? <CheckCircle2 size={16} /> : <Shield size={16} />}
+                <div className={`p-4 rounded-2xl text-sm font-bold flex items-center gap-2 ${message.type === 'success' ? 'bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]' : 'bg-[#FEF2F2] text-[#EF4444] border border-[#FECACA]'}`}>
+                  {message.type === 'success' ? <CheckCircle2 size={18} /> : <Shield size={18} />}
                   {message.text}
                 </div>
               )}
 
-              <div className="pt-4 flex items-center gap-4">
+              <div className="pt-6 flex items-center gap-4">
                 <button 
                   type="submit" 
                   disabled={saving}
-                  className="flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold text-sm uppercase tracking-widest shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 bg-[#2563EB] text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
                 >
                   {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                  SALVAR ALTERAÇÕES
+                  Salvar Alterações
                 </button>
 
                 <button 
@@ -202,61 +202,61 @@ export default function Settings() {
                       alert('ERRO CATASTRÓFICO: ' + e.message);
                     }
                   }}
-                  className="flex items-center justify-center bg-red-500/20 text-red-500 border border-red-500/50 px-4 py-4 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-500/30 transition-all"
+                  className="flex items-center justify-center bg-red-50 text-[#EF4444] border border-red-100 px-4 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-red-100 transition-all"
                 >
-                  DIAGNÓSTICO
+                  Diagnóstico
                 </button>
               </div>
             </form>
           </section>
 
           {/* System Notification Mock */}
-          <section className="bg-[#1e293b] border border-[#334155] rounded-[32px] p-8 shadow-sm opacity-60">
+          <section className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] opacity-60">
             <div className="flex items-center gap-3 mb-8">
-              <Bell className="text-[#f59e0b]" size={24} />
-              <h3 className="text-xl font-bold text-white font-headline tracking-tight uppercase italic">Notificações</h3>
+              <Bell className="text-[#F59E0B]" size={24} />
+              <h3 className="text-xl font-bold text-[#1F2937] font-headline tracking-tight">Notificações</h3>
             </div>
-            <p className="text-sm text-slate-200">Configurações de notificação serão implementadas em versões futuras.</p>
+            <p className="text-sm text-slate-500 font-medium">Configurações de notificação serão implementadas em versões futuras.</p>
           </section>
         </div>
 
         {/* Danger Zone & Session & Security */}
         <div className="space-y-8">
           {/* Security (Password Update) */}
-          <section className="bg-[#1e293b] border border-[#334155] rounded-[32px] p-8 shadow-sm">
+          <section className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
             <div className="flex items-center gap-3 mb-8">
-              <Shield className="text-primary" size={24} />
-              <h3 className="text-xl font-bold text-white font-headline tracking-tight uppercase italic">Segurança</h3>
+              <Shield className="text-[#2563EB]" size={24} />
+              <h3 className="text-xl font-bold text-[#1F2937] font-headline tracking-tight">Segurança</h3>
             </div>
             
-            <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <form onSubmit={handleUpdatePassword} className="space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Nova Senha</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nova Senha</label>
                 <input 
                   required
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none"
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-200 uppercase tracking-widest pl-1">Confirmar Nova Senha</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Confirmar Nova Senha</label>
                 <input 
                   required
                   type="password"
                   value={confirmNewPassword}
                   onChange={(e) => setConfirmNewPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none"
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none"
                 />
               </div>
 
               {passwordMessage && (
-                <div className={`p-4 rounded-xl text-sm font-bold flex items-center gap-2 ${passwordMessage.type === 'success' ? 'bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/20' : 'bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/20'}`}>
-                  {passwordMessage.type === 'success' ? <CheckCircle2 size={16} /> : <Shield size={16} />}
+                <div className={`p-4 rounded-2xl text-sm font-bold flex items-center gap-2 ${passwordMessage.type === 'success' ? 'bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]' : 'bg-[#FEF2F2] text-[#EF4444] border border-[#FECACA]'}`}>
+                  {passwordMessage.type === 'success' ? <CheckCircle2 size={18} /> : <Shield size={18} />}
                   {passwordMessage.text}
                 </div>
               )}
@@ -265,37 +265,37 @@ export default function Settings() {
                 <button 
                   type="submit" 
                   disabled={updatingPassword}
-                  className="w-full flex items-center justify-center gap-2 bg-primary/10 text-primary border border-primary/20 px-6 py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all hover:bg-primary/20 disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 bg-[#EFF6FF] text-[#2563EB] border border-[#DBEAFE] px-6 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest transition-all hover:bg-[#DBEAFE] disabled:opacity-50"
                 >
                   {updatingPassword ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                  ATUALIZAR SENHA
+                  Atualizar Senha
                 </button>
               </div>
             </form>
           </section>
 
-          <section className="bg-[#1e293b] border border-[#334155] rounded-[32px] p-8 shadow-sm">
+          <section className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
             <div className="flex items-center gap-3 mb-8">
-              <LogOut className="text-[#f43f5e]" size={24} />
-              <h3 className="text-xl font-bold text-white font-headline tracking-tight uppercase italic">Sessão</h3>
+              <LogOut className="text-[#EF4444]" size={24} />
+              <h3 className="text-xl font-bold text-[#1F2937] font-headline tracking-tight">Sessão</h3>
             </div>
-            <p className="text-sm text-slate-200 mb-6 tracking-widest uppercase font-bold">Encerrar acesso ao sistema</p>
+            <p className="text-xs text-slate-500 mb-6 tracking-widest uppercase font-bold">Encerrar acesso ao sistema</p>
             <button 
               onClick={handleSignOut}
-              className="w-full flex items-center justify-center gap-2 bg-[#f43f5e]/10 text-[#f43f5e] border border-[#f43f5e]/20 px-6 py-4 rounded-xl font-bold text-sm uppercase tracking-widest transition-all hover:bg-[#f43f5e]/20"
+              className="w-full flex items-center justify-center gap-2 bg-[#FEF2F2] text-[#EF4444] border border-[#FECACA] px-6 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest transition-all hover:bg-[#FEE2E2]"
             >
-              <LogOut size={16} /> ENCERRAR SESSÃO
+              <LogOut size={16} /> Encerrar Sessão
             </button>
           </section>
 
-          <section className="bg-[#1e293b] border border-[#f43f5e]/20 rounded-[32px] p-8 shadow-sm border-l-4 border-l-[#f43f5e]">
+          <section className="bg-[#FEF2F2] border border-[#FECACA] rounded-[32px] p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
             <div className="flex items-center gap-3 mb-6">
-              <Shield className="text-[#f43f5e]" size={24} />
-              <h3 className="text-xl font-bold text-white font-headline tracking-tight uppercase italic">Zona de Perigo</h3>
+              <Shield className="text-[#EF4444]" size={24} />
+              <h3 className="text-xl font-bold text-[#EF4444] font-headline tracking-tight">Zona de Perigo</h3>
             </div>
-            <p className="text-sm text-slate-200 mb-6">A exclusão da conta é irreversível e apagará todos os seus registros de aves, financeiro e incubação.</p>
+            <p className="text-sm text-[#B91C1C] mb-6 font-medium">A exclusão da conta é irreversível e apagará todos os seus registros de aves, financeiro e incubação.</p>
             <button 
-              className="w-full text-[#475569] text-sm font-bold uppercase tracking-widest hover:text-[#f43f5e] transition-colors"
+              className="w-full text-[#991B1B] text-sm font-bold uppercase tracking-widest hover:text-[#EF4444] transition-colors"
               onClick={() => alert('Para sua segurança, contate o administrador para excluir sua conta.')}
             >
               Excluir minha conta

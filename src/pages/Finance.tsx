@@ -127,30 +127,27 @@ export default function Finance() {
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
       exit={{ opacity: 0 }}
-      className="space-y-8 pb-20 relative bg-[#050505] min-h-screen p-6 sm:p-10 border-l-4 border-l-[#3b82f6]"
+      className="space-y-8 pb-20 relative"
     >
-      {/* Background grid pattern */}
-      <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-
-      <section className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b-2 border-slate-800 pb-6">
+      <section className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-200 pb-6">
         <div>
-          <h2 className="text-4xl font-black text-white font-mono uppercase tracking-tighter">FINANCEIRO_SYS</h2>
-          <p className="text-slate-400 font-mono text-xs uppercase tracking-[0.2em] mt-2">&gt; FLUXO DE CAIXA E PERFORMANCE</p>
+          <h2 className="text-3xl font-headline font-bold text-[#1F2937] tracking-tight">Financeiro</h2>
+          <p className="text-slate-500 text-sm mt-1 font-medium">Controle de receitas e despesas</p>
         </div>
         <div className="flex gap-3">
           {!isFreePlan && (
             <>
               <button 
-                className="flex items-center gap-2 bg-[#050505] border-2 border-slate-700 px-4 py-2 rounded-none text-slate-300 font-mono text-xs uppercase tracking-widest transition-all hover:bg-slate-800 hover:text-white"
+                className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-full text-[#6B7280] text-sm font-semibold hover:border-[#2563EB] hover:text-[#2563EB] transition-colors shadow-sm"
               >
-                <Download size={14} /> EXPORT_CSV
+                <Download size={16} /> Exportar CSV
               </button>
               <button 
                 onClick={() => setIsAdding(true)}
-                className="flex items-center gap-2 bg-[#00ff9d] text-black px-6 py-2 rounded-none font-mono text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(0,255,157,0.4)] transition-all hover:bg-white hover:shadow-[0_0_20px_rgba(255,255,255,0.6)] active:scale-95"
+                className="flex items-center gap-2 bg-[#2563EB] text-white px-6 py-2.5 rounded-full text-sm font-bold shadow-md transition-all hover:bg-[#1D4ED8] active:scale-95"
               >
-                <Plus size={14} />
-                NOVA_TRANSAÇÃO
+                <Plus size={16} />
+                Nova Transação
               </button>
             </>
           )}
@@ -158,16 +155,16 @@ export default function Finance() {
       </section>
 
       {isFreePlan ? (
-        <div className="bg-[#1e293b] border border-[#f59e0b]/30 p-10 rounded-[32px] text-center flex flex-col items-center gap-6 mt-8">
-          <div className="bg-[#f59e0b]/10 p-6 rounded-full">
-            <Lock size={48} className="text-[#f59e0b]" />
+        <div className="bg-white border border-[#FDE68A] p-10 rounded-3xl text-center flex flex-col items-center gap-6 mt-8 shadow-sm">
+          <div className="bg-[#FEF3C7] p-6 rounded-full">
+            <Lock size={48} className="text-[#D97706]" />
           </div>
           <div className="max-w-lg">
-            <h3 className="text-2xl font-black text-white font-headline tracking-tighter italic mb-4">Funcionalidade Premium</h3>
-            <p className="text-slate-200 font-medium leading-relaxed mb-8">
+            <h3 className="text-2xl font-bold text-[#1F2937] font-headline mb-4">Funcionalidade Premium</h3>
+            <p className="text-slate-500 font-medium leading-relaxed mb-8">
               O controle financeiro completo, com gráficos de fluxo de caixa, relatórios e gestão de resultados, está disponível apenas nos planos Profissional e Anual. Assine agora para ter visão total sobre o lucro do seu plantel!
             </p>
-            <a href="/subscription" className="inline-flex items-center gap-2 bg-gradient-to-r from-[#eab308] to-[#f59e0b] text-[#1e293b] px-8 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-[0_0_20px_rgba(234,179,8,0.3)] hover:scale-105 active:scale-95 transition-all">
+            <a href="/subscription" className="inline-flex items-center gap-2 bg-[#F59E0B] text-white px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider shadow-md hover:scale-105 active:scale-95 transition-all">
               <Star size={16} /> Fazer Upgrade
             </a>
           </div>
@@ -176,157 +173,168 @@ export default function Finance() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
         {/* Entradas */}
-        <div className="bg-[#050505] border-2 border-[#10b981]/30 p-8 rounded-none relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
-            <TrendingUp size={64} className="text-[#00ff9d]" />
+        <div className="bg-white border border-slate-100 p-8 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <TrendingUp size={80} className="text-[#16A34A]" />
           </div>
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 bg-[#00ff9d] animate-pulse" />
-            <p className="text-xs font-mono uppercase tracking-[0.2em] text-[#00ff9d]">ENTRADAS_T</p>
+            <div className="w-2 h-2 bg-[#16A34A] rounded-full" />
+            <p className="text-xs font-bold uppercase tracking-widest text-[#16A34A]">Entradas</p>
           </div>
-          <p className="text-4xl font-mono text-white mt-4 tracking-tighter">
-            <span className="text-slate-500 mr-2">R$</span>{totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          <p className="text-4xl font-black text-[#1F2937] mt-4 tracking-tight">
+            <span className="text-slate-400 mr-2 text-xl">R$</span>{totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
         </div>
 
         {/* Saídas */}
-        <div className="bg-[#050505] border-2 border-[#f43f5e]/30 p-8 rounded-none relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
-            <TrendingDown size={64} className="text-[#ff3366]" />
+        <div className="bg-white border border-slate-100 p-8 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <TrendingDown size={80} className="text-[#EF4444]" />
           </div>
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 bg-[#ff3366] animate-pulse" />
-            <p className="text-xs font-mono uppercase tracking-[0.2em] text-[#ff3366]">SAÍDAS_T</p>
+            <div className="w-2 h-2 bg-[#EF4444] rounded-full" />
+            <p className="text-xs font-bold uppercase tracking-widest text-[#EF4444]">Saídas</p>
           </div>
-          <p className="text-4xl font-mono text-white mt-4 tracking-tighter">
-            <span className="text-slate-500 mr-2">R$</span>{totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          <p className="text-4xl font-black text-[#1F2937] mt-4 tracking-tight">
+            <span className="text-slate-400 mr-2 text-xl">R$</span>{totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
         </div>
 
         {/* Saldo / Lucro ou Prejuízo */}
-        <div className={`p-8 rounded-none relative overflow-hidden group border-2 transition-all ${isProfit ? 'bg-[#050505] border-[#00ff9d]' : 'bg-[#050505] border-[#ff3366]'}`}>
-          <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
-            <Wallet size={64} className={isProfit ? 'text-[#00ff9d]' : 'text-[#ff3366]'} />
+        <div className={`p-8 rounded-3xl relative overflow-hidden group border shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all ${isProfit ? 'bg-white border-slate-100' : 'bg-[#FEF2F2] border-[#FECACA]'}`}>
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Wallet size={80} className={isProfit ? 'text-[#16A34A]' : 'text-[#EF4444]'} />
           </div>
           <div className="flex justify-between items-start mb-6">
-            <span className={`text-[10px] font-mono font-bold uppercase tracking-[0.2em] px-2 py-1 rounded-none border ${isProfit ? 'bg-[#00ff9d]/20 border-[#00ff9d] text-[#00ff9d]' : 'bg-[#ff3366]/20 border-[#ff3366] text-[#ff3366]'}`}>
-              {isProfit ? 'STATUS:LUCRO' : 'STATUS:PREJUÍZO'}
+            <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full ${isProfit ? 'bg-[#DCFCE7] text-[#16A34A]' : 'bg-[#FEE2E2] text-[#EF4444]'}`}>
+              {isProfit ? 'LUCRO' : 'PREJUÍZO'}
             </span>
           </div>
-          <p className={`text-xs font-mono uppercase tracking-[0.2em] mb-1 ${isProfit ? 'text-[#00ff9d]/70' : 'text-[#ff3366]/70'}`}>NET_BALANCE</p>
-          <p className={`text-5xl font-mono tracking-tighter ${isProfit ? 'text-[#00ff9d]' : 'text-[#ff3366]'}`}>
+          <p className="text-xs font-bold uppercase tracking-widest mb-1 text-slate-500">Saldo Atual</p>
+          <p className={`text-5xl font-black tracking-tight ${isProfit ? 'text-[#1F2937]' : 'text-[#EF4444]'}`}>
+            <span className={`mr-2 text-xl ${isProfit ? 'text-slate-400' : 'text-[#EF4444]/60'}`}>R$</span>
             {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
         </div>
       </div>
 
       {/* Gráfico de Movimentações */}
-      <div className="bg-[#050505] border-2 border-slate-800 p-8 rounded-none relative z-10">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4 border-b-2 border-slate-800 pb-4">
+      <div className="bg-white border border-slate-100 p-8 rounded-3xl relative z-10 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4 border-b border-slate-100 pb-6">
           <div className="flex items-center gap-3">
-            <BarChart3 size={24} className="text-white" />
+            <div className="bg-[#EFF6FF] p-3 rounded-xl">
+              <BarChart3 size={24} className="text-[#2563EB]" />
+            </div>
             <div>
-              <h3 className="font-mono text-xl text-white tracking-widest uppercase">SYS.GRAFICO_MENSAL</h3>
+              <h3 className="font-bold text-xl text-[#1F2937]">Evolução Mensal</h3>
+              <p className="text-xs text-slate-500 font-medium mt-1">Acompanhamento de fluxo de caixa</p>
             </div>
           </div>
           
-          <div className="flex gap-4 items-center bg-[#050505] p-2 rounded-none border-2 border-slate-800">
+          <div className="flex gap-4 items-center bg-[#F8FAFC] p-2 rounded-xl border border-slate-200">
             <div className="flex items-center gap-2 px-3">
-              <div className="w-3 h-3 rounded-none bg-[#00ff9d]" />
-              <span className="text-xs font-mono text-white uppercase tracking-widest">IN</span>
+              <div className="w-3 h-3 rounded-full bg-[#16A34A]" />
+              <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Entradas</span>
             </div>
             <div className="flex items-center gap-2 px-3">
-              <div className="w-3 h-3 rounded-none bg-[#ff3366]" />
-              <span className="text-xs font-mono text-white uppercase tracking-widest">OUT</span>
+              <div className="w-3 h-3 rounded-full bg-[#EF4444]" />
+              <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Saídas</span>
             </div>
           </div>
         </div>
         
         <div className="h-[350px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} barGap={0}>
-              <CartesianGrid strokeDasharray="2 2" stroke="#1e293b" vertical={true} />
+            <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} barGap={8} barCategoryGap={24}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
               <XAxis 
                 dataKey="month" 
-                axisLine={{ stroke: '#334155', strokeWidth: 2 }} 
+                axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace' }} 
+                tick={{ fill: '#64748B', fontSize: 12, fontWeight: '500' }} 
                 dy={12}
               />
               <YAxis 
-                axisLine={{ stroke: '#334155', strokeWidth: 2 }} 
+                axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace' }}
+                tick={{ fill: '#64748B', fontSize: 12, fontWeight: '500' }}
                 tickFormatter={(value) => value > 0 ? `${value}` : '0'}
               />
               <Tooltip 
-                cursor={{ fill: '#1e293b', opacity: 0.5 }}
+                cursor={{ fill: '#F8FAFC' }}
                 contentStyle={{ 
-                  backgroundColor: '#050505', 
-                  borderColor: '#334155', 
-                  borderWidth: '2px',
-                  borderRadius: '0px', 
-                  fontFamily: 'monospace',
+                  backgroundColor: '#FFFFFF', 
+                  borderColor: '#E2E8F0', 
+                  borderRadius: '16px', 
                   fontSize: '12px',
-                  color: '#00ff9d'
+                  color: '#1F2937',
+                  fontWeight: 'bold',
+                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                 }}
                 itemStyle={{ padding: '4px 0' }}
                 formatter={(value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
               />
-              <Bar dataKey="entrada" name="IN" fill="#00ff9d" radius={[0, 0, 0, 0]} barSize={24} />
-              <Bar dataKey="saida" name="OUT" fill="#ff3366" radius={[0, 0, 0, 0]} barSize={24} />
+              <Bar dataKey="entrada" name="Entradas" fill="#16A34A" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="saida" name="Saídas" fill="#EF4444" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      <div className="bg-[#050505] border-2 border-slate-800 rounded-none overflow-hidden relative z-10">
-        <div className="p-6 border-b-2 border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
-          <h3 className="font-mono text-xl text-white tracking-widest uppercase">DATA_TABLE.LOGS</h3>
-          <div className="flex gap-4 text-xs font-mono text-slate-500 uppercase tracking-widest overflow-x-auto">
+      <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden relative z-10 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+        <div className="p-6 sm:p-8 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h3 className="font-bold text-xl text-[#1F2937]">Histórico de Transações</h3>
+            <p className="text-xs text-slate-500 font-medium mt-1">Registro completo de atividades</p>
+          </div>
+          <div className="flex gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
             {['All', 'Entrada', 'Saída'].map(type => (
-              <span 
+              <button 
                 key={type}
                 onClick={() => setFilterType(type as any)}
-                className={`cursor-pointer px-3 py-1 border-2 transition-colors ${filterType === type ? 'text-white border-white bg-slate-900' : 'border-transparent hover:text-slate-300 hover:border-slate-800'}`}
+                className={`px-4 py-2 rounded-full transition-colors whitespace-nowrap ${filterType === type ? 'bg-[#2563EB] text-white' : 'bg-[#F8FAFC] border border-slate-200 hover:bg-slate-100'}`}
               >
-                [{type === 'All' ? '*' : type}]
-              </span>
+                {type === 'All' ? 'Todas' : type}
+              </button>
             ))}
           </div>
         </div>
+        
+        {/* Desktop Table */}
         <div className="overflow-x-auto hidden md:block">
-          <table className="w-full text-left font-mono text-sm">
+          <table className="w-full text-left text-sm">
             <thead>
-              <tr className="uppercase text-slate-500 tracking-[0.2em] bg-slate-900/50 border-b-2 border-slate-800">
-                <th className="px-6 py-4 font-normal">DATA</th>
-                <th className="px-6 py-4 font-normal">TIPO</th>
-                <th className="px-6 py-4 font-normal">LOG / CAT</th>
-                <th className="px-6 py-4 text-right font-normal">VALOR</th>
-                <th className="px-6 py-4 text-right font-normal">CMD</th>
+              <tr className="uppercase text-xs font-bold text-slate-400 tracking-widest bg-[#F8FAFC] border-b border-slate-100">
+                <th className="px-8 py-4">Data</th>
+                <th className="px-8 py-4">Tipo</th>
+                <th className="px-8 py-4">Descrição / Categoria</th>
+                <th className="px-8 py-4 text-right">Valor</th>
+                <th className="px-8 py-4 text-right">Ação</th>
               </tr>
             </thead>
-            <tbody className="divide-y-2 divide-slate-800">
+            <tbody className="divide-y divide-slate-100">
               {filteredTransactions.map((t) => (
-                <tr key={t.id} className="group hover:bg-slate-900/50 transition-colors">
-                  <td className="px-6 py-4 text-slate-400">{t.date}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 text-[10px] tracking-widest uppercase border ${t.type === 'Entrada' ? 'text-[#00ff9d] border-[#00ff9d]' : 'text-[#ff3366] border-[#ff3366]'}`}>
+                <tr key={t.id} className="group hover:bg-[#F8FAFC] transition-colors">
+                  <td className="px-8 py-4 text-slate-500 font-medium">
+                    {new Date(t.date).toLocaleDateString('pt-BR')}
+                  </td>
+                  <td className="px-8 py-4">
+                    <span className={`px-3 py-1 text-[10px] font-bold tracking-widest uppercase rounded-full ${t.type === 'Entrada' ? 'bg-[#DCFCE7] text-[#16A34A]' : 'bg-[#FEE2E2] text-[#EF4444]'}`}>
                       {t.type}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-8 py-4">
                     <div className="flex flex-col">
-                      <span className="text-white">{t.reason}</span>
-                      <span className="text-[10px] text-slate-500 uppercase">{t.category}</span>
+                      <span className="font-bold text-[#1F2937]">{t.reason}</span>
+                      <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mt-0.5">{t.category}</span>
                     </div>
                   </td>
-                  <td className={`px-6 py-4 text-right ${t.type === 'Entrada' ? 'text-[#00ff9d]' : 'text-[#ff3366]'}`}>
-                    {t.type === 'Entrada' ? '+' : '-'} {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  <td className={`px-8 py-4 text-right font-bold ${t.type === 'Entrada' ? 'text-[#16A34A]' : 'text-[#EF4444]'}`}>
+                    {t.type === 'Entrada' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <button onClick={() => removeTransaction(t.id)} className="p-2 border border-transparent hover:border-[#ff3366] hover:text-[#ff3366] transition-colors text-slate-500">
-                      <X size={16} />
+                  <td className="px-8 py-4 text-right">
+                    <button onClick={() => removeTransaction(t.id)} className="p-2 text-slate-400 hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded-xl transition-colors">
+                      <Trash2 size={16} />
                     </button>
                   </td>
                 </tr>
@@ -336,33 +344,36 @@ export default function Finance() {
         </div>
 
         {/* Mobile View: Transaction Cards */}
-        <div className="md:hidden divide-y divide-[#334155]">
+        <div className="md:hidden divide-y divide-slate-100">
           {filteredTransactions.map((t) => (
             <div key={t.id} className="p-6 space-y-4">
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${t.type === 'Entrada' ? 'bg-[#10b981]/10 text-[#10b981]' : 'bg-[#f43f5e]/10 text-[#f43f5e]'}`}>
+                  <div className={`p-3 rounded-2xl ${t.type === 'Entrada' ? 'bg-[#DCFCE7] text-[#16A34A]' : 'bg-[#FEE2E2] text-[#EF4444]'}`}>
                     {t.type === 'Entrada' ? <ArrowUpCircle size={20} /> : <ArrowDownCircle size={20} />}
                   </div>
                   <div>
-                    <span className="text-[8px] font-black uppercase text-[#475569] tracking-widest mb-1 block">{t.date}</span>
-                    <h4 className="font-bold text-white text-sm leading-tight">{t.reason}</h4>
-                    <span className="text-sm font-bold text-[#3b82f6] uppercase">{t.category}</span>
+                    <span className="text-[10px] font-bold uppercase text-slate-400 tracking-widest block">{new Date(t.date).toLocaleDateString('pt-BR')}</span>
+                    <h4 className="font-bold text-[#1F2937] text-base leading-tight mt-0.5">{t.reason}</h4>
+                    <span className="text-xs font-semibold text-[#2563EB] uppercase mt-1 block">{t.category}</span>
                   </div>
                 </div>
-                <button onClick={() => removeTransaction(t.id)} className="p-2 text-slate-200 hover:text-[#f43f5e]"><Trash2 size={16} /></button>
+                <button onClick={() => removeTransaction(t.id)} className="p-2 text-slate-400 hover:text-[#EF4444] bg-[#F8FAFC] rounded-xl"><Trash2 size={16} /></button>
               </div>
-              <div className="flex justify-between items-center bg-[#0f172a] p-3 rounded-xl border border-[#334155]">
-                <span className="text-sm font-black text-[#475569] uppercase">Valor Total</span>
-                <span className={`text-lg font-black ${t.type === 'Entrada' ? 'text-[#10b981]' : 'text-[#f43f5e]'}`}>
+              <div className="flex justify-between items-center bg-[#F8FAFC] border border-slate-100 p-4 rounded-2xl">
+                <span className="text-xs font-bold text-slate-500 uppercase">Valor Total</span>
+                <span className={`text-lg font-black ${t.type === 'Entrada' ? 'text-[#16A34A]' : 'text-[#EF4444]'}`}>
                   {t.type === 'Entrada' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
           ))}
           {filteredTransactions.length === 0 && (
-            <div className="py-20 text-center text-slate-200 font-medium opacity-40 italic">
-              Nenhuma transação registrada.
+            <div className="py-20 text-center flex flex-col items-center">
+              <div className="bg-[#F8FAFC] p-4 rounded-full mb-4">
+                <BarChart3 size={32} className="text-slate-300" />
+              </div>
+              <p className="text-sm font-semibold text-slate-400">Nenhuma transação registrada.</p>
             </div>
           )}
         </div>
@@ -371,16 +382,19 @@ export default function Finance() {
       <AnimatePresence>
         {isAdding && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAdding(false)} className="absolute inset-0 bg-[#050505]/90 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAdding(false)} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-lg bg-[#050505] border-2 border-slate-700 p-8 rounded-none shadow-2xl font-mono"
+              className="relative w-full max-w-lg bg-white p-8 sm:p-10 rounded-[32px] shadow-2xl"
             >
-              <div className="flex justify-between items-center mb-8 border-b-2 border-slate-700 pb-4">
-                <h3 className="text-xl text-white uppercase tracking-widest">INPUT_DATA</h3>
-                <button onClick={() => setIsAdding(false)} className="text-slate-500 hover:text-white transition-colors border border-transparent hover:border-white p-1">
+              <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-100">
+                <div>
+                  <h3 className="text-2xl font-bold text-[#1F2937]">Nova Transação</h3>
+                  <p className="text-sm font-medium text-slate-500 mt-1">Registre entradas ou saídas</p>
+                </div>
+                <button onClick={() => setIsAdding(false)} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors">
                   <X size={20} />
                 </button>
               </div>
@@ -389,37 +403,39 @@ export default function Finance() {
                 <div className="grid grid-cols-2 gap-4">
                   <label className="relative cursor-pointer group">
                     <input type="radio" name="type" value="Entrada" defaultChecked className="hidden peer" />
-                    <div className="flex items-center justify-center gap-2 py-3 border-2 border-slate-700 peer-checked:bg-[#00ff9d] peer-checked:border-[#00ff9d] peer-checked:text-black text-slate-400 transition-all">
-                      <span className="text-xs uppercase tracking-widest font-bold">IN</span>
+                    <div className="flex items-center justify-center gap-2 py-4 rounded-2xl border-2 border-slate-100 peer-checked:bg-[#DCFCE7] peer-checked:border-[#16A34A] peer-checked:text-[#16A34A] text-slate-400 font-bold transition-all">
+                      <ArrowUpCircle size={20} />
+                      <span className="text-sm uppercase tracking-widest">Entrada</span>
                     </div>
                   </label>
                   <label className="relative cursor-pointer group">
                     <input type="radio" name="type" value="Saída" className="hidden peer" />
-                    <div className="flex items-center justify-center gap-2 py-3 border-2 border-slate-700 peer-checked:bg-[#ff3366] peer-checked:border-[#ff3366] peer-checked:text-white text-slate-400 transition-all">
-                      <span className="text-xs uppercase tracking-widest font-bold">OUT</span>
+                    <div className="flex items-center justify-center gap-2 py-4 rounded-2xl border-2 border-slate-100 peer-checked:bg-[#FEE2E2] peer-checked:border-[#EF4444] peer-checked:text-[#EF4444] text-slate-400 font-bold transition-all">
+                      <ArrowDownCircle size={20} />
+                      <span className="text-sm uppercase tracking-widest">Saída</span>
                     </div>
                   </label>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] text-slate-500 uppercase tracking-widest">VALOR (R$)</label>
-                    <input required name="amount" type="number" step="0.01" placeholder="0.00" className="w-full bg-[#0a0a0a] border-2 border-slate-700 rounded-none px-4 py-3 text-white focus:border-[#00ff9d] outline-none text-sm" />
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Valor (R$)</label>
+                    <input required name="amount" type="number" step="0.01" placeholder="0.00" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] text-slate-500 uppercase tracking-widest">DATA</label>
-                    <input name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full bg-[#0a0a0a] border-2 border-slate-700 rounded-none px-4 py-3 text-white focus:border-[#00ff9d] outline-none text-sm" />
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Data</label>
+                    <input name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] text-slate-500 uppercase tracking-widest">MOTIVO</label>
-                  <input required name="reason" type="text" placeholder="LOG_DESC..." className="w-full bg-[#0a0a0a] border-2 border-slate-700 rounded-none px-4 py-3 text-white focus:border-[#00ff9d] outline-none text-sm" />
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Descrição</label>
+                  <input required name="reason" type="text" placeholder="Ex: Venda Lote 04" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] text-slate-500 uppercase tracking-widest">CATEGORIA</label>
-                  <select name="category" className="w-full bg-[#0a0a0a] border-2 border-slate-700 rounded-none px-4 py-3 text-white focus:border-[#00ff9d] outline-none text-sm appearance-none">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Categoria</label>
+                  <select name="category" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none">
                     <option value="Venda de Aves">Venda de Aves</option>
                     <option value="Aquisição de Aves">Aquisição de Aves</option>
                     <option value="Ração/Alimentação">Ração/Alimentação</option>
@@ -430,8 +446,8 @@ export default function Finance() {
                 </div>
 
                 <div className="pt-4">
-                  <button type="submit" className="w-full py-4 bg-white text-black border-2 border-white font-bold text-sm uppercase tracking-widest hover:bg-black hover:text-white transition-all">
-                    [ EXECUTAR ]
+                  <button type="submit" className="w-full py-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-2xl font-bold uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2">
+                    <Plus size={20} /> Adicionar Transação
                   </button>
                 </div>
               </form>
