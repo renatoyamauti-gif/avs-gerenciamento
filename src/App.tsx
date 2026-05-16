@@ -137,9 +137,11 @@ export default function App() {
                 </div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-bold text-[#1F2937] font-headline tracking-tight uppercase">
-                    BEM-VINDO,<br className="sm:hidden" /> {getFirstName()}
+                    BEM-VINDO, {getFirstName()}
                   </h2>
-                  <p className="text-sm font-medium text-slate-500 mt-1">{session?.user?.email}</p>
+                  <p className="text-sm font-bold text-slate-500 mt-1 uppercase tracking-widest">
+                    CRIATÓRIO: {getCriatorioName()}
+                  </p>
                 </div>
               </div>
               <button 

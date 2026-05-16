@@ -90,6 +90,50 @@ export const dbService = {
     if (error) handleSupabaseError(error, 'delete', 'bird_history');
   },
 
+  // Baia History
+  async getBaiaHistory(baiaName: string) {
+    const { data, error } = await supabase
+      .from('baia_history')
+      .select('*')
+      .eq('baia_name', baiaName)
+      .order('date', { ascending: false });
+    if (error) handleSupabaseError(error, 'list', 'baia_history');
+    return data;
+  },
+
+  async saveBaiaHistory(history: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    const historyData = { ...history, user_id: user.id };
+
+    if (history.id && history.id.length > 15) {
+      const { data, error } = await supabase
+        .from('baia_history')
+        .update(historyData)
+        .eq('id', history.id)
+        .select();
+      if (error) handleSupabaseError(error, 'update', 'baia_history');
+      return data[0];
+    } else {
+      delete historyData.id;
+      const { data, error } = await supabase
+        .from('baia_history')
+        .insert([historyData])
+        .select();
+      if (error) handleSupabaseError(error, 'create', 'baia_history');
+      return data[0];
+    }
+  },
+
+  async deleteBaiaHistory(id: string) {
+    const { error } = await supabase
+      .from('baia_history')
+      .delete()
+      .eq('id', id);
+    if (error) handleSupabaseError(error, 'delete', 'baia_history');
+  },
+
   // Rations
   async getRations() {
     const { data, error } = await supabase

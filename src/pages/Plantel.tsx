@@ -21,6 +21,8 @@ interface Bird {
   acquisition_price?: number;
   sale_price?: number;
   gender?: 'Macho' | 'Fêmea';
+  baia?: string;
+  weight?: number;
 }
 
 export default function Plantel() {
@@ -33,6 +35,7 @@ export default function Plantel() {
   const [searchTerm, setSearchTerm] = useState('');
   const { isFreePlan, limits } = useSubscription();
   const [filterStatus, setFilterStatus] = useState('All');
+  const [filterBaia, setFilterBaia] = useState('All');
   const [birdOrigin, setBirdOrigin] = useState<'Própria' | 'Adquirida'>('Própria');
   const [selectedRecipePrice, setSelectedRecipePrice] = useState(0);
   const [monthlyGrams, setMonthlyGrams] = useState(0);
@@ -50,6 +53,20 @@ export default function Plantel() {
       setBirdHistory(history || []);
     } catch (error) {
       console.error('Erro ao carregar histórico:', error);
+    }
+  }
+
+  const [isViewingBaiaHistory, setIsViewingBaiaHistory] = useState(false);
+  const [baiaHistory, setBaiaHistory] = useState<any[]>([]);
+  const [isAddingBaiaHistory, setIsAddingBaiaHistory] = useState(false);
+  const [editingBaiaHistoryItem, setEditingBaiaHistoryItem] = useState<any>(null);
+
+  async function loadBaiaHistoryData(baiaName: string) {
+    try {
+      const history = await dbService.getBaiaHistory(baiaName);
+      setBaiaHistory(history || []);
+    } catch (error) {
+      console.error('Erro ao carregar histórico da baia:', error);
     }
   }
 
@@ -127,6 +144,41 @@ export default function Plantel() {
     }
   };
 
+  const handleSaveBaiaHistory = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (filterBaia === 'All') return;
+    
+    const formData = new FormData(e.currentTarget);
+    const historyData: any = {
+      baia_name: filterBaia,
+      date: formData.get('date') as string,
+      notes: formData.get('notes') as string,
+    };
+
+    if (editingBaiaHistoryItem?.id) {
+      historyData.id = editingBaiaHistoryItem.id;
+    }
+
+    try {
+      await dbService.saveBaiaHistory(historyData);
+      await loadBaiaHistoryData(filterBaia);
+      setIsAddingBaiaHistory(false);
+      setEditingBaiaHistoryItem(null);
+    } catch (error) {
+      alert('Erro ao salvar histórico: ' + error);
+    }
+  };
+
+  const removeBaiaHistory = async (id: string) => {
+    if (!confirm('Deseja excluir este registro?')) return;
+    try {
+      await dbService.deleteBaiaHistory(id);
+      await loadBaiaHistoryData(filterBaia);
+    } catch (error) {
+      alert('Erro ao excluir registro: ' + error);
+    }
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -165,6 +217,8 @@ export default function Plantel() {
       monthly_feed_cost: monthlyCost,
       img_url: imagePreview || editingBird?.img_url || IMAGES.bird1,
       gender: formData.get('gender') as 'Macho' | 'Fêmea' || undefined,
+      baia: formData.get('baia') as string || null,
+      weight: parseFloat(formData.get('weight') as string) || null,
     };
 
     try {
@@ -214,8 +268,11 @@ export default function Plantel() {
                           (bird.ring_number?.toLowerCase().includes(searchTerm.toLowerCase())) ||
                           (bird.species?.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesFilter = filterStatus === 'All' || bird.status === filterStatus;
-    return matchesSearch && matchesFilter;
+    const matchesBaia = filterBaia === 'All' || bird.baia === filterBaia;
+    return matchesSearch && matchesFilter && matchesBaia;
   });
+
+  const uniqueBaias = Array.from(new Set(birds.map(b => b.baia).filter(Boolean))).sort();
 
   const activeBirds = filteredBirds.filter(b => b.status !== 'Vendida');
   const totalBirds = activeBirds.length;
@@ -314,15 +371,17 @@ export default function Plantel() {
 
       <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
         <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 size-4" />
-            <input 
-              type="text" 
-              placeholder="Pesquisar por nome, anilha ou espécie..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#F8FAFC] text-[#1F2937] rounded-full pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-[#2563EB]/20 transition-all border border-slate-200 placeholder-slate-400 outline-none"
-            />
+          <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto flex-1">
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 size-4" />
+              <input 
+                type="text" 
+                placeholder="Pesquisar por nome, anilha ou espécie..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-[#F8FAFC] text-[#1F2937] rounded-full pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-[#2563EB]/20 transition-all border border-slate-200 placeholder-slate-400 outline-none"
+              />
+            </div>
           </div>
           <div className="flex gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest overflow-x-auto pb-2">
             {['All', 'Breeding', 'Juvenile', 'Active', 'Resting', 'Vendida', 'Reservada', 'Doente'].map(status => (
@@ -336,6 +395,38 @@ export default function Plantel() {
             ))}
           </div>
         </div>
+        {uniqueBaias.length > 0 && (
+          <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-[#F8FAFC]">
+            <div className="flex gap-3 overflow-x-auto hide-scrollbar flex-1">
+              <button
+                onClick={() => setFilterBaia('All')}
+                className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap shadow-sm ${filterBaia === 'All' ? 'bg-[#2563EB] text-white border-transparent' : 'bg-white text-slate-500 hover:text-[#2563EB] border border-slate-200 hover:border-[#2563EB]/30'}`}
+              >
+                Todas as Aves
+              </button>
+              {uniqueBaias.map(baia => (
+                <button
+                  key={baia}
+                  onClick={() => setFilterBaia(baia)}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap shadow-sm ${filterBaia === baia ? 'bg-[#2563EB] text-white border-transparent' : 'bg-white text-slate-500 hover:text-[#2563EB] border border-slate-200 hover:border-[#2563EB]/30'}`}
+                >
+                  {baia}
+                </button>
+              ))}
+            </div>
+            {filterBaia !== 'All' && (
+              <button 
+                onClick={() => {
+                  loadBaiaHistoryData(filterBaia);
+                  setIsViewingBaiaHistory(true);
+                }}
+                className="ml-4 shrink-0 flex items-center gap-2 bg-[#10B981] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#059669] transition-all shadow-sm"
+              >
+                <History size={14} /> Histórico
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-left border-collapse">
@@ -363,14 +454,21 @@ export default function Plantel() {
                           {bird.gender === 'Macho' && <Mars size={14} className="text-[#2563EB]" />}
                           {bird.gender === 'Fêmea' && <Venus size={14} className="text-[#EF4444]" />}
                         </span>
-                        <span className="text-xs text-slate-400 font-bold uppercase">{bird.origin}</span>
+                        <div className="flex gap-2 items-center">
+                          <span className="text-xs text-slate-400 font-bold uppercase">{bird.origin}</span>
+                          {bird.baia && (
+                            <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md bg-slate-100 text-slate-500">
+                              {bird.baia}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1 text-slate-500 font-medium text-sm">
                       <Hash size={12} className="text-slate-400" />
-                      {bird.ring_number}
+                      {bird.ring_number || 'Sem anilha'}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-600 font-medium transition-all">
@@ -440,7 +538,12 @@ export default function Plantel() {
                        <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${bird.status === 'Breeding' ? 'bg-[#DBEAFE] text-[#2563EB]' : 'bg-slate-100 text-slate-500'}`}>
                         {bird.status === 'Breeding' ? 'Reprodução' : bird.status}
                       </span>
-                      <span className="text-xs text-slate-400 font-medium font-mono">#{bird.ring_number}</span>
+                      {bird.baia && (
+                        <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                          {bird.baia}
+                        </span>
+                      )}
+                      <span className="text-xs text-slate-400 font-medium font-mono">#{bird.ring_number || 'S/N'}</span>
                     </div>
                   </div>
                 </div>
@@ -530,8 +633,8 @@ export default function Plantel() {
                     <input required name="name" defaultValue={editingBird?.name} type="text" placeholder="Ex: Blue Jewel" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Número da Anilha</label>
-                    <input required name="ringNumber" defaultValue={editingBird?.ring_number} type="text" placeholder="Ex: MC-2024-001" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Número da Anilha (Opcional)</label>
+                    <input name="ringNumber" defaultValue={editingBird?.ring_number} type="text" placeholder="Ex: MC-2024-001" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                   </div>
                 </div>
 
@@ -553,6 +656,17 @@ export default function Plantel() {
                         </label>
                       ))}
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Peso (g)</label>
+                    <input 
+                      name="weight" 
+                      defaultValue={editingBird?.weight || ''} 
+                      type="number" 
+                      step="any"
+                      placeholder="Ex: 850" 
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                    />
                   </div>
                 </div>
 
@@ -591,9 +705,27 @@ export default function Plantel() {
                   </motion.div>
                 )}
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Coloração / Mutação</label>
-                  <input name="color" defaultValue={editingBird?.color} type="text" placeholder="Ex: Azul e Ouro" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Coloração / Mutação</label>
+                    <input name="color" defaultValue={editingBird?.color} type="text" placeholder="Ex: Azul e Ouro" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Baia / Grupo</label>
+                    <input 
+                      name="baia" 
+                      list="baias-list"
+                      defaultValue={editingBird ? editingBird.baia : (filterBaia !== 'All' ? filterBaia : '')} 
+                      type="text" 
+                      placeholder="Ex: Baia 01" 
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                    />
+                    <datalist id="baias-list">
+                      {uniqueBaias.map(baia => (
+                        <option key={baia} value={baia} />
+                      ))}
+                    </datalist>
+                  </div>
                 </div>
 
                 <div className="space-y-4 pt-6 border-t border-slate-100">
@@ -794,6 +926,97 @@ export default function Plantel() {
                   </div>
                 </div>
               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isViewingBaiaHistory && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setIsViewingBaiaHistory(false); setIsAddingBaiaHistory(false); setEditingBaiaHistoryItem(null); }} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-2xl bg-white p-8 sm:p-10 rounded-[32px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold text-[#1F2937]">
+                    Histórico da Baia: {filterBaia}
+                  </h3>
+                  <p className="text-sm text-slate-500 font-medium mt-1">Gerencie as anotações desta baia</p>
+                </div>
+                <button onClick={() => { setIsViewingBaiaHistory(false); setIsAddingBaiaHistory(false); setEditingBaiaHistoryItem(null); }} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-[#1F2937] font-bold text-sm uppercase tracking-widest">Registros de Histórico</h4>
+                  <button 
+                    onClick={() => {
+                      setIsAddingBaiaHistory(!isAddingBaiaHistory);
+                      if (isAddingBaiaHistory) setEditingBaiaHistoryItem(null);
+                    }} 
+                    className="flex items-center gap-2 bg-[#2563EB] text-white px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-[#1D4ED8] transition-colors shadow-sm"
+                  >
+                    {isAddingBaiaHistory ? <X size={14} /> : <Plus size={14} />} 
+                    {isAddingBaiaHistory ? 'Cancelar' : 'Novo Registro'}
+                  </button>
+                </div>
+
+                <AnimatePresence>
+                  {isAddingBaiaHistory && (
+                    <motion.form 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      onSubmit={handleSaveBaiaHistory} 
+                      className="bg-[#EFF6FF] p-5 rounded-2xl border border-[#DBEAFE] space-y-4 mb-6 overflow-hidden"
+                    >
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Data</label>
+                        <input required name="date" type="date" defaultValue={editingBaiaHistoryItem?.date || new Date().toISOString().split('T')[0]} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-[#1F2937] focus:ring-2 focus:ring-[#2563EB]/20 outline-none text-sm font-medium" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Anotações</label>
+                        <textarea required name="notes" rows={3} defaultValue={editingBaiaHistoryItem?.notes || ''} placeholder="Ex: Higienização completa da baia, troca de comedouros, etc." className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-[#1F2937] focus:ring-2 focus:ring-[#2563EB]/20 outline-none text-sm font-medium resize-none"></textarea>
+                      </div>
+                      <button type="submit" className="w-full py-3 bg-[#2563EB] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-sm hover:bg-[#1D4ED8] transition-all">
+                        {editingBaiaHistoryItem ? 'Salvar Alteração' : 'Adicionar Histórico'}
+                      </button>
+                    </motion.form>
+                  )}
+                </AnimatePresence>
+
+                <div className="space-y-4">
+                  {baiaHistory.map(item => (
+                    <div key={item.id} className="bg-[#F8FAFC] border border-slate-100 p-4 rounded-2xl group hover:border-slate-200 transition-colors">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-white px-3 py-1.5 rounded-lg text-xs font-bold text-[#1F2937] border border-slate-100 shadow-sm flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-[#10B981]"></span>
+                            {new Date(item.date).toLocaleDateString('pt-BR')}
+                          </div>
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => { setEditingBaiaHistoryItem(item); setIsAddingBaiaHistory(true); }} className="p-1.5 hover:bg-[#EFF6FF] text-slate-400 hover:text-[#2563EB] rounded-lg transition-colors"><MoreVertical size={14} /></button>
+                          <button onClick={() => removeBaiaHistory(item.id)} className="p-1.5 hover:bg-[#FEF2F2] text-slate-400 hover:text-[#EF4444] rounded-lg transition-colors"><Trash2 size={14} /></button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-600 font-medium leading-relaxed bg-white p-3 rounded-xl border border-slate-50">{item.notes}</p>
+                    </div>
+                  ))}
+                  {baiaHistory.length === 0 && !isAddingBaiaHistory && (
+                    <div className="text-center py-10 bg-[#F8FAFC] rounded-2xl border border-slate-100 border-dashed">
+                      <p className="text-slate-400 font-medium text-sm">Nenhum registro no histórico desta baia.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </motion.div>
           </div>
         )}
