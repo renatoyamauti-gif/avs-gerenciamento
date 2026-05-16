@@ -190,22 +190,7 @@ export default function Settings() {
                   Salvar Alterações
                 </button>
 
-                <button 
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      const { data: { user } } = await supabase.auth.getUser();
-                      const { data, error } = await supabase.from('profiles').select('*').eq('id', user?.id);
-                      const { data: upsertData, error: upsertErr } = await supabase.from('profiles').upsert({ id: user?.id, full_name: 'Teste Diagnóstico' }).select();
-                      alert(`DIAGNÓSTICO RLS:\nLeitura: ${JSON.stringify(data)} (Erro: ${JSON.stringify(error)})\nEscrita: ${JSON.stringify(upsertData)} (Erro: ${JSON.stringify(upsertErr)})`);
-                    } catch (e: any) {
-                      alert('ERRO CATASTRÓFICO: ' + e.message);
-                    }
-                  }}
-                  className="flex items-center justify-center bg-red-50 text-[#EF4444] border border-red-100 px-4 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-red-100 transition-all"
-                >
-                  Diagnóstico
-                </button>
+
               </div>
             </form>
           </section>
