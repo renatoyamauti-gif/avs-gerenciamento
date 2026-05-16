@@ -916,7 +916,7 @@ export default function Plantel() {
                             </div>
                           </div>
                           {history.notes && (
-                            <p className="text-sm text-slate-600 bg-[#F8FAFC] p-3 rounded-xl border border-slate-100 italic">
+                            <p className="text-sm text-slate-600 bg-[#F8FAFC] p-3 rounded-xl border border-slate-100 font-medium leading-relaxed">
                               {history.notes}
                             </p>
                           )}
