@@ -425,5 +425,91 @@ export const dbService = {
     }
     
     return data ? data[0] : updates;
+  },
+
+  // Maternity
+  async getMaternityRecords() {
+    const { data, error } = await supabase
+      .from('maternity')
+      .select('*')
+      .order('birth_date', { ascending: false });
+    if (error) handleSupabaseError(error, 'list', 'maternity');
+    return data;
+  },
+
+  async saveMaternityRecord(record: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    const recordData = { ...record, user_id: user.id };
+
+    if (record.id && record.id.length > 15) {
+      const { data, error } = await supabase
+        .from('maternity')
+        .update(recordData)
+        .eq('id', record.id)
+        .select();
+      if (error) handleSupabaseError(error, 'update', 'maternity');
+      return data[0];
+    } else {
+      delete recordData.id;
+      const { data, error } = await supabase
+        .from('maternity')
+        .insert([recordData])
+        .select();
+      if (error) handleSupabaseError(error, 'create', 'maternity');
+      return data[0];
+    }
+  },
+
+  async deleteMaternityRecord(id: string) {
+    const { error } = await supabase
+      .from('maternity')
+      .delete()
+      .eq('id', id);
+    if (error) handleSupabaseError(error, 'delete', 'maternity');
+  },
+
+  async getMaternityHistory(maternityId: string) {
+    const { data, error } = await supabase
+      .from('maternity_history')
+      .select('*')
+      .eq('maternity_id', maternityId)
+      .order('date', { ascending: false });
+    if (error) handleSupabaseError(error, 'list', 'maternity_history');
+    return data;
+  },
+
+  async saveMaternityHistory(history: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    const historyData = { ...history, user_id: user.id };
+
+    if (history.id && history.id.length > 15) {
+      const { data, error } = await supabase
+        .from('maternity_history')
+        .update(historyData)
+        .eq('id', history.id)
+        .select();
+      if (error) handleSupabaseError(error, 'update', 'maternity_history');
+      return data[0];
+    } else {
+      delete historyData.id;
+      const { data, error } = await supabase
+        .from('maternity_history')
+        .insert([historyData])
+        .select();
+      if (error) handleSupabaseError(error, 'create', 'maternity_history');
+      return data[0];
+    }
+  },
+
+  async deleteMaternityHistory(id: string) {
+    const { error } = await supabase
+      .from('maternity_history')
+      .delete()
+      .eq('id', id);
+    if (error) handleSupabaseError(error, 'delete', 'maternity_history');
   }
 };

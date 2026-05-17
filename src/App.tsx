@@ -13,6 +13,7 @@ import Dashboard from './pages/Dashboard';
 import Plantel from './pages/Plantel';
 import EggCollection from './pages/EggCollection';
 import Chocadeira from './pages/Chocadeira';
+import Maternity from './pages/Maternity';
 import Finance from './pages/Finance';
 import Ration from './pages/Ration';
 import SettingsPage from './pages/Settings';
@@ -157,6 +158,7 @@ export default function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/birds" element={<Plantel />} />
                 <Route path="/breeding" element={<Chocadeira />} />
+                <Route path="/maternity" element={<Maternity />} />
                 <Route path="/eggs" element={<EggCollection />} />
                 <Route path="/ration" element={<Ration />} />
                 <Route path="/finance" element={<Finance />} />
