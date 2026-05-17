@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Bird, Egg, Wallet, Hash, Thermometer, TrendingUp, TrendingDown, Activity, Loader2, CheckCircle2 } from 'lucide-react';
+import { Bird, Egg, Wallet, Hash, Thermometer, TrendingUp, TrendingDown, Activity, Loader2, CheckCircle2, Baby } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { dbService } from '../lib/dbService';
 
@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [nextHatch, setNextHatch] = useState<{ days: number, hours: number, finished: boolean } | null>(null);
   const [financeSummary, setFinanceSummary] = useState({ income: 0, expense: 0, balance: 0 });
   const [chartData, setChartData] = useState<any[]>([]);
+  const [chickCount, setChickCount] = useState(0);
 
   useEffect(() => {
     loadDashboardData();
@@ -29,6 +30,11 @@ export default function Dashboard() {
       const eggLogs = await dbService.getEggLogs();
       const totalEggs = (eggLogs || []).reduce((acc, curr) => acc + curr.count, 0);
       setEggCount(totalEggs);
+
+      // Load Chicks (Maternidade)
+      const maternityRecords = await dbService.getMaternityRecords();
+      const activeChicks = (maternityRecords || []).filter(r => r.status !== 'Óbito' && r.status !== 'Transferido');
+      setChickCount(activeChicks.length);
 
       // Load Incubators
       const incubators = await dbService.getIncubators();
@@ -103,13 +109,13 @@ export default function Dashboard() {
       {/* Welcome Section */}
       <section className="flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
-          <h2 className="text-4xl font-bold text-white font-headline tracking-tighter italic uppercase">PAINEL DE CONTROLE</h2>
-          <p className="text-slate-200 font-medium text-sm">Resumo operacional do sistema de gerenciamento.</p>
+          <h2 className="text-4xl font-bold text-[#1F2937] font-headline tracking-tighter italic uppercase">PAINEL DE CONTROLE</h2>
+          <p className="text-slate-500 font-medium text-sm">Resumo operacional do sistema de gerenciamento.</p>
         </div>
       </section>
 
       {/* Metrics Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
         
         {/* Ovos Coletados */}
         <div className="bg-white border border-slate-100 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
@@ -154,6 +160,22 @@ export default function Dashboard() {
               <div className="flex items-baseline gap-1 mt-0.5">
                 <span className="text-sm font-semibold text-slate-400">R$</span>
                 <p className="text-2xl font-black text-[#1F2937]">{financeSummary.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Maternidade (Pintinhos) */}
+        <div className="bg-white border border-slate-100 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="bg-[#EFF6FF] p-3 rounded-full">
+              <Baby size={24} className="text-[#2563EB]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Maternidade</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <p className="text-2xl font-black text-[#1F2937]">{chickCount}</p>
+                <span className="text-[10px] text-slate-400">Filhotes</span>
               </div>
             </div>
           </div>
