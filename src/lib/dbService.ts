@@ -6,7 +6,7 @@ export const dbService = {
   async getBirds() {
     const { data, error } = await supabase
       .from('birds')
-      .select('*, rations(*)');
+      .select('*, rations(*), bird_history(id)');
     if (error) handleSupabaseError(error, 'list', 'birds');
     return data;
   },

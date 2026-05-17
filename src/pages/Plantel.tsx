@@ -23,6 +23,7 @@ interface Bird {
   gender?: 'Macho' | 'Fêmea';
   baia?: string;
   weight?: number;
+  bird_history?: { id: string }[];
 }
 
 export default function Plantel() {
@@ -453,6 +454,11 @@ export default function Plantel() {
                           {bird.name}
                           {bird.gender === 'Macho' && <Mars size={14} className="text-[#2563EB]" />}
                           {bird.gender === 'Fêmea' && <Venus size={14} className="text-[#EF4444]" />}
+                          {bird.bird_history && bird.bird_history.length > 0 && (
+                            <div title="Possui histórico" className="bg-[#10B981]/10 p-1 rounded-full text-[#10B981] ml-1">
+                              <History size={12} />
+                            </div>
+                          )}
                         </span>
                         <div className="flex gap-2 items-center">
                           <span className="text-xs text-slate-400 font-bold uppercase">{bird.origin}</span>
@@ -533,6 +539,11 @@ export default function Plantel() {
                       {bird.name}
                       {bird.gender === 'Macho' && <Mars size={16} className="text-[#2563EB]" />}
                       {bird.gender === 'Fêmea' && <Venus size={16} className="text-[#EF4444]" />}
+                      {bird.bird_history && bird.bird_history.length > 0 && (
+                        <div title="Possui histórico" className="bg-[#10B981]/10 p-1 rounded-full text-[#10B981] ml-1">
+                          <History size={14} />
+                        </div>
+                      )}
                     </h4>
                     <div className="flex items-center gap-2 mt-0.5">
                        <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${bird.status === 'Breeding' ? 'bg-[#DBEAFE] text-[#2563EB]' : 'bg-slate-100 text-slate-500'}`}>
