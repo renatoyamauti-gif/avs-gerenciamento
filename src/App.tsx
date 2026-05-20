@@ -23,11 +23,14 @@ import BottomNav from './components/BottomNav';
 import { supabase } from './lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { dbService } from './lib/dbService';
+import { useSubscription } from './hooks/useSubscription';
+
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { plan, loading: subLoading, isFreePlan, isTrialExpired, trialDaysLeft, isTrialActive } = useSubscription();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -78,7 +81,9 @@ export default function App() {
     return 'CRIATÓRIO NÃO CADASTRADO';
   };
 
-  if (loading) {
+  const isLocked = plan === 'free' && isTrialExpired;
+
+  if (loading || subLoading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <motion.div 
@@ -103,29 +108,57 @@ export default function App() {
   return (
     <Router>
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col lg:flex-row pb-16 lg:pb-0">
-        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        {!isLocked && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />}
         
-        <main className="flex-1 min-h-screen relative lg:ml-64 transition-all">
-          {/* Mobile Header (Blue background like the mockup) */}
-          <div className="lg:hidden fixed top-0 left-0 w-full bg-[#2563EB] h-16 z-40 flex items-center justify-between px-6 shadow-md">
-            <div className="text-2xl font-black text-white font-headline tracking-tighter italic">
-              AVS <span className="text-[8px] text-[#DBEAFE] tracking-[0.2em] uppercase">GERENCIAMENTO</span>
+        <main className={`flex-1 min-h-screen relative transition-all ${!isLocked ? 'lg:ml-64' : ''}`}>
+          {/* Mobile Header */}
+          {!isLocked && (
+            <div className="lg:hidden fixed top-0 left-0 w-full bg-[#2563EB] h-16 z-40 flex items-center justify-between px-6 shadow-md">
+              <div className="text-2xl font-black text-white font-headline tracking-tighter italic">
+                AVS <span className="text-[8px] text-[#DBEAFE] tracking-[0.2em] uppercase">GERENCIAMENTO</span>
+              </div>
+              <button 
+                onClick={() => setIsSidebarOpen(true)}
+                className="text-white hover:text-white/80 transition-colors"
+              >
+                <Menu size={24} />
+              </button>
             </div>
-            <button 
-              onClick={() => setIsSidebarOpen(true)}
-              className="text-white hover:text-white/80 transition-colors"
-            >
-              <Menu size={24} />
-            </button>
-          </div>
+          )}
 
-          {/* Desktop Header is imported here but we probably need it transparent or white on desktop */}
-          <div className="hidden lg:block">
-            <Header />
-          </div>
-          <div className="pt-24 lg:pt-28 pb-12 px-4 sm:px-6 lg:px-10 max-w-7xl mx-auto">
+          {/* Desktop Header is imported here */}
+          {!isLocked && (
+            <div className="hidden lg:block">
+              <Header />
+            </div>
+          )}
+          <div className={`pb-12 px-4 sm:px-6 lg:px-10 max-w-7xl mx-auto ${!isLocked ? 'pt-24 lg:pt-28' : 'pt-10'}`}>
+            
+            {/* Banner de Trial */}
+            {!isLocked && isTrialActive && (
+              <div className="mb-6 bg-gradient-to-r from-amber-400 to-amber-600 text-white p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg shadow-amber-500/20">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white/20 p-2 rounded-full">
+                    <Heart size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg font-headline tracking-tight">Período de Teste Ativo</h3>
+                    <p className="text-sm font-medium text-white/90">
+                      Você tem <span className="font-black text-white">{trialDaysLeft} {trialDaysLeft === 1 ? 'dia' : 'dias'}</span> de acesso total ao sistema.
+                    </p>
+                  </div>
+                </div>
+                <a 
+                  href="/subscription" 
+                  className="w-full sm:w-auto px-6 py-2.5 bg-white text-amber-600 rounded-full text-sm font-bold uppercase tracking-widest hover:bg-amber-50 transition-colors text-center shadow-sm"
+                >
+                  Assinar Agora
+                </a>
+              </div>
+            )}
             
             {/* Boas-vindas Simplificado conforme solicitado no mockup */}
+            {!isLocked && (
             <motion.div 
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -133,7 +166,6 @@ export default function App() {
             >
               <div className="flex items-center gap-4">
                 <div className="bg-[#E0E7FF] p-4 rounded-full">
-                  {/* User icon replacing the Heart to match the mockup */}
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#3B82F6]"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 </div>
                 <div>
@@ -152,20 +184,28 @@ export default function App() {
                 <LogOut size={16} /> Sair da conta
               </button>
             </motion.div>
+            )}
 
             <AnimatePresence mode="wait">
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/birds" element={<Plantel />} />
-                <Route path="/breeding" element={<Chocadeira />} />
-                <Route path="/maternity" element={<Maternity />} />
-                <Route path="/eggs" element={<EggCollection />} />
-                <Route path="/ration" element={<Ration />} />
-                <Route path="/finance" element={<Finance />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/subscription" element={<Subscription />} />
-                <Route path="*" element={<Navigate to="/" />} />
-              </Routes>
+              {isLocked ? (
+                <Routes>
+                  <Route path="/subscription" element={<Subscription />} />
+                  <Route path="*" element={<Navigate to="/subscription" />} />
+                </Routes>
+              ) : (
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/birds" element={<Plantel />} />
+                  <Route path="/breeding" element={<Chocadeira />} />
+                  <Route path="/maternity" element={<Maternity />} />
+                  <Route path="/eggs" element={<EggCollection />} />
+                  <Route path="/ration" element={<Ration />} />
+                  <Route path="/finance" element={<Finance />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/subscription" element={<Subscription />} />
+                  <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+              )}
             </AnimatePresence>
 
             <footer className="pt-12 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center text-[10px] sm:text-sm font-semibold text-slate-400 uppercase tracking-[0.1em] mt-20 gap-4 text-center sm:text-left mb-6">
@@ -179,8 +219,9 @@ export default function App() {
           </div>
         </main>
         
+        
         {/* Bottom Navigation for Mobile */}
-        <BottomNav onOpenMenu={() => setIsSidebarOpen(true)} />
+        {!isLocked && <BottomNav onOpenMenu={() => setIsSidebarOpen(true)} />}
       </div>
     </Router>
   );

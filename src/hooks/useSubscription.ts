@@ -1,23 +1,47 @@
 import { useState, useEffect } from 'react';
 import { dbService } from '../lib/dbService';
+import { supabase } from '../lib/supabaseClient';
 
 export type PlanType = 'free' | 'pro' | 'anual';
 
 export function useSubscription() {
   const [plan, setPlan] = useState<PlanType>('free');
   const [loading, setLoading] = useState(true);
+  const [isTrialExpired, setIsTrialExpired] = useState(false);
+  const [trialDaysLeft, setTrialDaysLeft] = useState(0);
 
   useEffect(() => {
     async function loadProfile() {
       try {
-        const profile = await dbService.getProfile();
-        // Verifica se o perfil existe e se tem uma coluna 'plan' definida.
-        // Se não existir, por padrão o usuário será 'free'.
-        if (profile && profile.plan) {
-          setPlan(profile.plan as PlanType);
-        } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
           setPlan('free');
+          setLoading(false);
+          return;
         }
+
+        const profile = await dbService.getProfile();
+        const currentPlan = (profile && profile.plan) ? profile.plan as PlanType : 'free';
+        
+        let expired = false;
+        let daysLeft = 0;
+
+        if (currentPlan === 'free') {
+          const createdDate = new Date(user.created_at);
+          const now = new Date();
+          const diffTime = now.getTime() - createdDate.getTime();
+          const diffDays = Math.floor(diffTime / (1000 * 3600 * 24));
+          
+          if (diffDays > 7) {
+            expired = true;
+          } else {
+            daysLeft = 7 - diffDays;
+          }
+        }
+
+        setPlan(currentPlan);
+        setIsTrialExpired(expired);
+        setTrialDaysLeft(daysLeft);
       } catch (error) {
         console.error('Erro ao buscar perfil para a assinatura:', error);
         setPlan('free');
@@ -28,13 +52,15 @@ export function useSubscription() {
     loadProfile();
   }, []);
 
-  const isFreePlan = plan === 'free';
+  const isFreePlan = plan === 'free' && isTrialExpired;
+  const isTrialActive = plan === 'free' && !isTrialExpired;
   
   // Limites definidos para o plano grátis (Iniciante)
-  const limits = {
+  // Durante o trial, os limites são flexibilizados ou removidos.
+  const limits = isTrialActive ? { birds: 999999, incubators: 999999 } : {
     birds: 5,
     incubators: 1
   };
 
-  return { plan, loading, isFreePlan, limits };
+  return { plan, loading, isFreePlan, limits, isTrialExpired, isTrialActive, trialDaysLeft };
 }

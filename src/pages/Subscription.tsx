@@ -70,7 +70,7 @@ const plans = [
 
 export default function Subscription() {
   const [userId, setUserId] = useState<string | null>(null);
-  const { plan: currentPlan } = useSubscription();
+  const { plan: currentPlan, isTrialExpired } = useSubscription();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -91,6 +91,28 @@ export default function Subscription() {
           <CreditCard size={14} />
           Assinaturas e Pagamentos
         </motion.div>
+
+        {currentPlan === 'free' && isTrialExpired && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-red-50 border-2 border-red-200 text-red-700 p-6 rounded-3xl mb-12 shadow-sm max-w-3xl mx-auto flex flex-col items-center gap-4"
+          >
+            <Lock size={32} className="text-red-500 mb-1" />
+            <div className="text-center">
+              <h2 className="text-2xl font-black font-headline tracking-tighter uppercase mb-2">Seu período de teste acabou!</h2>
+              <p className="font-medium text-sm text-red-600/80">
+                O acesso ao sistema foi bloqueado. Assine um dos planos abaixo para continuar usando o AVS Gerenciamento e não perder seus dados.
+              </p>
+            </div>
+            <button 
+              onClick={() => supabase.auth.signOut()}
+              className="mt-2 px-6 py-2 bg-white text-red-600 rounded-full text-xs font-bold uppercase tracking-widest border border-red-200 hover:bg-red-100 transition-colors shadow-sm"
+            >
+              Sair da Conta
+            </button>
+          </motion.div>
+        )}
 
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
