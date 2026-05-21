@@ -66,10 +66,14 @@ export default function Plantel() {
     }
   }
 
-  const [isViewingBaiaHistory, setIsViewingBaiaHistory] = useState(false);
+  const [baiaTab, setBaiaTab] = useState<'aves' | 'historico'>('aves');
   const [baiaHistory, setBaiaHistory] = useState<any[]>([]);
   const [isAddingBaiaHistory, setIsAddingBaiaHistory] = useState(false);
   const [editingBaiaHistoryItem, setEditingBaiaHistoryItem] = useState<any>(null);
+
+  useEffect(() => {
+    setBaiaTab('aves');
+  }, [filterBaia]);
 
   async function loadBaiaHistoryData(baiaName: string) {
     try {
@@ -159,10 +163,14 @@ export default function Plantel() {
     if (filterBaia === 'All') return;
     
     const formData = new FormData(e.currentTarget);
+    const actionType = formData.get('action_type') as string;
+    const rawNotes = formData.get('notes') as string;
+    const combinedNotes = actionType && actionType !== 'Outros' ? `[${actionType}] ${rawNotes}` : rawNotes;
+
     const historyData: any = {
       baia_name: filterBaia,
       date: formData.get('date') as string,
-      notes: formData.get('notes') as string,
+      notes: combinedNotes,
     };
 
     if (editingBaiaHistoryItem?.id) {
@@ -438,20 +446,30 @@ export default function Plantel() {
                 <Plus size={14} /> Baia
               </button>
             </div>
-            {filterBaia !== 'All' && (
+          </div>
+          {filterBaia !== 'All' && (
+            <div className="flex gap-4 p-4 border-b border-slate-100 bg-white">
+              <button 
+                onClick={() => setBaiaTab('aves')}
+                className={`pb-2 text-sm font-bold uppercase tracking-widest transition-colors ${baiaTab === 'aves' ? 'text-[#2563EB] border-b-2 border-[#2563EB]' : 'text-slate-400 hover:text-[#1F2937]'}`}
+              >
+                Aves da Baia
+              </button>
               <button 
                 onClick={() => {
+                  setBaiaTab('historico');
                   loadBaiaHistoryData(filterBaia);
-                  setIsViewingBaiaHistory(true);
                 }}
-                className="ml-4 shrink-0 flex items-center gap-2 bg-[#10B981] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#059669] transition-all shadow-sm"
+                className={`pb-2 text-sm font-bold uppercase tracking-widest transition-colors ${baiaTab === 'historico' ? 'text-[#2563EB] border-b-2 border-[#2563EB]' : 'text-slate-400 hover:text-[#1F2937]'}`}
               >
-                <History size={14} /> Histórico
+                Histórico
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
-        <div className="overflow-x-auto hidden md:block">
+        {baiaTab === 'aves' || filterBaia === 'All' ? (
+          <>
+            <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#F8FAFC] text-xs uppercase tracking-widest font-bold text-slate-400 border-b border-slate-100">
@@ -603,6 +621,88 @@ export default function Plantel() {
             </div>
           )}
         </div>
+          </>
+        ) : (
+          <div className="p-6">
+            <div className="space-y-6 max-w-4xl mx-auto">
+              <div className="flex justify-between items-center">
+                <h4 className="text-[#1F2937] font-bold text-sm uppercase tracking-widest">Registros de Histórico</h4>
+                <button 
+                  onClick={() => {
+                    setIsAddingBaiaHistory(!isAddingBaiaHistory);
+                    if (isAddingBaiaHistory) setEditingBaiaHistoryItem(null);
+                  }} 
+                  className="flex items-center gap-2 bg-[#2563EB] text-white px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-[#1D4ED8] transition-colors shadow-sm"
+                >
+                  {isAddingBaiaHistory ? <X size={14} /> : <Plus size={14} />} 
+                  {isAddingBaiaHistory ? 'Cancelar' : 'Novo Registro'}
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {isAddingBaiaHistory && (
+                  <motion.form 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    onSubmit={handleSaveBaiaHistory} 
+                    className="bg-[#EFF6FF] p-5 rounded-2xl border border-[#DBEAFE] space-y-4 overflow-hidden"
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Data</label>
+                        <input required name="date" type="date" defaultValue={editingBaiaHistoryItem?.date || new Date().toISOString().split('T')[0]} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-[#1F2937] focus:ring-2 focus:ring-[#2563EB]/20 outline-none text-sm font-medium" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tipo de Ação</label>
+                        <select name="action_type" className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-[#1F2937] focus:ring-2 focus:ring-[#2563EB]/20 outline-none text-sm font-medium">
+                          <option value="Limpeza">Limpeza</option>
+                          <option value="Desinfecção">Desinfecção</option>
+                          <option value="Manejo">Manejo</option>
+                          <option value="Alimentação">Alimentação</option>
+                          <option value="Outros">Outros</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Anotações</label>
+                      <textarea required name="notes" rows={3} defaultValue={editingBaiaHistoryItem?.notes || ''} placeholder="Ex: Detalhes do registro..." className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-[#1F2937] focus:ring-2 focus:ring-[#2563EB]/20 outline-none text-sm font-medium resize-none"></textarea>
+                    </div>
+                    <button type="submit" className="w-full py-3 bg-[#2563EB] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-sm hover:bg-[#1D4ED8] transition-all">
+                      {editingBaiaHistoryItem ? 'Salvar Alteração' : 'Adicionar Histórico'}
+                    </button>
+                  </motion.form>
+                )}
+              </AnimatePresence>
+
+              <div className="space-y-4">
+                {baiaHistory.map(item => (
+                  <div key={item.id} className="bg-[#F8FAFC] border border-slate-100 p-4 rounded-2xl group hover:border-slate-200 transition-colors">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-white px-3 py-1.5 rounded-lg text-xs font-bold text-[#1F2937] border border-slate-100 shadow-sm flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-[#10B981]"></span>
+                          {new Date(item.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => { setEditingBaiaHistoryItem(item); setIsAddingBaiaHistory(true); }} className="p-1.5 hover:bg-[#EFF6FF] text-slate-400 hover:text-[#2563EB] rounded-lg transition-colors"><MoreVertical size={14} /></button>
+                        <button onClick={() => removeBaiaHistory(item.id)} className="p-1.5 hover:bg-[#FEF2F2] text-slate-400 hover:text-[#EF4444] rounded-lg transition-colors"><Trash2 size={14} /></button>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">{item.notes}</p>
+                  </div>
+                ))}
+                {baiaHistory.length === 0 && !isAddingBaiaHistory && (
+                  <div className="text-center py-10 bg-[#F8FAFC] rounded-2xl border border-dashed border-slate-200">
+                    <History className="mx-auto text-slate-300 mb-3" size={32} />
+                    <p className="text-slate-400 font-medium text-sm">Nenhum registro de histórico para esta baia.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
@@ -964,96 +1064,7 @@ export default function Plantel() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {isViewingBaiaHistory && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setIsViewingBaiaHistory(false); setIsAddingBaiaHistory(false); setEditingBaiaHistoryItem(null); }} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-2xl bg-white p-8 sm:p-10 rounded-[32px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h3 className="text-2xl font-bold text-[#1F2937]">
-                    Histórico da Baia: {filterBaia}
-                  </h3>
-                  <p className="text-sm text-slate-500 font-medium mt-1">Gerencie as anotações desta baia</p>
-                </div>
-                <button onClick={() => { setIsViewingBaiaHistory(false); setIsAddingBaiaHistory(false); setEditingBaiaHistoryItem(null); }} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors">
-                  <X size={20} />
-                </button>
-              </div>
 
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-[#1F2937] font-bold text-sm uppercase tracking-widest">Registros de Histórico</h4>
-                  <button 
-                    onClick={() => {
-                      setIsAddingBaiaHistory(!isAddingBaiaHistory);
-                      if (isAddingBaiaHistory) setEditingBaiaHistoryItem(null);
-                    }} 
-                    className="flex items-center gap-2 bg-[#2563EB] text-white px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-[#1D4ED8] transition-colors shadow-sm"
-                  >
-                    {isAddingBaiaHistory ? <X size={14} /> : <Plus size={14} />} 
-                    {isAddingBaiaHistory ? 'Cancelar' : 'Novo Registro'}
-                  </button>
-                </div>
-
-                <AnimatePresence>
-                  {isAddingBaiaHistory && (
-                    <motion.form 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      onSubmit={handleSaveBaiaHistory} 
-                      className="bg-[#EFF6FF] p-5 rounded-2xl border border-[#DBEAFE] space-y-4 mb-6 overflow-hidden"
-                    >
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Data</label>
-                        <input required name="date" type="date" defaultValue={editingBaiaHistoryItem?.date || new Date().toISOString().split('T')[0]} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-[#1F2937] focus:ring-2 focus:ring-[#2563EB]/20 outline-none text-sm font-medium" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Anotações</label>
-                        <textarea required name="notes" rows={3} defaultValue={editingBaiaHistoryItem?.notes || ''} placeholder="Ex: Higienização completa da baia, troca de comedouros, etc." className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-[#1F2937] focus:ring-2 focus:ring-[#2563EB]/20 outline-none text-sm font-medium resize-none"></textarea>
-                      </div>
-                      <button type="submit" className="w-full py-3 bg-[#2563EB] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-sm hover:bg-[#1D4ED8] transition-all">
-                        {editingBaiaHistoryItem ? 'Salvar Alteração' : 'Adicionar Histórico'}
-                      </button>
-                    </motion.form>
-                  )}
-                </AnimatePresence>
-
-                <div className="space-y-4">
-                  {baiaHistory.map(item => (
-                    <div key={item.id} className="bg-[#F8FAFC] border border-slate-100 p-4 rounded-2xl group hover:border-slate-200 transition-colors">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-white px-3 py-1.5 rounded-lg text-xs font-bold text-[#1F2937] border border-slate-100 shadow-sm flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#10B981]"></span>
-                            {new Date(item.date).toLocaleDateString('pt-BR')}
-                          </div>
-                        </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => { setEditingBaiaHistoryItem(item); setIsAddingBaiaHistory(true); }} className="p-1.5 hover:bg-[#EFF6FF] text-slate-400 hover:text-[#2563EB] rounded-lg transition-colors"><MoreVertical size={14} /></button>
-                          <button onClick={() => removeBaiaHistory(item.id)} className="p-1.5 hover:bg-[#FEF2F2] text-slate-400 hover:text-[#EF4444] rounded-lg transition-colors"><Trash2 size={14} /></button>
-                        </div>
-                      </div>
-                      <p className="text-sm text-slate-600 font-medium leading-relaxed bg-white p-3 rounded-xl border border-slate-50">{item.notes}</p>
-                    </div>
-                  ))}
-                  {baiaHistory.length === 0 && !isAddingBaiaHistory && (
-                    <div className="text-center py-10 bg-[#F8FAFC] rounded-2xl border border-slate-100 border-dashed">
-                      <p className="text-slate-400 font-medium text-sm">Nenhum registro no histórico desta baia.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }
