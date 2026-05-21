@@ -48,6 +48,15 @@ export default function Plantel() {
   const [isAddingHistory, setIsAddingHistory] = useState(false);
   const [editingHistoryItem, setEditingHistoryItem] = useState<any>(null);
 
+  const [extraBaias, setExtraBaias] = useState<string[]>(() => {
+    const saved = localStorage.getItem('avs_extra_baias');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('avs_extra_baias', JSON.stringify(extraBaias));
+  }, [extraBaias]);
+
   async function loadBirdHistory(birdId: string) {
     try {
       const history = await dbService.getBirdHistory(birdId);
@@ -273,7 +282,7 @@ export default function Plantel() {
     return matchesSearch && matchesFilter && matchesBaia;
   });
 
-  const uniqueBaias = Array.from(new Set(birds.map(b => b.baia).filter(Boolean))).sort();
+  const uniqueBaias = Array.from(new Set([...birds.map(b => b.baia).filter(Boolean), ...extraBaias])).sort();
 
   const activeBirds = filteredBirds.filter(b => b.status !== 'Vendida');
   const totalBirds = activeBirds.length;
@@ -396,9 +405,8 @@ export default function Plantel() {
             ))}
           </div>
         </div>
-        {uniqueBaias.length > 0 && (
           <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-[#F8FAFC]">
-            <div className="flex gap-3 overflow-x-auto hide-scrollbar flex-1">
+            <div className="flex gap-3 overflow-x-auto hide-scrollbar flex-1 items-center">
               <button
                 onClick={() => setFilterBaia('All')}
                 className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap shadow-sm ${filterBaia === 'All' ? 'bg-[#2563EB] text-white border-transparent' : 'bg-white text-slate-500 hover:text-[#2563EB] border border-slate-200 hover:border-[#2563EB]/30'}`}
@@ -407,13 +415,28 @@ export default function Plantel() {
               </button>
               {uniqueBaias.map(baia => (
                 <button
-                  key={baia}
-                  onClick={() => setFilterBaia(baia)}
+                  key={baia as string}
+                  onClick={() => setFilterBaia(baia as string)}
                   className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap shadow-sm ${filterBaia === baia ? 'bg-[#2563EB] text-white border-transparent' : 'bg-white text-slate-500 hover:text-[#2563EB] border border-slate-200 hover:border-[#2563EB]/30'}`}
                 >
-                  {baia}
+                  {baia as string}
                 </button>
               ))}
+              <button
+                onClick={() => {
+                  const name = prompt('Digite o nome da nova baia:');
+                  if (name && name.trim()) {
+                    const newBaia = name.trim();
+                    if (!uniqueBaias.includes(newBaia as string)) {
+                      setExtraBaias(prev => [...prev, newBaia]);
+                    }
+                    setFilterBaia(newBaia);
+                  }
+                }}
+                className="flex items-center gap-1 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap shadow-sm bg-white text-[#10B981] border border-[#10B981]/30 hover:bg-[#10B981] hover:text-white"
+              >
+                <Plus size={14} /> Baia
+              </button>
             </div>
             {filterBaia !== 'All' && (
               <button 
@@ -427,7 +450,6 @@ export default function Plantel() {
               </button>
             )}
           </div>
-        )}
 
         <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-left border-collapse">
