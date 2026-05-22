@@ -182,12 +182,18 @@ export const dbService = {
     return resultData;
   },
 
-  async deleteBaia(id: string) {
-    const { error } = await supabase
-      .from('baias')
-      .delete()
-      .eq('id', id);
-    if (error) handleSupabaseError(error, 'delete', 'baias');
+  async deleteBaia(id: string | null, name?: string) {
+    if (id) {
+      const { error } = await supabase
+        .from('baias')
+        .delete()
+        .eq('id', id);
+      if (error) handleSupabaseError(error, 'delete', 'baias');
+    }
+    if (name) {
+      // Clear birds that were in this baia
+      await supabase.from('birds').update({ baia: null }).eq('baia', name);
+    }
   },
 
   // Rations

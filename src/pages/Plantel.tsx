@@ -1178,11 +1178,12 @@ export default function Plantel() {
                 </div>
 
                 <div className="pt-4 flex gap-3">
-                  {baiaToEdit?.id && (
+                  {baiaToEdit?.name && (
                     <button type="button" onClick={async () => {
-                      if (confirm('ATENÇÃO: Deseja excluir os dados desta baia? Isso NÃO excluirá as aves.')) {
+                      if (confirm('ATENÇÃO: Deseja excluir os dados desta baia? As aves que estavam nela ficarão sem baia definida.')) {
                         try {
-                          await dbService.deleteBaia(baiaToEdit.id);
+                          await dbService.deleteBaia(baiaToEdit.id || null, baiaToEdit.name);
+                          setExtraBaias(prev => prev.filter(b => b !== baiaToEdit.name));
                           setFilterBaia('All');
                           await loadData();
                           setIsEditingBaia(false);
