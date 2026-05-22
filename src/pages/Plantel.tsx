@@ -1137,6 +1137,10 @@ export default function Plantel() {
                   }
                   await dbService.saveBaia(bData);
                   
+                  if (baiaToEdit?.name && newName !== baiaToEdit.name) {
+                    setExtraBaias(prev => prev.filter(b => b !== baiaToEdit.name));
+                  }
+                  
                   // If new baia, set filter to it
                   setFilterBaia(newName);
                   
