@@ -1111,7 +1111,7 @@ export default function Plantel() {
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-[#1F2937]">
-                  {baiaToEdit?.id ? 'Editar Baia' : 'Nova Baia'}
+                  {baiaToEdit?.name ? 'Editar Baia' : 'Nova Baia'}
                 </h3>
                 <button onClick={() => { setIsEditingBaia(false); setBaiaToEdit(null); }} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors">
                   <X size={20} />
@@ -1127,6 +1127,7 @@ export default function Plantel() {
                 try {
                   const bData: any = {
                     name: newName,
+                    old_name: baiaToEdit?.name,
                     description: formData.get('description') as string,
                     capacity: parseInt(formData.get('capacity') as string) || null,
                     type: formData.get('type') as string,
