@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Filter, Plus, MoreVertical, Hash, Info, History, X, Camera, Trash2, Loader2, Lock, Mars, Venus } from 'lucide-react';
+import { Search, Filter, Plus, MoreVertical, Hash, Info, History, X, Camera, Trash2, Loader2, Lock, Mars, Venus, Settings } from 'lucide-react';
 import { IMAGES } from '../constants';
 import { dbService } from '../lib/dbService';
 import { useSubscription } from '../hooks/useSubscription';
@@ -71,6 +71,10 @@ export default function Plantel() {
   const [baiaHistory, setBaiaHistory] = useState<any[]>([]);
   const [isAddingBaiaHistory, setIsAddingBaiaHistory] = useState(false);
   const [editingBaiaHistoryItem, setEditingBaiaHistoryItem] = useState<any>(null);
+  
+  const [baiasData, setBaiasData] = useState<any[]>([]);
+  const [isEditingBaia, setIsEditingBaia] = useState(false);
+  const [baiaToEdit, setBaiaToEdit] = useState<any>(null);
 
   useEffect(() => {
     setBaiaTab('aves');
@@ -97,6 +101,14 @@ export default function Plantel() {
       ]);
       setBirds(birdsData || []);
       setRecipes(recipesData || []);
+
+      let fetchedBaias: any[] = [];
+      try {
+        fetchedBaias = await dbService.getBaias();
+      } catch (e) {
+        console.warn('Baias table might not exist yet');
+      }
+      setBaiasData(fetchedBaias || []);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -292,7 +304,7 @@ export default function Plantel() {
     return matchesSearch && matchesFilter && matchesBaia;
   });
 
-  const uniqueBaias = Array.from(new Set([...birds.map(b => b.baia).filter(Boolean), ...extraBaias])).sort();
+  const uniqueBaias = Array.from(new Set([...birds.map(b => b.baia).filter(Boolean), ...extraBaias, ...baiasData.map(b => b.name)])).sort();
 
   const activeBirds = filteredBirds.filter(b => b.status !== 'Vendida');
   const totalBirds = activeBirds.length;
@@ -434,14 +446,8 @@ export default function Plantel() {
               ))}
               <button
                 onClick={() => {
-                  const name = prompt('Digite o nome da nova baia:');
-                  if (name && name.trim()) {
-                    const newBaia = name.trim();
-                    if (!uniqueBaias.includes(newBaia as string)) {
-                      setExtraBaias(prev => [...prev, newBaia]);
-                    }
-                    setFilterBaia(newBaia);
-                  }
+                  setBaiaToEdit(null);
+                  setIsEditingBaia(true);
                 }}
                 className="flex items-center gap-1 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap shadow-sm bg-white text-[#10B981] border border-[#10B981]/30 hover:bg-[#10B981] hover:text-white"
               >
@@ -450,21 +456,33 @@ export default function Plantel() {
             </div>
           </div>
           {filterBaia !== 'All' && (
-            <div className="flex gap-4 p-4 border-b border-slate-100 bg-white">
-              <button 
-                onClick={() => setBaiaTab('aves')}
-                className={`pb-2 text-sm font-bold uppercase tracking-widest transition-colors ${baiaTab === 'aves' ? 'text-[#2563EB] border-b-2 border-[#2563EB]' : 'text-slate-400 hover:text-[#1F2937]'}`}
-              >
-                Aves da Baia
-              </button>
-              <button 
+            <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-white">
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setBaiaTab('aves')}
+                  className={`pb-2 text-sm font-bold uppercase tracking-widest transition-colors ${baiaTab === 'aves' ? 'text-[#2563EB] border-b-2 border-[#2563EB]' : 'text-slate-400 hover:text-[#1F2937]'}`}
+                >
+                  Aves da Baia
+                </button>
+                <button 
+                  onClick={() => {
+                    setBaiaTab('historico');
+                    loadBaiaHistoryData(filterBaia);
+                  }}
+                  className={`pb-2 text-sm font-bold uppercase tracking-widest transition-colors ${baiaTab === 'historico' ? 'text-[#2563EB] border-b-2 border-[#2563EB]' : 'text-slate-400 hover:text-[#1F2937]'}`}
+                >
+                  Histórico
+                </button>
+              </div>
+              <button
                 onClick={() => {
-                  setBaiaTab('historico');
-                  loadBaiaHistoryData(filterBaia);
+                  const bData = baiasData.find(b => b.name === filterBaia) || { name: filterBaia };
+                  setBaiaToEdit(bData);
+                  setIsEditingBaia(true);
                 }}
-                className={`pb-2 text-sm font-bold uppercase tracking-widest transition-colors ${baiaTab === 'historico' ? 'text-[#2563EB] border-b-2 border-[#2563EB]' : 'text-slate-400 hover:text-[#1F2937]'}`}
+                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-[#2563EB] transition-colors bg-[#F8FAFC] px-3 py-1.5 rounded-lg border border-slate-200"
               >
-                Histórico
+                <Settings size={14} /> Editar Baia
               </button>
             </div>
           )}
@@ -1080,6 +1098,107 @@ export default function Plantel() {
         )}
       </AnimatePresence>
 
+
+      <AnimatePresence>
+        {isEditingBaia && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setIsEditingBaia(false); setBaiaToEdit(null); }} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-[#1F2937]">
+                  {baiaToEdit?.id ? 'Editar Baia' : 'Nova Baia'}
+                </h3>
+                <button onClick={() => { setIsEditingBaia(false); setBaiaToEdit(null); }} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const newName = formData.get('name') as string;
+                if (!newName) return;
+                
+                try {
+                  const bData: any = {
+                    name: newName,
+                    description: formData.get('description') as string,
+                    capacity: parseInt(formData.get('capacity') as string) || null,
+                    type: formData.get('type') as string,
+                  };
+                  if (baiaToEdit?.id) {
+                    bData.id = baiaToEdit.id;
+                  }
+                  await dbService.saveBaia(bData);
+                  
+                  // If new baia, set filter to it
+                  setFilterBaia(newName);
+                  
+                  await loadData();
+                  setIsEditingBaia(false);
+                  setBaiaToEdit(null);
+                } catch (err: any) {
+                  alert('Erro ao salvar baia (Lembre-se de rodar o SQL no Supabase!): ' + err.message);
+                }
+              }} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nome da Baia</label>
+                  <input required name="name" defaultValue={baiaToEdit?.name || ''} placeholder="Ex: Baia Principal" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tipo / Categoria</label>
+                  <select name="type" defaultValue={baiaToEdit?.type || ''} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none">
+                    <option value="">Selecione...</option>
+                    <option value="Reprodução">Reprodução</option>
+                    <option value="Crescimento">Crescimento</option>
+                    <option value="Maternidade">Maternidade</option>
+                    <option value="Isolamento">Isolamento</option>
+                    <option value="Outros">Outros</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Capacidade (Aves)</label>
+                    <input name="capacity" type="number" defaultValue={baiaToEdit?.capacity || ''} placeholder="Ex: 50" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Descrição / Notas</label>
+                  <textarea name="description" rows={3} defaultValue={baiaToEdit?.description || ''} placeholder="Informações adicionais..." className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none resize-none" />
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  {baiaToEdit?.id && (
+                    <button type="button" onClick={async () => {
+                      if (confirm('ATENÇÃO: Deseja excluir os dados desta baia? Isso NÃO excluirá as aves.')) {
+                        try {
+                          await dbService.deleteBaia(baiaToEdit.id);
+                          setFilterBaia('All');
+                          await loadData();
+                          setIsEditingBaia(false);
+                          setBaiaToEdit(null);
+                        } catch(e:any) {
+                          alert('Erro ao excluir: ' + e.message);
+                        }
+                      }
+                    }} className="px-4 py-3 bg-[#FEF2F2] text-[#EF4444] rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-[#FEE2E2] transition-colors">
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                  <button type="submit" className="flex-1 py-3 bg-[#2563EB] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-sm hover:bg-[#1D4ED8] transition-all">
+                    Salvar Baia
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </motion.div>
   );

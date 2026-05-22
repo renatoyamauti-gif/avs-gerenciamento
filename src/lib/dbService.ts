@@ -134,6 +134,64 @@ export const dbService = {
     if (error) handleSupabaseError(error, 'delete', 'baia_history');
   },
 
+  // Baias (New Table)
+  async getBaias() {
+    const { data, error } = await supabase
+      .from('baias')
+      .select('*')
+      .order('name');
+    if (error) handleSupabaseError(error, 'list', 'baias');
+    return data;
+  },
+
+  async saveBaia(baia: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    const baiaData = { ...baia, user_id: user.id };
+
+    if (baia.id && baia.id.length > 15) {
+      // Check if name changed to cascade
+      const { data: oldBaia } = await supabase.from('baias').select('name').eq('id', baia.id).single();
+      
+      const { data, error } = await supabase
+        .from('baias')
+        .update(baiaData)
+        .eq('id', baia.id)
+        .select();
+      if (error) handleSupabaseError(error, 'update', 'baias');
+
+      // Cascade rename if necessary
+      if (oldBaia && oldBaia.name !== baia.name) {
+        await supabase.from('birds').update({ baia: baia.name }).eq('baia', oldBaia.name);
+        await supabase.from('baia_history').update({ baia_name: baia.name }).eq('baia_name', oldBaia.name);
+        
+        // Egg logs have baia stored as a comma-separated string sometimes, or just standard.
+        // It's safer to just replace it perfectly, but for simplicity we can replace exact matches.
+        // If it's partial we'd need complex SQL. We'll update exact matches for now.
+        await supabase.from('egg_logs').update({ baia: baia.name }).eq('baia', oldBaia.name);
+      }
+
+      return data[0];
+    } else {
+      delete baiaData.id;
+      const { data, error } = await supabase
+        .from('baias')
+        .insert([baiaData])
+        .select();
+      if (error) handleSupabaseError(error, 'create', 'baias');
+      return data[0];
+    }
+  },
+
+  async deleteBaia(id: string) {
+    const { error } = await supabase
+      .from('baias')
+      .delete()
+      .eq('id', id);
+    if (error) handleSupabaseError(error, 'delete', 'baias');
+  },
+
   // Rations
   async getRations() {
     const { data, error } = await supabase
