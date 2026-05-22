@@ -23,6 +23,7 @@ interface Bird {
   gender?: 'Macho' | 'Fêmea';
   baia?: string;
   weight?: number;
+  vaccination_protocol?: string;
   bird_history?: { id: string }[];
 }
 
@@ -237,6 +238,7 @@ export default function Plantel() {
       gender: formData.get('gender') as 'Macho' | 'Fêmea' || undefined,
       baia: formData.get('baia') as string || null,
       weight: parseFloat(formData.get('weight') as string) || null,
+      vaccination_protocol: formData.get('vaccinationProtocol') as string || null,
     };
 
     try {
@@ -915,6 +917,20 @@ export default function Plantel() {
                       </div>
                     </div>
                   )}
+                </div>
+
+                <div className="space-y-4 pt-6 border-t border-slate-100">
+                  <h4 className="text-sm font-bold text-[#059669] uppercase tracking-widest">Protocolo Sanitário / Vacinação</h4>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Esquema de Vacinas, Vermífugos e Suplementos</label>
+                    <textarea 
+                      name="vaccinationProtocol" 
+                      defaultValue={editingBird?.vaccination_protocol || ''} 
+                      rows={3}
+                      placeholder="Ex: Vacina Bouba Aviária em 12/03. Vermífugo programado para 15/06." 
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none resize-none" 
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-4 pt-6 border-t border-slate-100">
