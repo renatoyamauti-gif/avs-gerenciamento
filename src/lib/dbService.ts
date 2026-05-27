@@ -573,5 +573,47 @@ export const dbService = {
       .delete()
       .eq('id', id);
     if (error) handleSupabaseError(error, 'delete', 'maternity_history');
+  },
+
+  // Chat
+  async getChatMessages(limit = 100) {
+    const { data, error } = await supabase
+      .from('chat_messages')
+      .select('*, profiles(full_name, criatorio_name)')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) {
+      console.error('getChatMessages error:', error);
+      return [];
+    }
+    return data?.reverse() || [];
+  },
+
+  async sendChatMessage(message: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    const { error } = await supabase
+      .from('chat_messages')
+      .insert([{ user_id: user.id, message }]);
+    if (error) {
+      console.error('sendChatMessage error:', error);
+      throw error;
+    }
+  },
+
+  async updateChatStatus(enabled: boolean) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ chat_enabled: enabled })
+      .eq('id', user.id);
+    
+    if (error) {
+      console.error("DB Chat Status Save Error:", error);
+      throw error;
+    }
   }
 };

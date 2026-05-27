@@ -17,6 +17,7 @@ import Maternity from './pages/Maternity';
 import Finance from './pages/Finance';
 import Ration from './pages/Ration';
 import SettingsPage from './pages/Settings';
+import Chat from './pages/Chat';
 import Subscription from './pages/Subscription';
 import Auth from './components/Auth';
 import BottomNav from './components/BottomNav';
@@ -202,6 +203,7 @@ export default function App() {
                   <Route path="/ration" element={<Ration />} />
                   <Route path="/finance" element={<Finance />} />
                   <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/chat" element={<Chat />} />
                   <Route path="/subscription" element={<Subscription />} />
                   <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
