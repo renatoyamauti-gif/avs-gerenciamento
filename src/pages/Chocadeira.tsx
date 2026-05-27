@@ -93,17 +93,26 @@ export default function Chocadeira() {
 
     const formData = new FormData(e.currentTarget);
     
-    const batchData = {
-      id: isEditingBatch.batch.id,
-      incubator_id: isEditingBatch.incubatorId,
-      name: formData.get('name') as string,
-      count: parseInt(formData.get('count') as string),
-      fertile: parseInt(formData.get('fertile') as string) || 0,
-      infertile: parseInt(formData.get('infertile') as string) || 0,
-      hatched: parseInt(formData.get('hatched') as string) || 0,
-      dead_in_shell: parseInt(formData.get('dead_in_shell') as string) || 0,
-      start_date: isEditingBatch.batch.start_date
-    };
+      const startDateStr = formData.get('start_date') as string;
+      let newStartDate = isEditingBatch.batch.start_date;
+      if (startDateStr) {
+        const [year, month, day] = startDateStr.split('-');
+        const d = new Date(isEditingBatch.batch.start_date);
+        d.setFullYear(parseInt(year), parseInt(month) - 1, parseInt(day));
+        newStartDate = d.toISOString();
+      }
+
+      const batchData = {
+        id: isEditingBatch.batch.id,
+        incubator_id: isEditingBatch.incubatorId,
+        name: formData.get('name') as string,
+        count: parseInt(formData.get('count') as string),
+        fertile: parseInt(formData.get('fertile') as string) || 0,
+        infertile: parseInt(formData.get('infertile') as string) || 0,
+        hatched: parseInt(formData.get('hatched') as string) || 0,
+        dead_in_shell: parseInt(formData.get('dead_in_shell') as string) || 0,
+        start_date: newStartDate
+      };
 
     try {
       await dbService.saveBatch(batchData);
@@ -385,7 +394,7 @@ export default function Chocadeira() {
                 <button onClick={() => setIsEditingBatch(null)} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"><X size={20} /></button>
               </div>
               <form onSubmit={handleUpdateBatch} className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nome do Lote</label>
                     <input required name="name" defaultValue={isEditingBatch.batch.name} type="text" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
@@ -393,6 +402,10 @@ export default function Chocadeira() {
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Total Ovos</label>
                     <input required name="count" defaultValue={isEditingBatch.batch.count} type="number" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Data Início</label>
+                    <input required name="start_date" defaultValue={new Date(isEditingBatch.batch.start_date).toISOString().split('T')[0]} type="date" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                   </div>
                 </div>
 
