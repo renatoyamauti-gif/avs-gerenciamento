@@ -21,7 +21,7 @@ export function useSubscription() {
         }
 
         const profile = await dbService.getProfile();
-        const currentPlan = (profile && profile.plan) ? profile.plan as PlanType : 'free';
+        const currentPlan = (profile && profile.plan) ? profile.plan.toLowerCase() as PlanType : 'free';
         
         let expired = false;
         let daysLeft = 0;

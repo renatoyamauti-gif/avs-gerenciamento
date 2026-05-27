@@ -136,7 +136,7 @@ export default function App() {
           <div className={`pb-12 px-4 sm:px-6 lg:px-10 max-w-7xl mx-auto ${!isLocked ? 'pt-24 lg:pt-28' : 'pt-10'}`}>
             
             {/* Banner de Trial */}
-            {!isLocked && isTrialActive && (
+            {!isLocked && isTrialActive && plan === 'free' && (
               <div className="mb-6 bg-gradient-to-r from-amber-400 to-amber-600 text-white p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg shadow-amber-500/20">
                 <div className="flex items-center gap-3">
                   <div className="bg-white/20 p-2 rounded-full">

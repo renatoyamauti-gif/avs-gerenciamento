@@ -416,7 +416,7 @@ export default function Plantel() {
             </div>
           </div>
           <div className="flex gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest overflow-x-auto pb-2">
-            {['All', 'Breeding', 'Juvenile', 'Active', 'Resting', 'Vendida', 'Reservada', 'Doente'].map(status => (
+            {['All', 'Breeding', 'Juvenile', 'Active', 'Resting', 'Vendida', 'Reservada', 'Doente', 'Óbito'].map(status => (
               <span 
                 key={status}
                 onClick={() => setFilterStatus(status)}
@@ -558,6 +558,7 @@ export default function Plantel() {
                           bird.status === 'Active' ? 'bg-[#DCFCE7] text-[#16A34A]' : 
                           bird.status === 'Doente' ? 'bg-[#FEE2E2] text-[#EF4444]' :
                           bird.status === 'Vendida' ? 'bg-[#FEE2E2] text-[#EF4444]' :
+                          bird.status === 'Óbito' ? 'bg-slate-800 text-slate-100' :
                           'bg-slate-100 text-slate-600'}
                       `}>
                         {bird.status === 'Breeding' ? 'Reprodução' : bird.status}
@@ -843,6 +844,7 @@ export default function Plantel() {
                       <option value="Vendida">Vendida</option>
                       <option value="Reservada">Reservada</option>
                       <option value="Doente">Doente</option>
+                      <option value="Óbito">Óbito</option>
                     </select>
                   </div>
                 </div>
