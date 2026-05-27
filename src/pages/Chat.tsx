@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageSquare, Send, Users, LogOut, Lock, Loader2, Info } from 'lucide-react';
+import { MessageSquare, Send, Users, LogOut, Lock, Loader2, Info, Circle } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription';
 import { dbService } from '../lib/dbService';
 import { supabase } from '../lib/supabaseClient';
@@ -25,6 +25,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isSubscriber = plan === 'pro' || plan === 'anual';
@@ -34,23 +35,44 @@ export default function Chat() {
   }, []);
 
   useEffect(() => {
-    if (chatEnabled && isSubscriber) {
+    if (chatEnabled && isSubscriber && profile) {
       loadMessages();
-      const channel = supabase.channel('supabase_realtime')
+      
+      const messageChannel = supabase.channel('supabase_realtime')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, payload => {
-          const newMsg = payload.new as ChatMessage;
-          // Buscamos o perfil da mensagem que acabou de chegar, ou já carregamos todos os dados?
-          // Como o payload.new não traz o join de profiles, precisamos buscar manualmente ou adicionar à lista e buscar depois.
-          // Uma abordagem simples: recarregar as mensagens para garantir a ordem e os joins (não ideal para alta escala, mas funcional).
           loadMessages();
         })
         .subscribe();
 
+      const presenceChannel = supabase.channel('chat_presence', {
+        config: { presence: { key: profile.id } }
+      });
+
+      presenceChannel
+        .on('presence', { event: 'sync' }, () => {
+          const state = presenceChannel.presenceState();
+          const users = Object.values(state).map((presenceArray: any) => presenceArray[0]);
+          
+          // Remove duplicates if any user has multiple connections, keeping one per user_id
+          const uniqueUsers = Array.from(new Map(users.map(u => [u.user_id, u])).values());
+          setOnlineUsers(uniqueUsers);
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await presenceChannel.track({
+              user_id: profile.id,
+              name: profile.full_name?.split(' ')[0] || 'Criador',
+              criatorio: profile.criatorio_name || 'Sem Criatório'
+            });
+          }
+        });
+
       return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(messageChannel);
+        supabase.removeChannel(presenceChannel);
       };
     }
-  }, [chatEnabled, isSubscriber]);
+  }, [chatEnabled, isSubscriber, profile]);
 
   useEffect(() => {
     scrollToBottom();
@@ -194,7 +216,43 @@ export default function Chat() {
         </button>
       </header>
 
-      <div className="flex-1 bg-white border border-slate-100 rounded-[32px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col overflow-hidden">
+      <div className="flex-1 flex gap-6 overflow-hidden">
+        
+        {/* Left Column: Online Users Sidebar */}
+        <div className="hidden lg:flex w-72 bg-white border border-slate-100 rounded-[32px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex-col overflow-hidden shrink-0">
+          <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+            <h3 className="font-bold text-[#1F2937] font-headline uppercase tracking-widest text-sm flex items-center gap-2">
+              <Users size={16} className="text-[#2563EB]" />
+              Online Agora
+            </h3>
+            <span className="bg-[#DCFCE7] text-[#16A34A] text-[10px] font-black px-2.5 py-1 rounded-full">
+              {onlineUsers.length}
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {onlineUsers.map((user) => (
+              <div key={user.user_id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-colors">
+                <div className="relative">
+                  <div className="w-10 h-10 bg-[#EFF6FF] rounded-full flex items-center justify-center text-[#2563EB] font-bold text-sm font-headline">
+                    {user.name.charAt(0)}
+                  </div>
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#10B981] border-2 border-white rounded-full"></div>
+                </div>
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-xs font-bold font-headline uppercase truncate text-[#1F2937]">
+                    {user.user_id === profile?.id ? `${user.name} (Você)` : user.name}
+                  </span>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider truncate">
+                    {user.criatorio}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Column: Messages Area */}
+        <div className="flex-1 bg-white border border-slate-100 rounded-[32px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col overflow-hidden">
         
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50">
@@ -251,6 +309,7 @@ export default function Chat() {
             </button>
           </form>
         </div>
+      </div>
       </div>
     </motion.div>
   );
