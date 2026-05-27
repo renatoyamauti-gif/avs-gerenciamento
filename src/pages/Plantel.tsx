@@ -306,7 +306,7 @@ export default function Plantel() {
 
   const uniqueBaias = Array.from(new Set([...birds.map(b => b.baia).filter(Boolean), ...extraBaias, ...baiasData.map(b => b.name)])).sort();
 
-  const activeBirds = filteredBirds.filter(b => b.status !== 'Vendida');
+  const activeBirds = filteredBirds.filter(b => b.status !== 'Vendida' && b.status !== 'Óbito' && b.status !== 'Reservada');
   const totalBirds = activeBirds.length;
   const totalMonthlyWeight = activeBirds.reduce((acc, b) => acc + (b.monthly_feed_grams || 0), 0);
   const totalMonthlyCost = activeBirds.reduce((acc, b) => acc + (b.monthly_feed_cost || 0), 0);

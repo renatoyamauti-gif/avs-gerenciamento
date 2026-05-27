@@ -23,7 +23,7 @@ export default function Dashboard() {
       setLoading(true);
       // Load Birds
       const birds = await dbService.getBirds();
-      const activeBirds = (birds || []).filter(b => b.status !== 'Vendida');
+      const activeBirds = (birds || []).filter(b => b.status !== 'Vendida' && b.status !== 'Óbito' && b.status !== 'Reservada');
       setBirdCount(activeBirds.length);
 
       // Load Eggs
