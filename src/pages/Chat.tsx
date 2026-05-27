@@ -207,18 +207,19 @@ export default function Chat() {
           ) : (
             messages.map((msg) => {
               const isMe = msg.user_id === profile?.id;
-              const name = msg.profiles?.full_name?.split(' ')[0] || 'Criador';
-              const criatorio = msg.profiles?.criatorio_name || 'Sem Criatório';
+              
+              // O Supabase pode retornar 'profiles' como array dependendo da chave estrangeira
+              const profileData = Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles;
+              const name = profileData?.full_name?.split(' ')[0] || 'Criador';
+              const criatorio = profileData?.criatorio_name || 'Sem Criatório';
 
               return (
                 <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                   <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-3 ${isMe ? 'bg-[#2563EB] text-white rounded-tr-none' : 'bg-white border border-slate-100 shadow-sm text-[#1F2937] rounded-tl-none'}`}>
-                    {!isMe && (
-                      <div className="flex items-baseline gap-2 mb-1">
-                        <span className="text-xs font-bold font-headline uppercase">{name}</span>
-                        <span className="text-[10px] opacity-60 truncate max-w-[120px] uppercase tracking-wider">{criatorio}</span>
-                      </div>
-                    )}
+                    <div className={`flex items-baseline gap-2 mb-1 ${isMe ? 'justify-end' : ''}`}>
+                      <span className="text-xs font-bold font-headline uppercase">{name}</span>
+                      <span className="text-[10px] opacity-60 truncate max-w-[120px] uppercase tracking-wider">{criatorio}</span>
+                    </div>
                     <p className={`text-sm ${isMe ? 'text-white/95' : 'text-slate-700'}`}>{msg.message}</p>
                     <span className={`text-[10px] mt-2 block text-right font-medium ${isMe ? 'text-white/70' : 'text-slate-400'}`}>
                       {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
