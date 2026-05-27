@@ -254,8 +254,29 @@ export default function Chat() {
         {/* Right Column: Messages Area */}
         <div className="flex-1 bg-white border border-slate-100 rounded-[32px] shadow-[0_2px_10px_rgba(0,0,0,0.02)] flex flex-col overflow-hidden">
         
+        {/* Mobile Online Users (Horizontal Scroll) */}
+        <div className="lg:hidden flex items-center gap-4 p-4 border-b border-slate-100 bg-slate-50 overflow-x-auto no-scrollbar">
+          <div className="flex flex-col items-center shrink-0">
+            <div className="w-12 h-12 bg-[#DCFCE7] rounded-full flex items-center justify-center text-[#16A34A] font-bold shadow-sm">
+              <Users size={20} />
+            </div>
+            <span className="text-[10px] font-bold mt-1 text-slate-500 uppercase tracking-widest">{onlineUsers.length} Online</span>
+          </div>
+          {onlineUsers.map((user) => (
+            <div key={user.user_id} className="flex flex-col items-center shrink-0 relative">
+              <div className="w-12 h-12 bg-[#EFF6FF] border border-[#DBEAFE] rounded-full flex items-center justify-center text-[#2563EB] font-bold text-lg font-headline shadow-sm">
+                {user.name.charAt(0)}
+              </div>
+              <div className="absolute bottom-[18px] right-0 w-3.5 h-3.5 bg-[#10B981] border-2 border-white rounded-full"></div>
+              <span className="text-[10px] font-bold text-slate-600 mt-1 uppercase max-w-[60px] truncate">
+                {user.user_id === profile?.id ? 'Você' : user.name.split(' ')[0]}
+              </span>
+            </div>
+          ))}
+        </div>
+
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/50">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-400">
               <MessageSquare size={48} className="mb-4 opacity-50" />
