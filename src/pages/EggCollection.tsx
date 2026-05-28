@@ -123,6 +123,7 @@ export default function EggCollection() {
   };
 
   const removeEntry = async (id: string) => {
+    if (!confirm('Tem certeza que quer excluir/deletar esta coleta? Pois será irreversível.')) return;
     try {
       await dbService.deleteEggLog(id);
       await loadLogs();

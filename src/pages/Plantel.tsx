@@ -162,7 +162,7 @@ export default function Plantel() {
   };
 
   const removeHistory = async (id: string) => {
-    if (!confirm('Deseja excluir este registro?')) return;
+    if (!confirm('Tem certeza que quer excluir/deletar este histórico? Pois será irreversível.')) return;
     try {
       await dbService.deleteBirdHistory(id);
       if (editingBird) await loadBirdHistory(editingBird.id);
@@ -201,7 +201,7 @@ export default function Plantel() {
   };
 
   const removeBaiaHistory = async (id: string) => {
-    if (!confirm('Deseja excluir este registro?')) return;
+    if (!confirm('Tem certeza que quer excluir/deletar este histórico? Pois será irreversível.')) return;
     try {
       await dbService.deleteBaiaHistory(id);
       await loadBaiaHistoryData(filterBaia);
@@ -286,7 +286,7 @@ export default function Plantel() {
   };
 
   const removeBird = async (id: string) => {
-    if (!confirm('Deseja excluir esta ave?')) return;
+    if (!confirm('Tem certeza que quer excluir/deletar esta ave? Pois será irreversível.')) return;
     try {
       await dbService.deleteBird(id);
       await loadData();
@@ -1182,7 +1182,7 @@ export default function Plantel() {
                 <div className="pt-4 flex gap-3">
                   {baiaToEdit?.name && (
                     <button type="button" onClick={async () => {
-                      if (confirm('ATENÇÃO: Deseja excluir os dados desta baia? As aves que estavam nela ficarão sem baia definida.')) {
+                      if (confirm('Tem certeza que quer excluir/deletar esta baia? Pois será irreversível. As aves ficarão sem baia definida.')) {
                         try {
                           await dbService.deleteBaia(baiaToEdit.id || null, baiaToEdit.name);
                           setExtraBaias(prev => prev.filter(b => b !== baiaToEdit.name));

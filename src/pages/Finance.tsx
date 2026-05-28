@@ -100,7 +100,7 @@ export default function Finance() {
   };
 
   const removeTransaction = async (id: string) => {
-    if (!confirm('Deseja excluir esta movimentação?')) return;
+    if (!confirm('Tem certeza que quer excluir/deletar esta movimentação? Pois será irreversível.')) return;
     try {
       await dbService.deleteTransaction(id);
       await loadTransactions();

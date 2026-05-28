@@ -124,7 +124,7 @@ export default function Chocadeira() {
   };
 
   const removeIncubator = async (id: string) => {
-    if (!confirm('Deseja excluir esta chocadeira? Todos os lotes serão removidos.')) return;
+    if (!confirm('Tem certeza que quer excluir/deletar esta chocadeira? Pois será irreversível.')) return;
     try {
       await dbService.deleteIncubator(id);
       await loadIncubators();
@@ -134,7 +134,7 @@ export default function Chocadeira() {
   };
 
   const removeBatch = async (id: string) => {
-    if (!confirm('Deseja excluir este lote?')) return;
+    if (!confirm('Tem certeza que quer excluir/deletar este lote? Pois será irreversível.')) return;
     try {
       await dbService.deleteBatch(id);
       await loadIncubators();

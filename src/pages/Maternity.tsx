@@ -123,7 +123,7 @@ export default function Maternity() {
   };
 
   const removeRecord = async (id: string) => {
-    if (!confirm('Deseja excluir este registro de pintinho e todo o seu histórico de crescimento?')) return;
+    if (!confirm('Tem certeza que quer excluir/deletar este registro? Pois será irreversível.')) return;
     try {
       await dbService.deleteMaternityRecord(id);
       await loadData();
@@ -154,7 +154,7 @@ export default function Maternity() {
   };
 
   const removeHistory = async (id: string) => {
-    if (!confirm('Deseja excluir este registro de peso?')) return;
+    if (!confirm('Tem certeza que quer excluir/deletar este histórico? Pois será irreversível.')) return;
     try {
       await dbService.deleteMaternityHistory(id);
       if (editingRecord) await loadHistory(editingRecord.id);

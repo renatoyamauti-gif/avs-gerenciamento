@@ -135,7 +135,7 @@ export default function Ration() {
   };
 
   const removeRecipe = async (id: string) => {
-    if (!confirm('Deseja excluir esta ração?')) return;
+    if (!confirm('Tem certeza que quer excluir/deletar esta ração? Pois será irreversível.')) return;
     try {
       await dbService.deleteRation(id);
       await loadData();
@@ -165,7 +165,7 @@ export default function Ration() {
   };
 
   const removeIngredient = async (id: string) => {
-    if (!confirm('Deseja excluir este ingrediente?')) return;
+    if (!confirm('Tem certeza que quer excluir/deletar este ingrediente? Pois será irreversível.')) return;
     try {
       await dbService.deleteIngredient(id);
       await loadData();
