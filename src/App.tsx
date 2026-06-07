@@ -83,6 +83,7 @@ export default function App() {
     return 'CRIATÓRIO NÃO CADASTRADO';
   };
 
+  // Define se o sistema deve ser bloqueado totalmente (apenas se o período de testes grátis expirou)
   const isLocked = isFreePlan;
 
   if (loading || subLoading) {
