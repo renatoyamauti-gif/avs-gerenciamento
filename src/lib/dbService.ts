@@ -615,5 +615,110 @@ export const dbService = {
       console.error("DB Chat Status Save Error:", error);
       throw error;
     }
+  },
+
+  async deleteChatMessage(messageId: string) {
+    const { error } = await supabaseAdmin
+      .from('chat_messages')
+      .delete()
+      .eq('id', messageId);
+    if (error) {
+      console.error('deleteChatMessage error:', error);
+      throw error;
+    }
+  },
+
+  async warnUser(userId: string, warningMessage: string | null) {
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ warning_message: warningMessage })
+      .eq('id', userId);
+    if (error) {
+      console.error('warnUser error:', error);
+      throw error;
+    }
+  },
+
+  async blockUserFromChat(userId: string, blocked: boolean) {
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ chat_blocked: blocked })
+      .eq('id', userId);
+    if (error) {
+      console.error('blockUserFromChat error:', error);
+      throw error;
+    }
+  },
+
+  async getProfiles() {
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .order('full_name');
+    if (error) {
+      console.error('getProfiles error:', error);
+      return [];
+    }
+    return data || [];
+  },
+
+  // Bird Lineage / Pedigree
+  async getBirdLineage(birdId: string) {
+    const { data: target, error } = await supabase
+      .from('birds')
+      .select('*')
+      .eq('id', birdId)
+      .single();
+    if (error) throw error;
+    if (!target) return null;
+
+    let father = null;
+    let mother = null;
+    let paternalGrandfather = null;
+    let paternalGrandmother = null;
+    let maternalGrandfather = null;
+    let maternalGrandmother = null;
+
+    const parentIds = [target.father_id, target.mother_id].filter(Boolean);
+    if (parentIds.length > 0) {
+      const { data: parents, error: pErr } = await supabase
+        .from('birds')
+        .select('*')
+        .in('id', parentIds);
+      if (!pErr && parents) {
+        father = parents.find(b => b.id === target.father_id) || null;
+        mother = parents.find(b => b.id === target.mother_id) || null;
+      }
+    }
+
+    const grandparentIds = [
+      father?.father_id,
+      father?.mother_id,
+      mother?.father_id,
+      mother?.mother_id
+    ].filter(Boolean);
+
+    if (grandparentIds.length > 0) {
+      const { data: grandparents, error: gErr } = await supabase
+        .from('birds')
+        .select('*')
+        .in('id', grandparentIds);
+      if (!gErr && grandparents) {
+        paternalGrandfather = grandparents.find(b => b.id === father?.father_id) || null;
+        paternalGrandmother = grandparents.find(b => b.id === father?.mother_id) || null;
+        maternalGrandfather = grandparents.find(b => b.id === mother?.father_id) || null;
+        maternalGrandmother = grandparents.find(b => b.id === mother?.mother_id) || null;
+      }
+    }
+
+    return {
+      target,
+      father,
+      mother,
+      paternalGrandfather,
+      paternalGrandmother,
+      maternalGrandfather,
+      maternalGrandmother
+    };
   }
 };

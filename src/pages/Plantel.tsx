@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Filter, Plus, MoreVertical, Hash, Info, History, X, Camera, Trash2, Loader2, Lock, Mars, Venus, Settings } from 'lucide-react';
+import { Search, Filter, Plus, MoreVertical, Hash, Info, History, X, Camera, Trash2, Loader2, Lock, Mars, Venus, Settings, GitBranch } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { IMAGES } from '../constants';
 import { dbService } from '../lib/dbService';
 import { useSubscription } from '../hooks/useSubscription';
@@ -25,6 +26,8 @@ interface Bird {
   weight?: number;
   vaccination_protocol?: string;
   bird_history?: { id: string }[];
+  father_id?: string;
+  mother_id?: string;
 }
 
 export default function Plantel() {
@@ -251,6 +254,8 @@ export default function Plantel() {
       baia: formData.get('baia') as string || null,
       weight: parseFloat(formData.get('weight') as string) || null,
       vaccination_protocol: formData.get('vaccinationProtocol') as string || null,
+      father_id: formData.get('fatherId') as string || null,
+      mother_id: formData.get('motherId') as string || null,
     };
 
     try {
@@ -567,7 +572,13 @@ export default function Plantel() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
-                      <button className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400 hover:text-[#1F2937]"><Info size={16} /></button>
+                      <Link 
+                        to={`/birds/lineage/${bird.id}`}
+                        className="p-2 hover:bg-[#EFF6FF] rounded-xl transition-colors text-slate-400 hover:text-[#2563EB]"
+                        title="Ver Linhagem / Pedigree"
+                      >
+                        <GitBranch size={16} />
+                      </Link>
                       <button 
                         onClick={() => {
                           setEditingBird(bird);
@@ -620,6 +631,13 @@ export default function Plantel() {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <Link 
+                    to={`/birds/lineage/${bird.id}`}
+                    className="p-2.5 bg-white rounded-xl text-slate-500 border border-slate-200 hover:scale-105 shadow-sm transition-all flex items-center justify-center"
+                    title="Ver Linhagem / Pedigree"
+                  >
+                    <GitBranch size={18} />
+                  </Link>
                   <button onClick={() => { setEditingBird(bird); setIsAdding(true); }} className="p-2.5 bg-white rounded-xl text-[#2563EB] border border-slate-200 hover:scale-105 shadow-sm transition-all"><MoreVertical size={18} /></button>
                 </div>
               </div>
@@ -880,6 +898,41 @@ export default function Plantel() {
                         <option key={baia} value={baia} />
                       ))}
                     </datalist>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Pai (Genitor)</label>
+                    <select 
+                      name="fatherId" 
+                      defaultValue={editingBird?.father_id || ''}
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none"
+                    >
+                      <option value="">Selecione o Pai...</option>
+                      {birds
+                        .filter(b => b.gender === 'Macho' && b.id !== editingBird?.id)
+                        .map(b => (
+                          <option key={b.id} value={b.id}>{b.name} ({b.ring_number || 'Sem Anilha'})</option>
+                        ))
+                      }
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Mãe (Genitora)</label>
+                    <select 
+                      name="motherId" 
+                      defaultValue={editingBird?.mother_id || ''}
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none"
+                    >
+                      <option value="">Selecione a Mãe...</option>
+                      {birds
+                        .filter(b => b.gender === 'Fêmea' && b.id !== editingBird?.id)
+                        .map(b => (
+                          <option key={b.id} value={b.id}>{b.name} ({b.ring_number || 'Sem Anilha'})</option>
+                        ))
+                      }
+                    </select>
                   </div>
                 </div>
 

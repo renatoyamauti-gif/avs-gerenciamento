@@ -19,6 +19,7 @@ import Ration from './pages/Ration';
 import SettingsPage from './pages/Settings';
 import Chat from './pages/Chat';
 import Subscription from './pages/Subscription';
+import BreedingLineage from './pages/BreedingLineage';
 import Auth from './components/Auth';
 import BottomNav from './components/BottomNav';
 import { supabase } from './lib/supabaseClient';
@@ -82,7 +83,7 @@ export default function App() {
     return 'CRIATÓRIO NÃO CADASTRADO';
   };
 
-  const isLocked = plan === 'free' && isTrialExpired;
+  const isLocked = isFreePlan;
 
   if (loading || subLoading) {
     return (
@@ -197,6 +198,7 @@ export default function App() {
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/birds" element={<Plantel />} />
+                  <Route path="/birds/lineage/:id" element={<BreedingLineage />} />
                   <Route path="/breeding" element={<Chocadeira />} />
                   <Route path="/maternity" element={<Maternity />} />
                   <Route path="/eggs" element={<EggCollection />} />

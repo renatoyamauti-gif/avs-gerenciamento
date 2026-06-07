@@ -18,10 +18,21 @@
     "paths": {
       "@/*": [
         "./*"
-      ]
+      ],
+      "@supabase/auth-js": ["./node_modules/@supabase/auth-js/dist/module/index.d.ts"],
+      "@supabase/auth-js/src/*": ["./node_modules/@supabase/auth-js/dist/module/*"],
+      "@supabase/functions-js": ["./node_modules/@supabase/functions-js/dist/module/index.d.ts"],
+      "@supabase/functions-js/src/*": ["./node_modules/@supabase/functions-js/dist/module/*"],
+      "@supabase/realtime-js": ["./node_modules/@supabase/realtime-js/dist/module/index.d.ts"],
+      "@supabase/realtime-js/src/*": ["./node_modules/@supabase/realtime-js/dist/module/*"]
     },
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "types": ["vite/client"]
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "supabase"
+  ]
 }
