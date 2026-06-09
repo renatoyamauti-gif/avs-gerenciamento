@@ -382,7 +382,7 @@ export default function Maternity() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Raça / Genética</label>
-                      <input required name="raca" defaultValue={editingRecord?.raca} type="text" placeholder="Ex: Canário da Terra" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                      <input required name="raca" defaultValue={editingRecord?.raca} type="text" placeholder="Ex: GSB, Galo Índio" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                     </div>
                   </div>
 

@@ -936,7 +936,7 @@ export default function Plantel() {
                       list="racas-list"
                       defaultValue={editingBird?.raca} 
                       type="text" 
-                      placeholder="Ex: Canário da Terra" 
+                      placeholder="Ex: GSB, Galo Índio" 
                       className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
                     />
                     <datalist id="racas-list">
@@ -1610,7 +1610,7 @@ export default function Plantel() {
                       required 
                       name="raca_name" 
                       defaultValue={racaToEdit?.name || ''} 
-                      placeholder="Ex: Canário da Terra" 
+                      placeholder="Ex: GSB, Galo Índio" 
                       className="flex-1 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
                     />
                     <button 
