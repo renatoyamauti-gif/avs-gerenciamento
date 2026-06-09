@@ -52,7 +52,7 @@ export default function Ration() {
   const [isAddingIngredient, setIsAddingIngredient] = useState(false);
   const { isFreePlan } = useSubscription();
 
-  const [useBulkCalc, setUseBulkCalc] = useState(false);
+  const [useBulkCalc, setUseBulkCalc] = useState(true);
   const [bulkPrice, setBulkPrice] = useState<string>('');
   const [bulkWeight, setBulkWeight] = useState<string>('');
   const [pricePerKgInput, setPricePerKgInput] = useState<string>('');
@@ -60,10 +60,11 @@ export default function Ration() {
   useEffect(() => {
     if (isEditingIngredient) {
       setPricePerKgInput(isEditingIngredient.price_per_kg.toString());
+      setUseBulkCalc(false);
     } else {
       setPricePerKgInput('');
+      setUseBulkCalc(true);
     }
-    setUseBulkCalc(false);
     setBulkPrice('');
     setBulkWeight('');
   }, [isEditingIngredient, isAddingIngredient]);
