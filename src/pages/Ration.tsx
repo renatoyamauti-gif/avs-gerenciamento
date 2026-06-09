@@ -52,6 +52,32 @@ export default function Ration() {
   const [isAddingIngredient, setIsAddingIngredient] = useState(false);
   const { isFreePlan } = useSubscription();
 
+  const [useBulkCalc, setUseBulkCalc] = useState(false);
+  const [bulkPrice, setBulkPrice] = useState<string>('');
+  const [bulkWeight, setBulkWeight] = useState<string>('');
+  const [pricePerKgInput, setPricePerKgInput] = useState<string>('');
+
+  useEffect(() => {
+    if (isEditingIngredient) {
+      setPricePerKgInput(isEditingIngredient.price_per_kg.toString());
+    } else {
+      setPricePerKgInput('');
+    }
+    setUseBulkCalc(false);
+    setBulkPrice('');
+    setBulkWeight('');
+  }, [isEditingIngredient, isAddingIngredient]);
+
+  useEffect(() => {
+    if (useBulkCalc && bulkPrice && bulkWeight) {
+      const p = parseFloat(bulkPrice);
+      const w = parseFloat(bulkWeight);
+      if (p > 0 && w > 0) {
+        setPricePerKgInput((p / w).toFixed(2));
+      }
+    }
+  }, [useBulkCalc, bulkPrice, bulkWeight]);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -440,13 +466,71 @@ export default function Ration() {
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nome do Ingrediente</label>
                   <input required name="name" defaultValue={isEditingIngredient?.name} type="text" placeholder="Ex: Girassol Miúdo" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#16A34A]/50 focus:ring-4 focus:ring-[#16A34A]/10 transition-all outline-none" />
                 </div>
+
+                {/* Calculadora de Saco Fechado */}
+                <div className="bg-[#F8FAFC] p-4 rounded-2xl border border-slate-100 space-y-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={useBulkCalc}
+                      onChange={(e) => setUseBulkCalc(e.target.checked)}
+                      className="rounded text-[#16A34A] focus:ring-[#16A34A]"
+                    />
+                    <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider">Calculadora de Saco Fechado</span>
+                  </label>
+
+                  {useBulkCalc && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="grid grid-cols-2 gap-4 pt-2"
+                    >
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Preço do Saco (R$)</label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                          <input 
+                            type="number" 
+                            step="0.01" 
+                            placeholder="Ex: 80.00" 
+                            value={bulkPrice}
+                            onChange={(e) => setBulkPrice(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-xl pl-8 pr-3 py-2 text-sm text-[#1F2937] font-medium outline-none focus:border-[#16A34A]/50 focus:ring-2 focus:ring-[#16A34A]/10 transition-all"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Peso do Saco (kg)</label>
+                        <input 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="Ex: 40" 
+                          value={bulkWeight}
+                          onChange={(e) => setBulkWeight(e.target.value)}
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] font-medium outline-none focus:border-[#16A34A]/50 focus:ring-2 focus:ring-[#16A34A]/10 transition-all"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Preço por KG (R$)</label>
                   <div className="relative">
                     <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-[#16A34A]" size={18} />
-                    <input required name="pricePerKg" defaultValue={isEditingIngredient?.price_per_kg} type="number" step="0.01" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-[#1F2937] font-bold focus:bg-white focus:border-[#16A34A]/50 focus:ring-4 focus:ring-[#16A34A]/10 transition-all outline-none" />
+                    <input 
+                      required 
+                      name="pricePerKg" 
+                      value={pricePerKgInput} 
+                      onChange={(e) => setPricePerKgInput(e.target.value)}
+                      readOnly={useBulkCalc}
+                      type="number" 
+                      step="0.01" 
+                      className={`w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-[#1F2937] font-bold focus:bg-white focus:border-[#16A34A]/50 focus:ring-4 focus:ring-[#16A34A]/10 transition-all outline-none ${useBulkCalc ? 'bg-slate-50 opacity-70 cursor-not-allowed' : ''}`} 
+                    />
                   </div>
                 </div>
+
                 <div className="pt-6 flex gap-3">
                   <button type="button" onClick={() => { setIsAddingIngredient(false); setIsEditingIngredient(null); }} className="flex-1 px-6 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest text-slate-500 bg-slate-50 hover:bg-slate-100 transition-all">Cancelar</button>
                   <button type="submit" className="flex-1 px-6 py-4 bg-[#16A34A] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#15803D] hover:scale-[1.02] active:scale-95 transition-all">Salvar</button>
