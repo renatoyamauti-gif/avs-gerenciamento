@@ -69,7 +69,7 @@ export default function Chocadeira() {
   const calculatedTotal = useMemo(() => {
     const totalBaias = modalBaias.reduce((sum, b) => sum + b.quantity, 0);
     const totalRacas = modalRacas.reduce((sum, r) => sum + r.quantity, 0);
-    return Math.max(totalBaias, totalRacas);
+    return totalBaias + totalRacas;
   }, [modalBaias, modalRacas]);
 
   useEffect(() => {
