@@ -465,7 +465,7 @@ export default function Ration() {
               <form onSubmit={handleSaveIngredient} className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nome do Ingrediente</label>
-                  <input required name="name" defaultValue={isEditingIngredient?.name} type="text" placeholder="Ex: Girassol Miúdo" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#16A34A]/50 focus:ring-4 focus:ring-[#16A34A]/10 transition-all outline-none" />
+                  <input required name="name" defaultValue={isEditingIngredient?.name} type="text" placeholder="Ex: Quebradão" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#16A34A]/50 focus:ring-4 focus:ring-[#16A34A]/10 transition-all outline-none" />
                 </div>
 
                 {/* Calculadora de Saco Fechado */}
