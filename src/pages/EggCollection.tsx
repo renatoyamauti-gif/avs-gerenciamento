@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Egg, Trash2, X, Loader2, Edit2 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
+import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 
 interface CollectionEntry {
   id: string;
@@ -26,6 +27,60 @@ export default function EggCollection() {
   
   const currentDate = new Date();
   const [viewDate, setViewDate] = useState(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
+
+  const { eggsByBaia, eggsByRaca, baiaEstimates, racaEstimates } = useMemo(() => {
+    const baiaMap: { [key: string]: number } = {};
+    const racaMap: { [key: string]: number } = {};
+
+    const baiaTotalMap: { [key: string]: number } = {};
+    const baiaDaysMap: { [key: string]: Set<string> } = {};
+    const racaTotalMap: { [key: string]: number } = {};
+    const racaDaysMap: { [key: string]: Set<string> } = {};
+
+    (logs || []).forEach(log => {
+      const dateKey = `${log.year}-${log.month}-${log.day}`;
+      if (log.baia) {
+        log.baia.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((name: string) => {
+          baiaMap[name] = (baiaMap[name] || 0) + log.count;
+          baiaTotalMap[name] = (baiaTotalMap[name] || 0) + log.count;
+          if (!baiaDaysMap[name]) baiaDaysMap[name] = new Set();
+          baiaDaysMap[name].add(dateKey);
+        });
+      }
+      if (log.raca) {
+        log.raca.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((name: string) => {
+          racaMap[name] = (racaMap[name] || 0) + log.count;
+          racaTotalMap[name] = (racaTotalMap[name] || 0) + log.count;
+          if (!racaDaysMap[name]) racaDaysMap[name] = new Set();
+          racaDaysMap[name].add(dateKey);
+        });
+      }
+    });
+
+    const ebBaia = Object.entries(baiaMap).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+    const ebRaca = Object.entries(racaMap).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+
+    const bEst = Object.entries(baiaTotalMap).map(([name, total]) => {
+      const days = baiaDaysMap[name].size || 1;
+      const dailyAvg = total / days;
+      const monthlyEst = Math.round(dailyAvg * 30);
+      return { name, estimativa: monthlyEst };
+    }).sort((a, b) => b.estimativa - a.estimativa);
+
+    const rEst = Object.entries(racaTotalMap).map(([name, total]) => {
+      const days = racaDaysMap[name].size || 1;
+      const dailyAvg = total / days;
+      const monthlyEst = Math.round(dailyAvg * 30);
+      return { name, estimativa: monthlyEst };
+    }).sort((a, b) => b.estimativa - a.estimativa);
+
+    return {
+      eggsByBaia: ebBaia,
+      eggsByRaca: ebRaca,
+      baiaEstimates: bEst,
+      racaEstimates: rEst
+    };
+  }, [logs]);
 
   useEffect(() => {
     loadLogs();
@@ -342,6 +397,145 @@ export default function EggCollection() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Eggs by Baia and Raça Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Ovos por Baia */}
+        <div className="bg-white border border-slate-100 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] mb-6 flex items-center gap-3">
+            <div className="bg-[#EFF6FF] p-2 rounded-2xl">
+              <Egg size={24} className="text-[#2563EB]" />
+            </div>
+            Ovos por Baia
+          </h3>
+          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            {eggsByBaia.map((item, index) => (
+              <div key={item.name} className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] border border-slate-50">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#EFF6FF] text-[#2563EB] font-bold text-sm">
+                    {index + 1}
+                  </span>
+                  <span className="font-bold text-[#1F2937]">{item.name}</span>
+                </div>
+                <span className="bg-[#2563EB] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                  {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
+                </span>
+              </div>
+            ))}
+            {eggsByBaia.length === 0 && (
+              <div className="text-center py-10 opacity-50 text-slate-400 font-medium">
+                Nenhum registro de ovos por baia
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Ovos por Raça */}
+        <div className="bg-white border border-slate-100 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] mb-6 flex items-center gap-3">
+            <div className="bg-[#FAF5FF] p-2 rounded-2xl">
+              <Egg size={24} className="text-[#8B5CF6]" />
+            </div>
+            Ovos por Raça
+          </h3>
+          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            {eggsByRaca.map((item, index) => (
+              <div key={item.name} className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] border border-slate-50">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FAF5FF] text-[#8B5CF6] font-bold text-sm">
+                    {index + 1}
+                  </span>
+                  <span className="font-bold text-[#1F2937]">{item.name}</span>
+                </div>
+                <span className="bg-[#8B5CF6] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                  {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
+                </span>
+              </div>
+            ))}
+            {eggsByRaca.length === 0 && (
+              <div className="text-center py-10 opacity-50 text-slate-400 font-medium">
+                Nenhum registro de ovos por raça
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Estimativa Mensal de Ovos Section */}
+      <div className="bg-white border border-slate-100 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937]">Estimativa Mensal de Produção</h3>
+            <p className="text-xs text-slate-500 mt-1 font-medium">
+              Projeção de produção de ovos para os próximos 30 dias com base na média das coletas diárias registradas.
+            </p>
+          </div>
+          <div className="bg-[#EFF6FF] text-[#2563EB] text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
+            Estimativa: Média Diária × 30 dias
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Gráfico Baias */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Projeção por Baia (Ovos / Mês)</h4>
+            <div className="h-[250px] w-full">
+              {baiaEstimates.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={baiaEstimates} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
+                    <Tooltip 
+                      cursor={{ fill: '#F8FAFC' }}
+                      contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                      formatter={(value: any) => [`${value} Ovos / Mês`, 'Estimativa']}
+                    />
+                    <Bar dataKey="estimativa" fill="#2563EB" radius={[6, 6, 0, 0]}>
+                      <LabelList dataKey="estimativa" position="top" fill="#64748B" fontSize={11} fontWeight="bold" />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">Nenhuma projeção por baia disponível</div>
+              )}
+            </div>
+          </div>
+
+          {/* Gráfico Raças */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Projeção por Raça (Ovos / Mês)</h4>
+            <div className="h-[250px] w-full">
+              {racaEstimates.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={racaEstimates} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
+                    <Tooltip 
+                      cursor={{ fill: '#F8FAFC' }}
+                      contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                      formatter={(value: any) => [`${value} Ovos / Mês`, 'Estimativa']}
+                    />
+                    <Bar dataKey="estimativa" fill="#8B5CF6" radius={[6, 6, 0, 0]}>
+                      <LabelList dataKey="estimativa" position="top" fill="#64748B" fontSize={11} fontWeight="bold" />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">Nenhuma projeção por raça disponível</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-slate-100 flex items-start gap-2.5 text-slate-400 text-xs font-medium leading-relaxed">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 font-bold shrink-0">!</span>
+          <p>
+            <strong>Observação Importante:</strong> Este gráfico apresenta uma estimativa projetada para 30 dias com base no histórico das coletas diárias inseridas no sistema. Os valores reais podem variar de acordo com fatores climáticos, alimentação, ciclo reprodutivo e manejo das aves.
+          </p>
         </div>
       </div>
 
