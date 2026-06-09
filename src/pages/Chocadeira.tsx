@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Egg, Plus, Trash2, Clock, AlertCircle, CheckCircle2, Thermometer, Droplets, Loader2, X, Lock } from 'lucide-react';
 import { dbService } from '../lib/dbService';
@@ -13,6 +13,8 @@ interface Batch {
   infertile: number;
   hatched: number;
   dead_in_shell: number;
+  baia_details?: Record<string, number>;
+  raca_details?: Record<string, number>;
 }
 
 interface Incubator {
@@ -32,9 +34,69 @@ export default function Chocadeira() {
   const [isEditingBatch, setIsEditingBatch] = useState<{ incubatorId: string, batch: Batch } | null>(null);
   const { isFreePlan, limits } = useSubscription();
 
+  const [uniqueBaias, setUniqueBaias] = useState<string[]>([]);
+  const [uniqueRacas, setUniqueRacas] = useState<string[]>([]);
+  const [modalBaias, setModalBaias] = useState<{ baia: string; quantity: number }[]>([]);
+  const [modalRacas, setModalRacas] = useState<{ raca: string; quantity: number }[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+
   useEffect(() => {
     loadIncubators();
+    loadBaias();
+    loadRacas();
   }, []);
+
+  async function loadBaias() {
+    try {
+      const birds = await dbService.getBirds();
+      const baias = Array.from(new Set(birds.map(b => b.baia).filter(Boolean))) as string[];
+      setUniqueBaias(baias);
+    } catch (error) {
+      console.error('Erro ao carregar baias:', error);
+    }
+  }
+
+  async function loadRacas() {
+    try {
+      const racasData = await dbService.getRacas();
+      const racasNames = (racasData || []).map((r: any) => r.name).filter(Boolean);
+      setUniqueRacas(racasNames);
+    } catch (error) {
+      console.error('Erro ao carregar raças:', error);
+    }
+  }
+
+  const calculatedTotal = useMemo(() => {
+    const totalBaias = modalBaias.reduce((sum, b) => sum + b.quantity, 0);
+    const totalRacas = modalRacas.reduce((sum, r) => sum + r.quantity, 0);
+    return Math.max(totalBaias, totalRacas);
+  }, [modalBaias, modalRacas]);
+
+  useEffect(() => {
+    if (calculatedTotal > 0) {
+      setTotalCount(calculatedTotal);
+    }
+  }, [calculatedTotal]);
+
+  const openAddBatch = (incubatorId: string) => {
+    setModalBaias([]);
+    setModalRacas([]);
+    setTotalCount(0);
+    setIsAddingBatch(incubatorId);
+  };
+
+  const openEditBatch = (incubatorId: string, batch: Batch) => {
+    const initialBaias = batch.baia_details 
+      ? Object.entries(batch.baia_details).map(([baia, quantity]) => ({ baia, quantity }))
+      : [];
+    const initialRacas = batch.raca_details
+      ? Object.entries(batch.raca_details).map(([raca, quantity]) => ({ raca, quantity }))
+      : [];
+    setModalBaias(initialBaias);
+    setModalRacas(initialRacas);
+    setTotalCount(batch.count || 0);
+    setIsEditingBatch({ incubatorId, batch });
+  };
 
   async function loadIncubators() {
     try {
@@ -67,15 +129,32 @@ export default function Chocadeira() {
   const handleAddBatch = async (e: React.FormEvent<HTMLFormElement>, incubatorId: string) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+
+    const baia_details: Record<string, number> = {};
+    modalBaias.forEach(item => {
+      if (item.baia) {
+        baia_details[item.baia] = (baia_details[item.baia] || 0) + item.quantity;
+      }
+    });
+
+    const raca_details: Record<string, number> = {};
+    modalRacas.forEach(item => {
+      if (item.raca) {
+        raca_details[item.raca] = (raca_details[item.raca] || 0) + item.quantity;
+      }
+    });
+
     const batchData = {
       incubator_id: incubatorId,
       name: formData.get('name') as string,
-      count: parseInt(formData.get('count') as string),
+      count: totalCount || calculatedTotal || parseInt(formData.get('count') as string) || 0,
       start_date: new Date().toISOString(),
       fertile: 0,
       infertile: 0,
       hatched: 0,
-      dead_in_shell: 0
+      dead_in_shell: 0,
+      baia_details,
+      raca_details
     };
     
     try {
@@ -93,26 +172,42 @@ export default function Chocadeira() {
 
     const formData = new FormData(e.currentTarget);
     
-      const startDateStr = formData.get('start_date') as string;
-      let newStartDate = isEditingBatch.batch.start_date;
-      if (startDateStr) {
-        const [year, month, day] = startDateStr.split('-');
-        const d = new Date(isEditingBatch.batch.start_date);
-        d.setFullYear(parseInt(year), parseInt(month) - 1, parseInt(day));
-        newStartDate = d.toISOString();
-      }
+    const startDateStr = formData.get('start_date') as string;
+    let newStartDate = isEditingBatch.batch.start_date;
+    if (startDateStr) {
+      const [year, month, day] = startDateStr.split('-');
+      const d = new Date(isEditingBatch.batch.start_date);
+      d.setFullYear(parseInt(year), parseInt(month) - 1, parseInt(day));
+      newStartDate = d.toISOString();
+    }
 
-      const batchData = {
-        id: isEditingBatch.batch.id,
-        incubator_id: isEditingBatch.incubatorId,
-        name: formData.get('name') as string,
-        count: parseInt(formData.get('count') as string),
-        fertile: parseInt(formData.get('fertile') as string) || 0,
-        infertile: parseInt(formData.get('infertile') as string) || 0,
-        hatched: parseInt(formData.get('hatched') as string) || 0,
-        dead_in_shell: parseInt(formData.get('dead_in_shell') as string) || 0,
-        start_date: newStartDate
-      };
+    const baia_details: Record<string, number> = {};
+    modalBaias.forEach(item => {
+      if (item.baia) {
+        baia_details[item.baia] = (baia_details[item.baia] || 0) + item.quantity;
+      }
+    });
+
+    const raca_details: Record<string, number> = {};
+    modalRacas.forEach(item => {
+      if (item.raca) {
+        raca_details[item.raca] = (raca_details[item.raca] || 0) + item.quantity;
+      }
+    });
+
+    const batchData = {
+      id: isEditingBatch.batch.id,
+      incubator_id: isEditingBatch.incubatorId,
+      name: formData.get('name') as string,
+      count: totalCount || calculatedTotal || parseInt(formData.get('count') as string) || 0,
+      fertile: parseInt(formData.get('fertile') as string) || 0,
+      infertile: parseInt(formData.get('infertile') as string) || 0,
+      hatched: parseInt(formData.get('hatched') as string) || 0,
+      dead_in_shell: parseInt(formData.get('dead_in_shell') as string) || 0,
+      start_date: newStartDate,
+      baia_details,
+      raca_details
+    };
 
     try {
       await dbService.saveBatch(batchData);
@@ -248,7 +343,7 @@ export default function Chocadeira() {
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Lotes em Incubação</h4>
                   <button 
                     disabled={currentTotal >= inc.capacity}
-                    onClick={() => setIsAddingBatch(inc.id)}
+                    onClick={() => openAddBatch(inc.id)}
                     className="text-[#2563EB] text-xs font-bold uppercase hover:underline disabled:opacity-30 tracking-widest"
                   >
                     + Novo Lote
@@ -275,12 +370,24 @@ export default function Chocadeira() {
                             </div>
                             <div>
                               <p className="text-sm font-bold text-[#1F2937] tracking-tight">{batch.name}</p>
-                              <p className="text-xs text-slate-500 font-bold">{batch.count} UNIDADES</p>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                <span className="text-xs text-slate-500 font-bold uppercase">{batch.count} UNIDADES</span>
+                                {batch.baia_details && Object.entries(batch.baia_details).map(([baia, qty]) => (
+                                  <span key={baia} className="bg-[#EFF6FF] text-[#2563EB] text-[10px] font-bold px-2 py-0.5 rounded-md border border-[#DBEAFE] uppercase">
+                                    {baia}: {qty} ovos
+                                  </span>
+                                ))}
+                                {batch.raca_details && Object.entries(batch.raca_details).map(([raca, qty]) => (
+                                  <span key={raca} className="bg-[#FAF5FF] text-purple-600 text-[10px] font-bold px-2 py-0.5 rounded-md border border-purple-200 uppercase">
+                                    {raca}: {qty} ovos
+                                  </span>
+                                ))}
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <button 
-                              onClick={() => setIsEditingBatch({ incubatorId: inc.id, batch })}
+                              onClick={() => openEditBatch(inc.id, batch)}
                               className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-slate-400 hover:text-[#2563EB] text-xs font-bold uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-lg"
                             >
                               Editar
@@ -363,9 +470,9 @@ export default function Chocadeira() {
         )}
 
         {isAddingBatch && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0 overflow-y-auto">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAddingBatch(null)} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl">
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-lg bg-white p-8 rounded-[32px] shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar my-8">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-bold text-[#1F2937]">Novo Lote de Ovos</h3>
                 <button onClick={() => setIsAddingBatch(null)} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"><X size={20} /></button>
@@ -375,9 +482,130 @@ export default function Chocadeira() {
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Identificação / Casal</label>
                   <input required name="name" type="text" placeholder="Ex: Casal MR-42" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Quantidade de Ovos</label>
-                  <input required name="count" type="number" placeholder="Ex: 4" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+
+                {/* Composição por Baia */}
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Composição por Baia</label>
+                    <button 
+                      type="button" 
+                      onClick={() => setModalBaias([...modalBaias, { baia: '', quantity: 1 }])}
+                      className="text-[#2563EB] text-xs font-bold uppercase hover:underline tracking-widest"
+                    >
+                      + Adicionar Baia
+                    </button>
+                  </div>
+                  {modalBaias.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100">
+                      <select
+                        value={item.baia}
+                        onChange={(e) => {
+                          const newBaias = [...modalBaias];
+                          newBaias[idx].baia = e.target.value;
+                          setModalBaias(newBaias);
+                        }}
+                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] outline-none"
+                        required
+                      >
+                        <option value="" disabled>Selecionar Baia</option>
+                        {uniqueBaias.map(baia => (
+                          <option key={baia} value={baia}>{baia}</option>
+                        ))}
+                        {!uniqueBaias.includes(item.baia) && item.baia && (
+                          <option value={item.baia}>{item.baia}</option>
+                        )}
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const newBaias = [...modalBaias];
+                          newBaias[idx].quantity = parseInt(e.target.value) || 0;
+                          setModalBaias(newBaias);
+                        }}
+                        placeholder="Qtd"
+                        className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-center font-bold text-[#1F2937] outline-none"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setModalBaias(modalBaias.filter((_, i) => i !== idx))}
+                        className="text-slate-400 hover:text-[#EF4444] p-1.5 hover:bg-[#FEF2F2] rounded-lg transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Composição por Raça */}
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Composição por Raça</label>
+                    <button 
+                      type="button" 
+                      onClick={() => setModalRacas([...modalRacas, { raca: '', quantity: 1 }])}
+                      className="text-[#2563EB] text-xs font-bold uppercase hover:underline tracking-widest"
+                    >
+                      + Adicionar Raça
+                    </button>
+                  </div>
+                  {modalRacas.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100">
+                      <select
+                        value={item.raca}
+                        onChange={(e) => {
+                          const newRacas = [...modalRacas];
+                          newRacas[idx].raca = e.target.value;
+                          setModalRacas(newRacas);
+                        }}
+                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] outline-none"
+                        required
+                      >
+                        <option value="" disabled>Selecionar Raça</option>
+                        {uniqueRacas.map(raca => (
+                          <option key={raca} value={raca}>{raca}</option>
+                        ))}
+                        {!uniqueRacas.includes(item.raca) && item.raca && (
+                          <option value={item.raca}>{item.raca}</option>
+                        )}
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const newRacas = [...modalRacas];
+                          newRacas[idx].quantity = parseInt(e.target.value) || 0;
+                          setModalRacas(newRacas);
+                        }}
+                        placeholder="Qtd"
+                        className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-center font-bold text-[#1F2937] outline-none"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setModalRacas(modalRacas.filter((_, i) => i !== idx))}
+                        className="text-slate-400 hover:text-[#EF4444] p-1.5 hover:bg-[#FEF2F2] rounded-lg transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2 pt-4 border-t border-slate-100">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Quantidade Total de Ovos</label>
+                  <input 
+                    required 
+                    name="count" 
+                    type="number" 
+                    value={totalCount || ''} 
+                    onChange={(e) => setTotalCount(parseInt(e.target.value) || 0)} 
+                    placeholder="Ex: 4" 
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                  />
                 </div>
                 <button type="submit" className="w-full py-4 bg-[#F59E0B] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#D97706] hover:scale-[1.02] active:scale-95 transition-all">Iniciar Incubação</button>
               </form>
@@ -386,27 +614,148 @@ export default function Chocadeira() {
         )}
 
         {isEditingBatch && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0 overflow-y-auto">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsEditingBatch(null)} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-lg bg-white p-8 rounded-[32px] shadow-2xl">
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-lg bg-white p-8 rounded-[32px] shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar my-8">
               <div className="flex justify-between items-center mb-8">
-                <h3 className="text-2xl font-bold text-[#1F2937]">Atualizar Estatísticas</h3>
+                <h3 className="text-2xl font-bold text-[#1F2937]">Atualizar Lote</h3>
                 <button onClick={() => setIsEditingBatch(null)} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"><X size={20} /></button>
               </div>
               <form onSubmit={handleUpdateBatch} className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nome do Lote</label>
                     <input required name="name" defaultValue={isEditingBatch.batch.name} type="text" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Total Ovos</label>
-                    <input required name="count" defaultValue={isEditingBatch.batch.count} type="number" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
-                  </div>
-                  <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Data Início</label>
                     <input required name="start_date" defaultValue={new Date(isEditingBatch.batch.start_date).toISOString().split('T')[0]} type="date" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                   </div>
+                </div>
+
+                {/* Composição por Baia */}
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Composição por Baia</label>
+                    <button 
+                      type="button" 
+                      onClick={() => setModalBaias([...modalBaias, { baia: '', quantity: 1 }])}
+                      className="text-[#2563EB] text-xs font-bold uppercase hover:underline tracking-widest"
+                    >
+                      + Adicionar Baia
+                    </button>
+                  </div>
+                  {modalBaias.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100">
+                      <select
+                        value={item.baia}
+                        onChange={(e) => {
+                          const newBaias = [...modalBaias];
+                          newBaias[idx].baia = e.target.value;
+                          setModalBaias(newBaias);
+                        }}
+                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] outline-none"
+                        required
+                      >
+                        <option value="" disabled>Selecionar Baia</option>
+                        {uniqueBaias.map(baia => (
+                          <option key={baia} value={baia}>{baia}</option>
+                        ))}
+                        {!uniqueBaias.includes(item.baia) && item.baia && (
+                          <option value={item.baia}>{item.baia}</option>
+                        )}
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const newBaias = [...modalBaias];
+                          newBaias[idx].quantity = parseInt(e.target.value) || 0;
+                          setModalBaias(newBaias);
+                        }}
+                        placeholder="Qtd"
+                        className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-center font-bold text-[#1F2937] outline-none"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setModalBaias(modalBaias.filter((_, i) => i !== idx))}
+                        className="text-slate-400 hover:text-[#EF4444] p-1.5 hover:bg-[#FEF2F2] rounded-lg transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Composição por Raça */}
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Composição por Raça</label>
+                    <button 
+                      type="button" 
+                      onClick={() => setModalRacas([...modalRacas, { raca: '', quantity: 1 }])}
+                      className="text-[#2563EB] text-xs font-bold uppercase hover:underline tracking-widest"
+                    >
+                      + Adicionar Raça
+                    </button>
+                  </div>
+                  {modalRacas.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100">
+                      <select
+                        value={item.raca}
+                        onChange={(e) => {
+                          const newRacas = [...modalRacas];
+                          newRacas[idx].raca = e.target.value;
+                          setModalRacas(newRacas);
+                        }}
+                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] outline-none"
+                        required
+                      >
+                        <option value="" disabled>Selecionar Raça</option>
+                        {uniqueRacas.map(raca => (
+                          <option key={raca} value={raca}>{raca}</option>
+                        ))}
+                        {!uniqueRacas.includes(item.raca) && item.raca && (
+                          <option value={item.raca}>{item.raca}</option>
+                        )}
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const newRacas = [...modalRacas];
+                          newRacas[idx].quantity = parseInt(e.target.value) || 0;
+                          setModalRacas(newRacas);
+                        }}
+                        placeholder="Qtd"
+                        className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-center font-bold text-[#1F2937] outline-none"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setModalRacas(modalRacas.filter((_, i) => i !== idx))}
+                        className="text-slate-400 hover:text-[#EF4444] p-1.5 hover:bg-[#FEF2F2] rounded-lg transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2 pt-4 border-t border-slate-100">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Quantidade Total de Ovos</label>
+                  <input 
+                    required 
+                    name="count" 
+                    type="number" 
+                    value={totalCount || ''} 
+                    onChange={(e) => setTotalCount(parseInt(e.target.value) || 0)} 
+                    placeholder="Ex: 4" 
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-100">
