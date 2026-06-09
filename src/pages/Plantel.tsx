@@ -930,20 +930,32 @@ export default function Plantel() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Raça</label>
-                    <input 
-                      required 
-                      name="raca" 
-                      list="racas-list"
-                      defaultValue={editingBird?.raca} 
-                      type="text" 
-                      placeholder="Ex: GSB, Galo Índio" 
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
-                    />
-                    <datalist id="racas-list">
-                      {racas.map(raca => (
-                        <option key={raca.id} value={raca.name} />
-                      ))}
-                    </datalist>
+                    <div className="flex gap-2">
+                      <select 
+                        required 
+                        name="raca" 
+                        defaultValue={editingBird?.raca || ""} 
+                        className="flex-1 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none"
+                      >
+                        <option value="" disabled>Selecione a Raça</option>
+                        {editingBird?.raca && !racas.some(r => r.name === editingBird.raca) && (
+                          <option value={editingBird.raca}>{editingBird.raca}</option>
+                        )}
+                        {racas.map(r => (
+                          <option key={r.id} value={r.name}>{r.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRacaToEdit(null);
+                          setIsEditingRaca(true);
+                        }}
+                        className="px-4 bg-[#8B5CF6] text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-[#7C3AED] transition-colors shadow-sm shrink-0 flex items-center justify-center"
+                      >
+                        + Nova
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Status</label>
