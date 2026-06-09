@@ -382,6 +382,16 @@ export default function Plantel() {
             {isFreePlan && birds.length >= limits.birds ? <Lock size={16} /> : <Plus size={16} />}
             ADICIONAR AVE
           </button>
+          <button
+            onClick={() => {
+              setRacaToEdit(null);
+              setIsEditingRaca(true);
+            }}
+            className="flex items-center gap-2 px-6 py-2 rounded-xl font-bold text-sm uppercase tracking-widest shadow-md transition-all bg-[#8B5CF6] text-white hover:bg-[#7C3AED] hover:scale-105 active:scale-95"
+          >
+            <Plus size={16} />
+            ADICIONAR RAÇA
+          </button>
         </div>
       </section>
 
@@ -1565,11 +1575,11 @@ export default function Plantel() {
                 </button>
               </div>
 
-              {/* Add/Edit Form */}
               <form 
                 onSubmit={async (e) => {
                   e.preventDefault();
-                  const formData = new FormData(e.currentTarget);
+                  const form = e.currentTarget;
+                  const formData = new FormData(form);
                   const name = formData.get('raca_name') as string;
                   if (!name) return;
 
@@ -1583,7 +1593,7 @@ export default function Plantel() {
                     await dbService.saveRaca(rData);
                     await loadData();
                     setRacaToEdit(null);
-                    e.currentTarget.reset();
+                    form.reset();
                   } catch (err: any) {
                     alert('Erro ao salvar raça: ' + err.message);
                   }
