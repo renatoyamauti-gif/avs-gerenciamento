@@ -30,6 +30,8 @@ export default function Maternity() {
   const [recipes, setRecipes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+  const [isAddingBatch, setIsAddingBatch] = useState(false);
+  const [batchLoading, setBatchLoading] = useState(false);
   const [editingRecord, setEditingRecord] = useState<MaternityRecord | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
@@ -122,6 +124,49 @@ export default function Maternity() {
     }
   };
 
+  const handleSaveBatch = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const prefix = formData.get('prefix') as string;
+    const quantity = parseInt(formData.get('quantity') as string) || 0;
+    const raca = formData.get('raca') as string;
+    const birth_date = formData.get('birth_date') as string;
+    const status = formData.get('status') as string;
+    const initial_weight = parseFloat(formData.get('initial_weight') as string) || null;
+    const feed_recipe_id = formData.get('feed_recipe_id') as string || null;
+    const baia = formData.get('baia') as string || null;
+    const notes = formData.get('notes') as string;
+
+    if (quantity <= 0) {
+      alert('A quantidade deve ser maior que zero.');
+      return;
+    }
+
+    setBatchLoading(true);
+    try {
+      for (let i = 1; i <= quantity; i++) {
+        const identifier = `${prefix} - ${String(i).padStart(2, '0')}`;
+        const recordData: any = {
+          identifier,
+          raca,
+          birth_date,
+          status,
+          initial_weight,
+          feed_recipe_id,
+          baia,
+          notes
+        };
+        await dbService.saveMaternityRecord(recordData);
+      }
+      await loadData();
+      setIsAddingBatch(false);
+    } catch (error) {
+      alert('Erro ao salvar lote: ' + error);
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
   const removeRecord = async (id: string) => {
     if (!confirm('Tem certeza que quer excluir/deletar este registro? Pois será irreversível.')) return;
     try {
@@ -192,7 +237,7 @@ export default function Maternity() {
           <h2 className="text-3xl font-headline font-bold text-[#1F2937] tracking-tight">Maternidade</h2>
           <p className="text-slate-500 font-medium text-sm mt-1">Gestão de nascimentos e acompanhamento de crescimento.</p>
         </div>
-        <div className="flex gap-3 print:hidden">
+        <div className="flex flex-wrap gap-3 print:hidden">
           <button 
             onClick={() => {
               setEditingRecord(null);
@@ -200,7 +245,15 @@ export default function Maternity() {
             }}
             className="flex items-center gap-2 px-6 py-2 bg-[#2563EB] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-md transition-all hover:bg-[#1D4ED8] hover:scale-105 active:scale-95"
           >
-            <Plus size={16} /> REGISTRAR NASCIMENTO
+            <Plus size={16} /> REGISTRAR NASCIMENTO INDIVIDUAL
+          </button>
+          <button 
+            onClick={() => {
+              setIsAddingBatch(true);
+            }}
+            className="flex items-center gap-2 px-6 py-2 bg-[#10B981] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-md transition-all hover:bg-[#059669] hover:scale-105 active:scale-95"
+          >
+            <Plus size={16} /> REGISTRAR NASCIMENTO POR LOTE
           </button>
         </div>
       </section>
@@ -501,6 +554,112 @@ export default function Maternity() {
                   </div>
                 </div>
               )}
+            </motion.div>
+          </div>
+        )}
+
+        {isAddingBatch && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !batchLoading && setIsAddingBatch(false)} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-2xl bg-white p-8 sm:p-10 rounded-[32px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold text-[#1F2937]">
+                    Registrar Nascimento por Lote
+                  </h3>
+                  <p className="text-sm text-slate-500 font-medium mt-1">
+                    Insira as informações gerais para registrar múltiplos filhotes de uma vez.
+                  </p>
+                </div>
+                <button 
+                  type="button"
+                  disabled={batchLoading}
+                  onClick={() => setIsAddingBatch(false)} 
+                  className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors disabled:opacity-50"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveBatch} className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Prefixo do Lote / Nome</label>
+                    <input required disabled={batchLoading} name="prefix" type="text" placeholder="Ex: RIR, GSB 01" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none disabled:opacity-60" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Quantidade de Aves</label>
+                    <input required disabled={batchLoading} name="quantity" type="number" min="1" placeholder="Ex: 5" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none disabled:opacity-60" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Raça / Genética</label>
+                    <input required disabled={batchLoading} name="raca" type="text" placeholder="Ex: RIR, Galo Índio" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none disabled:opacity-60" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Data de Nascimento</label>
+                    <input required disabled={batchLoading} name="birth_date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none disabled:opacity-60" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Status Atual</label>
+                    <select disabled={batchLoading} name="status" defaultValue="Berçário" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none disabled:opacity-60">
+                      <option value="Berçário">Berçário</option>
+                      <option value="Crescimento">Crescimento</option>
+                      <option value="Transferido">Transferido para Plantel</option>
+                      <option value="Óbito">Óbito</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Baia / Grupo (Opcional)</label>
+                    <input disabled={batchLoading} name="baia" type="text" placeholder="Ex: Baia 01" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none disabled:opacity-60" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Peso Médio ao Nascer (g) (Opcional)</label>
+                    <input disabled={batchLoading} name="initial_weight" type="number" step="any" placeholder="Ex: 45.5" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none disabled:opacity-60" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tipo de Ração</label>
+                    <select disabled={batchLoading} name="feed_recipe_id" defaultValue="" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none disabled:opacity-60">
+                      <option value="">Selecione uma Ração...</option>
+                      {recipes.map(r => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Observações Gerais</label>
+                  <textarea disabled={batchLoading} name="notes" placeholder="Informações adicionais sobre o lote..." rows={3} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none resize-none disabled:opacity-60"></textarea>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={batchLoading}
+                  className="w-full py-4 bg-[#10B981] hover:bg-[#059669] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                >
+                  {batchLoading ? (
+                    <>
+                      <Loader2 className="animate-spin" size={16} /> Salvando Lote...
+                    </>
+                  ) : (
+                    'Salvar Lote'
+                  )}
+                </button>
+              </form>
             </motion.div>
           </div>
         )}
