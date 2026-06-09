@@ -28,6 +28,7 @@ interface MaternityHistory {
 export default function Maternity() {
   const [records, setRecords] = useState<MaternityRecord[]>([]);
   const [recipes, setRecipes] = useState<any[]>([]);
+  const [racas, setRacas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [isAddingBatch, setIsAddingBatch] = useState(false);
@@ -45,12 +46,14 @@ export default function Maternity() {
 
   async function loadData() {
     try {
-      const [data, recipesData] = await Promise.all([
+      const [data, recipesData, racasData] = await Promise.all([
         dbService.getMaternityRecords(),
-        dbService.getRations()
+        dbService.getRations(),
+        dbService.getRacas()
       ]);
       setRecords(data || []);
       setRecipes(recipesData || []);
+      setRacas(racasData || []);
     } catch (error) {
       console.error('Erro ao carregar registros de maternidade:', error);
     } finally {
@@ -435,7 +438,15 @@ export default function Maternity() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Raça / Genética</label>
-                      <input required name="raca" defaultValue={editingRecord?.raca} type="text" placeholder="Ex: GSB, Galo Índio" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                      <select required name="raca" defaultValue={editingRecord?.raca || ""} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none">
+                        <option value="" disabled>Selecione a Raça...</option>
+                        {editingRecord?.raca && !racas.some(r => r.name === editingRecord.raca) && (
+                          <option value={editingRecord.raca}>{editingRecord.raca}</option>
+                        )}
+                        {racas.map(r => (
+                          <option key={r.id} value={r.name}>{r.name}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
@@ -601,7 +612,12 @@ export default function Maternity() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Raça / Genética</label>
-                    <input required disabled={batchLoading} name="raca" type="text" placeholder="Ex: RIR, Galo Índio" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none disabled:opacity-60" />
+                    <select required disabled={batchLoading} name="raca" defaultValue="" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none disabled:opacity-60">
+                      <option value="" disabled>Selecione a Raça...</option>
+                      {racas.map(r => (
+                        <option key={r.id} value={r.name}>{r.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Data de Nascimento</label>
