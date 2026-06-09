@@ -10,7 +10,7 @@ const BottomNav = ({ onOpenMenu }: BottomNavProps) => {
 
   const navItems = [
     { path: '/', label: 'Início', icon: <LayoutDashboard size={20} /> },
-    { path: '/eggs', label: 'Coleta', icon: <Egg size={20} /> },
+    { path: '/eggs', label: 'Ovos', icon: <Egg size={20} /> },
     { path: '/breeding', label: 'Incubação', icon: <Thermometer size={20} /> },
     { path: '/birds', label: 'Aves', icon: <Bird size={20} /> },
   ];

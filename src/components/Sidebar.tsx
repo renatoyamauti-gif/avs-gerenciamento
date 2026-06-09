@@ -30,7 +30,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     { path: '/birds', label: 'Gestão de Aves', icon: <Bird size={18} /> },
     { path: '/breeding', label: 'Chocadeira', icon: <Egg size={18} /> },
     { path: '/maternity', label: 'Maternidade', icon: <Baby size={18} /> },
-    { path: '/eggs', label: 'Coleta de Ovos', icon: <Plus size={18} /> },
+    { path: '/eggs', label: 'Ovos', icon: <Plus size={18} /> },
     { path: '/ration', label: 'Ração', icon: <ArrowRight size={18} /> },
     { path: '/finance', label: 'Financeiro', icon: <Wallet size={18} /> },
     { path: '/settings', label: 'CONFIGURAÇÕES', icon: <Settings size={18} /> },
