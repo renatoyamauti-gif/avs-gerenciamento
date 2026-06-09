@@ -20,6 +20,13 @@ export default function Finance() {
   const [isAdding, setIsAdding] = useState(false);
   const [filterType, setFilterType] = useState<'All' | 'Entrada' | 'Saída'>('All');
   const { isFreePlan } = useSubscription();
+  const [transactionType, setTransactionType] = useState<'Entrada' | 'Saída'>('Entrada');
+
+  useEffect(() => {
+    if (isAdding) {
+      setTransactionType('Entrada');
+    }
+  }, [isAdding]);
 
   useEffect(() => {
     loadTransactions();
@@ -402,14 +409,28 @@ export default function Finance() {
               <form onSubmit={handleAddTransaction} className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <label className="relative cursor-pointer group">
-                    <input type="radio" name="type" value="Entrada" defaultChecked className="hidden peer" />
+                    <input 
+                      type="radio" 
+                      name="type" 
+                      value="Entrada" 
+                      checked={transactionType === 'Entrada'}
+                      onChange={() => setTransactionType('Entrada')}
+                      className="hidden peer" 
+                    />
                     <div className="flex items-center justify-center gap-2 py-4 rounded-2xl border-2 border-slate-100 peer-checked:bg-[#DCFCE7] peer-checked:border-[#16A34A] peer-checked:text-[#16A34A] text-slate-400 font-bold transition-all">
                       <ArrowUpCircle size={20} />
                       <span className="text-sm uppercase tracking-widest">Entrada</span>
                     </div>
                   </label>
                   <label className="relative cursor-pointer group">
-                    <input type="radio" name="type" value="Saída" className="hidden peer" />
+                    <input 
+                      type="radio" 
+                      name="type" 
+                      value="Saída" 
+                      checked={transactionType === 'Saída'}
+                      onChange={() => setTransactionType('Saída')}
+                      className="hidden peer" 
+                    />
                     <div className="flex items-center justify-center gap-2 py-4 rounded-2xl border-2 border-slate-100 peer-checked:bg-[#FEE2E2] peer-checked:border-[#EF4444] peer-checked:text-[#EF4444] text-slate-400 font-bold transition-all">
                       <ArrowDownCircle size={20} />
                       <span className="text-sm uppercase tracking-widest">Saída</span>
@@ -435,13 +456,22 @@ export default function Finance() {
 
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Categoria</label>
-                  <select name="category" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none">
-                    <option value="Venda de Aves">Venda de Aves</option>
-                    <option value="Aquisição de Aves">Aquisição de Aves</option>
-                    <option value="Ração/Alimentação">Ração/Alimentação</option>
-                    <option value="Medicamentos">Medicamentos</option>
-                    <option value="Infraestrutura">Infraestrutura</option>
-                    <option value="Outros">Outros</option>
+                  <select name="category" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none">
+                    {transactionType === 'Entrada' ? (
+                      <>
+                        <option value="Venda de Ovos">Venda de Ovos</option>
+                        <option value="Venda de Aves">Venda de Aves</option>
+                        <option value="Outros">Outros</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Aquisição de Aves">Aquisição de Aves</option>
+                        <option value="Ração/Alimentação">Ração/Alimentação</option>
+                        <option value="Medicamentos">Medicamentos</option>
+                        <option value="Infraestrutura">Infraestrutura</option>
+                        <option value="Outros">Outros</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
