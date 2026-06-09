@@ -24,6 +24,15 @@ export default function Finance() {
   const [categories, setCategories] = useState<any[]>([]);
   const [isEditingCategories, setIsEditingCategories] = useState(false);
   const [categoryToEdit, setCategoryToEdit] = useState<any>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+
+  useEffect(() => {
+    if (editingTransaction) {
+      setTransactionType(editingTransaction.type);
+    } else if (isAdding) {
+      setTransactionType('Entrada');
+    }
+  }, [isAdding, editingTransaction]);
 
   useEffect(() => {
     if (isAdding) {
@@ -133,6 +142,7 @@ export default function Finance() {
     const formData = new FormData(e.currentTarget);
     
     const newTransactionPlan = {
+      id: editingTransaction?.id,
       type: formData.get('type') as 'Entrada' | 'Saída',
       category: formData.get('category') as string,
       reason: formData.get('reason') as string,
@@ -144,6 +154,7 @@ export default function Finance() {
       await dbService.saveTransaction(newTransactionPlan);
       await loadTransactions();
       setIsAdding(false);
+      setEditingTransaction(null);
     } catch (error) {
       alert('Erro ao salvar transação: ' + error);
     }
@@ -389,11 +400,22 @@ export default function Finance() {
                     {t.type === 'Entrada' ? '+' : '-'} R$ {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </td>
                   <td className="px-8 py-4 text-right">
-                    <button onClick={() => removeTransaction(t.id)} className="p-2 text-slate-400 hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded-xl transition-colors">
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex justify-end gap-1">
+                      <button 
+                        onClick={() => setEditingTransaction(t)} 
+                        className="p-2 text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] rounded-xl transition-colors"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                      <button 
+                        onClick={() => removeTransaction(t.id)} 
+                        className="p-2 text-slate-400 hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded-xl transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
-                </tr>
+                  </tr>
               ))}
             </tbody>
           </table>
@@ -414,7 +436,20 @@ export default function Finance() {
                     <span className="text-xs font-semibold text-[#2563EB] uppercase mt-1 block">{t.category}</span>
                   </div>
                 </div>
-                <button onClick={() => removeTransaction(t.id)} className="p-2 text-slate-400 hover:text-[#EF4444] bg-[#F8FAFC] rounded-xl"><Trash2 size={16} /></button>
+                <div className="flex gap-1">
+                  <button 
+                    onClick={() => setEditingTransaction(t)} 
+                    className="p-2 text-slate-400 hover:text-[#2563EB] bg-[#F8FAFC] rounded-xl"
+                  >
+                    <Edit3 size={16} />
+                  </button>
+                  <button 
+                    onClick={() => removeTransaction(t.id)} 
+                    className="p-2 text-slate-400 hover:text-[#EF4444] bg-[#F8FAFC] rounded-xl"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
               <div className="flex justify-between items-center bg-[#F8FAFC] border border-slate-100 p-4 rounded-2xl">
                 <span className="text-xs font-bold text-slate-500 uppercase">Valor Total</span>
@@ -595,9 +630,9 @@ export default function Finance() {
           </div>
         )}
 
-        {isAdding && (
+        {(isAdding || editingTransaction !== null) && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAdding(false)} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setIsAdding(false); setEditingTransaction(null); }} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -606,10 +641,14 @@ export default function Finance() {
             >
               <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-100">
                 <div>
-                  <h3 className="text-2xl font-bold text-[#1F2937]">Nova Transação</h3>
-                  <p className="text-sm font-medium text-slate-500 mt-1">Registre entradas ou saídas</p>
+                  <h3 className="text-2xl font-bold text-[#1F2937]">
+                    {editingTransaction ? 'Editar Transação' : 'Nova Transação'}
+                  </h3>
+                  <p className="text-sm font-medium text-slate-500 mt-1">
+                    {editingTransaction ? 'Atualize os detalhes do lançamento' : 'Registre entradas ou saídas'}
+                  </p>
                 </div>
-                <button onClick={() => setIsAdding(false)} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors">
+                <button onClick={() => { setIsAdding(false); setEditingTransaction(null); }} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors">
                   <X size={20} />
                 </button>
               </div>
@@ -649,17 +688,17 @@ export default function Finance() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Valor (R$)</label>
-                    <input required name="amount" type="number" step="0.01" placeholder="0.00" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                    <input required name="amount" type="number" step="0.01" placeholder="0.00" defaultValue={editingTransaction?.amount || ''} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Data</label>
-                    <input name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                    <input name="date" type="date" defaultValue={editingTransaction?.date || new Date().toISOString().split('T')[0]} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Descrição</label>
-                  <input required name="reason" type="text" placeholder="Ex: Venda Lote 04" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                  <input required name="reason" type="text" placeholder="Ex: Venda Lote 04" defaultValue={editingTransaction?.reason || ''} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                 </div>
 
                 <div className="space-y-2">
@@ -673,7 +712,7 @@ export default function Finance() {
                       + Gerenciar
                     </button>
                   </div>
-                  <select name="category" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none">
+                  <select name="category" defaultValue={editingTransaction?.category || ''} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none">
                     {categories
                       .filter(c => c.type === transactionType)
                       .map(c => (
@@ -685,13 +724,15 @@ export default function Finance() {
 
                 <div className="pt-4">
                   <button type="submit" className="w-full py-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-2xl font-bold uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2">
-                    <Plus size={20} /> Adicionar Transação
+                    {editingTransaction ? <Edit3 size={20} /> : <Plus size={20} />}
+                    {editingTransaction ? 'Salvar Alterações' : 'Adicionar Transação'}
                   </button>
                 </div>
               </form>
             </motion.div>
           </div>
         )}
+
       </AnimatePresence>
         </>
       )}
