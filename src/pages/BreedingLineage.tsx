@@ -244,8 +244,8 @@ export default function BreedingLineage() {
             </h4>
             <div className="space-y-2">
               <div className="flex justify-between py-2 border-b border-slate-100 text-sm font-semibold">
-                <span className="text-slate-400 uppercase text-xs">Espécie</span>
-                <span className="text-[#1F2937] uppercase">{target.species}</span>
+                <span className="text-slate-400 uppercase text-xs">Raça</span>
+                <span className="text-[#1F2937] uppercase">{target.raca}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-slate-100 text-sm font-semibold">
                 <span className="text-slate-400 uppercase text-xs">Sexo</span>

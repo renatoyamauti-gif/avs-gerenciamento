@@ -9,7 +9,7 @@ import { useSubscription } from '../hooks/useSubscription';
 interface Bird {
   id: string;
   name: string;
-  species: string;
+  raca: string;
   color: string;
   img_url: string;
   status: string;
@@ -79,6 +79,14 @@ export default function Plantel() {
   const [isEditingBaia, setIsEditingBaia] = useState(false);
   const [baiaToEdit, setBaiaToEdit] = useState<any>(null);
 
+  const [isAddingBirdToBaia, setIsAddingBirdToBaia] = useState(false);
+  const [selectedBirdsForBaia, setSelectedBirdsForBaia] = useState<string[]>([]);
+  const [searchBirdToAssociate, setSearchBirdToAssociate] = useState('');
+
+  const [racas, setRacas] = useState<any[]>([]);
+  const [isEditingRaca, setIsEditingRaca] = useState(false);
+  const [racaToEdit, setRacaToEdit] = useState<any>(null);
+
   useEffect(() => {
     setBaiaTab('aves');
   }, [filterBaia]);
@@ -112,6 +120,14 @@ export default function Plantel() {
         console.warn('Baias table might not exist yet');
       }
       setBaiasData(fetchedBaias || []);
+
+      let fetchedRacas: any[] = [];
+      try {
+        fetchedRacas = await dbService.getRacas();
+      } catch (e) {
+        console.warn('Racas table might not exist yet');
+      }
+      setRacas(fetchedRacas || []);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -239,7 +255,7 @@ export default function Plantel() {
       id: editingBird?.id,
       name: formData.get('name') as string,
       ring_number: formData.get('ringNumber') as string,
-      species: formData.get('species') as string,
+      raca: formData.get('raca') as string,
       color: formData.get('color') as string,
       status: status,
       origin: formData.get('origin') as 'Própria' | 'Adquirida',
@@ -303,7 +319,7 @@ export default function Plantel() {
   const filteredBirds = birds.filter(bird => {
     const matchesSearch = bird.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (bird.ring_number?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                          (bird.species?.toLowerCase().includes(searchTerm.toLowerCase()));
+                          (bird.raca?.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesFilter = filterStatus === 'All' || bird.status === filterStatus;
     const matchesBaia = filterBaia === 'All' || bird.baia === filterBaia;
     return matchesSearch && matchesFilter && matchesBaia;
@@ -458,6 +474,15 @@ export default function Plantel() {
               >
                 <Plus size={14} /> Baia
               </button>
+              <button
+                onClick={() => {
+                  setRacaToEdit(null);
+                  setIsEditingRaca(true);
+                }}
+                className="flex items-center gap-1 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap shadow-sm bg-white text-[#8B5CF6] border border-[#8B5CF6]/30 hover:bg-[#8B5CF6] hover:text-white"
+              >
+                <Plus size={14} /> Raça
+              </button>
             </div>
           </div>
           {filterBaia !== 'All' && (
@@ -479,16 +504,30 @@ export default function Plantel() {
                   Histórico
                 </button>
               </div>
-              <button
-                onClick={() => {
-                  const bData = baiasData.find(b => b.name === filterBaia) || { name: filterBaia };
-                  setBaiaToEdit(bData);
-                  setIsEditingBaia(true);
-                }}
-                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-[#2563EB] transition-colors bg-[#F8FAFC] px-3 py-1.5 rounded-lg border border-slate-200"
-              >
-                <Settings size={14} /> Editar Baia
-              </button>
+              <div className="flex gap-2">
+                {baiaTab === 'aves' && (
+                  <button
+                    onClick={() => {
+                      setSelectedBirdsForBaia([]);
+                      setSearchBirdToAssociate('');
+                      setIsAddingBirdToBaia(true);
+                    }}
+                    className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-[#1D4ED8] bg-[#2563EB] px-3 py-1.5 rounded-lg border border-transparent transition-colors shadow-sm"
+                  >
+                    <Plus size={14} /> Adicionar Ave
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    const bData = baiasData.find(b => b.name === filterBaia) || { name: filterBaia };
+                    setBaiaToEdit(bData);
+                    setIsEditingBaia(true);
+                  }}
+                  className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-[#2563EB] transition-colors bg-[#F8FAFC] px-3 py-1.5 rounded-lg border border-slate-200"
+                >
+                  <Settings size={14} /> Editar Baia
+                </button>
+              </div>
             </div>
           )}
 
@@ -500,7 +539,7 @@ export default function Plantel() {
               <tr className="bg-[#F8FAFC] text-xs uppercase tracking-widest font-bold text-slate-400 border-b border-slate-100">
                 <th className="px-6 py-4">Ave</th>
                 <th className="px-6 py-4">Anilha</th>
-                <th className="px-6 py-4">Espécie</th>
+                <th className="px-6 py-4">Raça</th>
                 <th className="px-6 py-4">Consumo Mensal</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Ações</th>
@@ -543,7 +582,7 @@ export default function Plantel() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-600 font-medium transition-all">
-                    {bird.species}
+                    {bird.raca}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col bg-white p-2 rounded-xl border border-slate-100 w-fit min-w-[100px] shadow-sm">
@@ -644,8 +683,8 @@ export default function Plantel() {
               
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-center">
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Espécie</p>
-                  <p className="text-xs font-semibold text-[#1F2937] truncate">{bird.species}</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Raça</p>
+                  <p className="text-xs font-semibold text-[#1F2937] truncate">{bird.raca}</p>
                 </div>
                 <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-center border-l-4 border-l-[#16A34A]">
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Custo Mensal</p>
@@ -655,8 +694,44 @@ export default function Plantel() {
             </div>
           ))}
           {filteredBirds.length === 0 && (
-            <div className="py-20 text-center text-slate-400 font-medium">
-              Nenhuma ave encontrada.
+            <div className="py-20 text-center text-slate-400 font-medium flex flex-col items-center justify-center gap-4">
+              <div>
+                <Info size={32} className="mx-auto text-slate-300 mb-2" />
+                <p>Nenhuma ave encontrada.</p>
+              </div>
+              {filterBaia !== 'All' && (
+                <div className="flex gap-3 mt-2">
+                  <button
+                    onClick={() => {
+                      setSelectedBirdsForBaia([]);
+                      setSearchBirdToAssociate('');
+                      setIsAddingBirdToBaia(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md"
+                  >
+                    <Plus size={14} /> Associar Ave Existente
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (isFreePlan && birds.length >= limits.birds) {
+                        alert(`Você atingiu o limite de ${limits.birds} aves do plano Iniciante. Acesse o menu Assinatura para fazer o upgrade!`);
+                        return;
+                      }
+                      setEditingBird(null);
+                      setBirdOrigin('Própria');
+                      setFormStatus('Active');
+                      setMonthlyGrams(0);
+                      setSelectedRecipePrice(0);
+                      setImagePreview(null);
+                      setFeedRecipeId('');
+                      setIsAdding(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 hover:text-[#2563EB] text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-sm"
+                  >
+                    <Plus size={14} /> Cadastrar Nova Ave
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -844,8 +919,21 @@ export default function Plantel() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Espécie</label>
-                    <input required name="species" defaultValue={editingBird?.species} type="text" placeholder="Ex: Arara Azul" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Raça</label>
+                    <input 
+                      required 
+                      name="raca" 
+                      list="racas-list"
+                      defaultValue={editingBird?.raca} 
+                      type="text" 
+                      placeholder="Ex: Canário da Terra" 
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                    />
+                    <datalist id="racas-list">
+                      {racas.map(raca => (
+                        <option key={raca.id} value={raca.name} />
+                      ))}
+                    </datalist>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Status</label>
@@ -1256,6 +1344,332 @@ export default function Plantel() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isAddingBirdToBaia && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setIsAddingBirdToBaia(false)} 
+              className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-lg bg-white p-8 rounded-[32px] shadow-2xl flex flex-col max-h-[85vh]"
+            >
+              <div className="flex justify-between items-center mb-4 shrink-0">
+                <div>
+                  <h3 className="text-xl font-bold text-[#1F2937]">
+                    Adicionar Aves à Baia
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-1">
+                    Baia destino: <span className="font-bold text-[#2563EB]">{filterBaia}</span>
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setIsAddingBirdToBaia(false)} 
+                  className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Link to create a new bird directly */}
+              <div className="bg-[#EFF6FF] border border-[#DBEAFE] p-3 rounded-2xl mb-4 text-xs font-semibold text-[#1E40AF] flex justify-between items-center shrink-0">
+                <span>Quer cadastrar uma ave totalmente nova nesta baia?</span>
+                <button
+                  onClick={() => {
+                    setIsAddingBirdToBaia(false);
+                    if (isFreePlan && birds.length >= limits.birds) {
+                      alert(`Você atingiu o limite de ${limits.birds} aves do plano Iniciante. Acesse o menu Assinatura para fazer o upgrade!`);
+                      return;
+                    }
+                    setEditingBird(null);
+                    setBirdOrigin('Própria');
+                    setFormStatus('Active');
+                    setMonthlyGrams(0);
+                    setSelectedRecipePrice(0);
+                    setImagePreview(null);
+                    setFeedRecipeId('');
+                    setIsAdding(true);
+                  }}
+                  className="underline text-[#2563EB] hover:text-[#1D4ED8] font-bold text-left ml-2"
+                >
+                  Cadastrar Ave
+                </button>
+              </div>
+
+              {/* Search filter inside the modal */}
+              <div className="relative mb-4 shrink-0">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 size-4" />
+                <input 
+                  type="text" 
+                  placeholder="Pesquisar ave por nome, anilha ou raça..." 
+                  value={searchBirdToAssociate}
+                  onChange={(e) => setSearchBirdToAssociate(e.target.value)}
+                  className="w-full bg-[#F8FAFC] text-[#1F2937] rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-[#2563EB]/20 transition-all border border-slate-200 placeholder-slate-400 outline-none"
+                />
+              </div>
+
+              {/* Scrollable list of birds that are NOT in this bay */}
+              <div className="flex-1 overflow-y-auto min-h-0 space-y-2 pr-1 custom-scrollbar">
+                {birds
+                  .filter(bird => bird.baia !== filterBaia) // excluding birds already in this bay
+                  .filter(bird => {
+                    if (!searchBirdToAssociate) return true;
+                    const query = searchBirdToAssociate.toLowerCase();
+                    return (bird.name?.toLowerCase().includes(query) || 
+                            bird.ring_number?.toLowerCase().includes(query) ||
+                            bird.raca?.toLowerCase().includes(query));
+                  })
+                  .map(bird => {
+                    const isSelected = selectedBirdsForBaia.includes(bird.id);
+                    return (
+                      <div 
+                        key={bird.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedBirdsForBaia(prev => prev.filter(id => id !== bird.id));
+                          } else {
+                            setSelectedBirdsForBaia(prev => [...prev, bird.id]);
+                          }
+                        }}
+                        className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
+                          isSelected 
+                            ? 'bg-[#EFF6FF] border-[#2563EB]/50' 
+                            : 'bg-white border-slate-100 hover:border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-100 shrink-0">
+                            <img src={bird.img_url} alt={bird.name} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="flex flex-col text-left">
+                            <span className="text-sm font-bold text-[#1F2937] flex items-center gap-1">
+                              {bird.name}
+                              {bird.gender === 'Macho' && <Mars size={12} className="text-[#2563EB]" />}
+                              {bird.gender === 'Fêmea' && <Venus size={12} className="text-[#EF4444]" />}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-medium">
+                              {bird.ring_number ? `Anilha: ${bird.ring_number}` : 'Sem anilha'} • {bird.raca}
+                            </span>
+                            {bird.baia && (
+                              <span className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                                Baia atual: <span className="text-slate-700">{bird.baia}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Custom checkbox styling */}
+                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
+                          isSelected 
+                            ? 'bg-[#2563EB] border-[#2563EB] text-white' 
+                            : 'border-slate-300 bg-white'
+                        }`}>
+                          {isSelected && <Plus size={14} strokeWidth={3} />}
+                        </div>
+                      </div>
+                    );
+                  })
+                }
+
+                {/* Empty states */}
+                {birds.filter(bird => bird.baia !== filterBaia).length === 0 && (
+                  <div className="text-center py-8 text-slate-400 text-sm font-medium">
+                    Todas as aves do plantel já estão nesta baia.
+                  </div>
+                )}
+                {birds.filter(bird => bird.baia !== filterBaia).length > 0 && 
+                 birds.filter(bird => bird.baia !== filterBaia).filter(bird => {
+                    if (!searchBirdToAssociate) return true;
+                    const query = searchBirdToAssociate.toLowerCase();
+                    return (bird.name?.toLowerCase().includes(query) || 
+                            bird.ring_number?.toLowerCase().includes(query) ||
+                            bird.raca?.toLowerCase().includes(query));
+                  }).length === 0 && (
+                  <div className="text-center py-8 text-slate-400 text-sm font-medium">
+                    Nenhuma ave correspondente à busca.
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="pt-4 mt-2 border-t border-slate-100 flex gap-3 shrink-0">
+                <button 
+                  type="button" 
+                  onClick={() => setIsAddingBirdToBaia(false)} 
+                  className="flex-1 py-3 bg-[#F8FAFC] border border-slate-200 text-slate-600 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-slate-100 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="button"
+                  disabled={selectedBirdsForBaia.length === 0}
+                  onClick={async () => {
+                    try {
+                      await dbService.updateBirdsBaia(selectedBirdsForBaia, filterBaia);
+                      await loadData();
+                      setIsAddingBirdToBaia(false);
+                    } catch (e: any) {
+                      alert('Erro ao associar aves: ' + e.message);
+                    }
+                  }}
+                  className={`flex-1 py-3 rounded-xl font-bold text-sm uppercase tracking-widest shadow-sm transition-all ${
+                    selectedBirdsForBaia.length === 0
+                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                      : 'bg-[#2563EB] text-white hover:bg-[#1D4ED8]'
+                  }`}
+                >
+                  Confirmar ({selectedBirdsForBaia.length})
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isEditingRaca && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => { setIsEditingRaca(false); setRacaToEdit(null); }} 
+              className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl flex flex-col max-h-[85vh]"
+            >
+              <div className="flex justify-between items-center mb-6 shrink-0">
+                <h3 className="text-xl font-bold text-[#1F2937]">
+                  Gerenciar Raças
+                </h3>
+                <button 
+                  onClick={() => { setIsEditingRaca(false); setRacaToEdit(null); }} 
+                  className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Add/Edit Form */}
+              <form 
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const name = formData.get('raca_name') as string;
+                  if (!name) return;
+
+                  try {
+                    const rData: any = {
+                      name: name
+                    };
+                    if (racaToEdit?.id) {
+                      rData.id = racaToEdit.id;
+                    }
+                    await dbService.saveRaca(rData);
+                    await loadData();
+                    setRacaToEdit(null);
+                    e.currentTarget.reset();
+                  } catch (err: any) {
+                    alert('Erro ao salvar raça: ' + err.message);
+                  }
+                }} 
+                className="space-y-4 mb-6 shrink-0"
+              >
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                    {racaToEdit ? 'Editar Raça' : 'Nova Raça'}
+                  </label>
+                  <div className="flex gap-2">
+                    <input 
+                      key={racaToEdit?.id || 'new'}
+                      required 
+                      name="raca_name" 
+                      defaultValue={racaToEdit?.name || ''} 
+                      placeholder="Ex: Canário da Terra" 
+                      className="flex-1 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                    />
+                    <button 
+                      type="submit" 
+                      className="px-6 bg-[#2563EB] text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-[#1D4ED8] transition-colors shadow-sm shrink-0"
+                    >
+                      {racaToEdit ? 'Salvar' : 'Adicionar'}
+                    </button>
+                  </div>
+                  {racaToEdit && (
+                    <button 
+                      type="button" 
+                      onClick={() => setRacaToEdit(null)} 
+                      className="text-xs font-semibold text-slate-400 hover:text-slate-600 underline"
+                    >
+                      Cancelar Edição
+                    </button>
+                  )}
+                </div>
+              </form>
+
+              {/* Scrollable list of registered breeds */}
+              <div className="flex-1 overflow-y-auto min-h-0 space-y-2 pr-1 custom-scrollbar">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 shrink-0">
+                  Raças Cadastradas ({racas.length})
+                </h4>
+                {racas.map(raca => (
+                  <div 
+                    key={raca.id} 
+                    className="flex items-center justify-between p-3.5 bg-[#F8FAFC] border border-slate-100 rounded-2xl group hover:border-slate-200 transition-colors"
+                  >
+                    <span className="text-sm font-bold text-[#1F2937]">{raca.name}</span>
+                    <div className="flex gap-1">
+                      <button 
+                        type="button"
+                        onClick={() => setRacaToEdit(raca)} 
+                        className="p-1.5 hover:bg-[#EFF6FF] text-slate-400 hover:text-[#2563EB] rounded-lg transition-colors"
+                        title="Editar"
+                      >
+                        <Settings size={14} />
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={async () => {
+                          if (confirm(`Excluir a raça "${raca.name}"? Isso não alterará as aves que já possuem essa raça cadastrada.`)) {
+                            try {
+                              await dbService.deleteRaca(raca.id);
+                              await loadData();
+                              if (racaToEdit?.id === raca.id) setRacaToEdit(null);
+                            } catch (err: any) {
+                              alert('Erro ao excluir: ' + err.message);
+                            }
+                          }
+                        }} 
+                        className="p-1.5 hover:bg-[#FEF2F2] text-slate-400 hover:text-[#EF4444] rounded-lg transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {racas.length === 0 && (
+                  <div className="text-center py-8 text-slate-400 text-sm font-medium border border-dashed border-slate-200 rounded-2xl">
+                    Nenhuma raça cadastrada ainda.
+                  </div>
+                )}
+              </div>
             </motion.div>
           </div>
         )}

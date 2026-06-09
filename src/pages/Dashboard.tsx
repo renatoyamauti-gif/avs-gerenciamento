@@ -13,6 +13,8 @@ export default function Dashboard() {
   const [financeSummary, setFinanceSummary] = useState({ income: 0, expense: 0, balance: 0 });
   const [chartData, setChartData] = useState<any[]>([]);
   const [chickCount, setChickCount] = useState(0);
+  const [eggsByBaia, setEggsByBaia] = useState<{ name: string; count: number }[]>([]);
+  const [eggsByRaca, setEggsByRaca] = useState<{ name: string; count: number }[]>([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -30,6 +32,24 @@ export default function Dashboard() {
       const eggLogs = await dbService.getEggLogs();
       const totalEggs = (eggLogs || []).reduce((acc, curr) => acc + curr.count, 0);
       setEggCount(totalEggs);
+
+      // Process eggs by Baia and by Raça
+      const baiaMap: { [key: string]: number } = {};
+      const racaMap: { [key: string]: number } = {};
+      (eggLogs || []).forEach(log => {
+        if (log.baia) {
+          log.baia.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((name: string) => {
+            baiaMap[name] = (baiaMap[name] || 0) + log.count;
+          });
+        }
+        if (log.raca) {
+          log.raca.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((name: string) => {
+            racaMap[name] = (racaMap[name] || 0) + log.count;
+          });
+        }
+      });
+      setEggsByBaia(Object.entries(baiaMap).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count));
+      setEggsByRaca(Object.entries(racaMap).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count));
 
       // Load Chicks (Maternidade)
       const maternityRecords = await dbService.getMaternityRecords();
@@ -271,15 +291,78 @@ export default function Dashboard() {
                 </div>
              )}
 
-             <div className="space-y-4">
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                   <div className="h-2 w-2 rounded-full bg-[#16A34A]" />
-                   <div className="flex-1">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status Geral</p>
-                      <p className="text-sm font-bold text-[#1F2937]">Operacional: 100%</p>
-                   </div>
+              <div className="space-y-4">
+                 <div className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                    <div className="h-2 w-2 rounded-full bg-[#16A34A]" />
+                    <div className="flex-1">
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status Geral</p>
+                       <p className="text-sm font-bold text-[#1F2937]">Operacional: 100%</p>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
+      </div>
+
+      {/* Eggs by Baia and Raça Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Ovos por Baia */}
+        <div className="bg-white border border-slate-100 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] mb-6 flex items-center gap-3">
+            <div className="bg-[#EFF6FF] p-2 rounded-2xl">
+              <Egg size={24} className="text-[#2563EB]" />
+            </div>
+            Ovos por Baia
+          </h3>
+          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            {eggsByBaia.map((item, index) => (
+              <div key={item.name} className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] border border-slate-50">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#EFF6FF] text-[#2563EB] font-bold text-sm">
+                    {index + 1}
+                  </span>
+                  <span className="font-bold text-[#1F2937]">{item.name}</span>
                 </div>
-             </div>
+                <span className="bg-[#2563EB] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                  {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
+                </span>
+              </div>
+            ))}
+            {eggsByBaia.length === 0 && (
+              <div className="text-center py-10 opacity-50 text-slate-400 font-medium">
+                Nenhum registro de ovos por baia
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Ovos por Raça */}
+        <div className="bg-white border border-slate-100 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] mb-6 flex items-center gap-3">
+            <div className="bg-[#FAF5FF] p-2 rounded-2xl">
+              <Egg size={24} className="text-[#8B5CF6]" />
+            </div>
+            Ovos por Raça
+          </h3>
+          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            {eggsByRaca.map((item, index) => (
+              <div key={item.name} className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] border border-slate-50">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FAF5FF] text-[#8B5CF6] font-bold text-sm">
+                    {index + 1}
+                  </span>
+                  <span className="font-bold text-[#1F2937]">{item.name}</span>
+                </div>
+                <span className="bg-[#8B5CF6] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                  {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
+                </span>
+              </div>
+            ))}
+            {eggsByRaca.length === 0 && (
+              <div className="text-center py-10 opacity-50 text-slate-400 font-medium">
+                Nenhum registro de ovos por raça
+              </div>
+            )}
           </div>
         </div>
       </div>

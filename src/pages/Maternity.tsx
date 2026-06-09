@@ -6,7 +6,7 @@ import { dbService } from '../lib/dbService';
 interface MaternityRecord {
   id: string;
   identifier: string;
-  species: string;
+  raca: string;
   birth_date: string;
   status: string;
   notes?: string;
@@ -97,7 +97,7 @@ export default function Maternity() {
     const formData = new FormData(e.currentTarget);
     const recordData: any = {
       identifier: formData.get('identifier') as string,
-      species: formData.get('species') as string,
+      raca: formData.get('raca') as string,
       birth_date: formData.get('birth_date') as string,
       status: formData.get('status') as string,
       initial_weight: parseFloat(formData.get('initial_weight') as string) || null,
@@ -211,7 +211,7 @@ export default function Maternity() {
             <thead>
               <tr className="bg-[#F8FAFC] text-xs uppercase tracking-widest font-bold text-slate-400 border-b border-slate-100">
                 <th className="px-6 py-4">Identificação</th>
-                <th className="px-6 py-4">Espécie</th>
+                <th className="px-6 py-4">Raça</th>
                 <th className="px-6 py-4">Nascimento / Idade</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Ações</th>
@@ -237,7 +237,7 @@ export default function Maternity() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600 font-medium">
-                      {record.species}
+                      {record.raca}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
@@ -381,8 +381,8 @@ export default function Maternity() {
                       <input required name="identifier" defaultValue={editingRecord?.identifier} type="text" placeholder="Ex: Pintinho 01" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Espécie / Genética</label>
-                      <input required name="species" defaultValue={editingRecord?.species} type="text" placeholder="Ex: Arara Azul" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Raça / Genética</label>
+                      <input required name="raca" defaultValue={editingRecord?.raca} type="text" placeholder="Ex: Canário da Terra" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                     </div>
                   </div>
 

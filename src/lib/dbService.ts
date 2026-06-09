@@ -47,6 +47,14 @@ export const dbService = {
     if (error) handleSupabaseError(error, 'delete', 'birds');
   },
 
+  async updateBirdsBaia(birdIds: string[], baiaName: string | null) {
+    const { error } = await supabase
+      .from('birds')
+      .update({ baia: baiaName })
+      .in('id', birdIds);
+    if (error) handleSupabaseError(error, 'update', 'birds');
+  },
+
   async getBirdHistory(birdId: string) {
     const { data, error } = await supabase
       .from('bird_history')
@@ -194,6 +202,49 @@ export const dbService = {
       // Clear birds that were in this baia
       await supabase.from('birds').update({ baia: null }).eq('baia', name);
     }
+  },
+
+  // Racas
+  async getRacas() {
+    const { data, error } = await supabase
+      .from('racas')
+      .select('*')
+      .order('name');
+    if (error) handleSupabaseError(error, 'list', 'racas');
+    return data;
+  },
+
+  async saveRaca(raca: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    const racaData = { ...raca, user_id: user.id };
+
+    if (raca.id && raca.id.length > 15) {
+      const { data, error } = await supabase
+        .from('racas')
+        .update(racaData)
+        .eq('id', raca.id)
+        .select();
+      if (error) handleSupabaseError(error, 'update', 'racas');
+      return data[0];
+    } else {
+      delete racaData.id;
+      const { data, error } = await supabase
+        .from('racas')
+        .insert([racaData])
+        .select();
+      if (error) handleSupabaseError(error, 'create', 'racas');
+      return data[0];
+    }
+  },
+
+  async deleteRaca(id: string) {
+    const { error } = await supabase
+      .from('racas')
+      .delete()
+      .eq('id', id);
+    if (error) handleSupabaseError(error, 'delete', 'racas');
   },
 
   // Rations

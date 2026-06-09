@@ -11,6 +11,8 @@ interface CollectionEntry {
   count: number;
   pairs: string[];
   baia?: string;
+  raca?: string;
+  condition?: string;
 }
 
 export default function EggCollection() {
@@ -19,6 +21,8 @@ export default function EggCollection() {
   const [editingDay, setEditingDay] = useState<number | null>(null);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [uniqueBaias, setUniqueBaias] = useState<string[]>([]);
+  const [uniqueRacas, setUniqueRacas] = useState<string[]>([]);
+  const [originType, setOriginType] = useState<'baia' | 'raca'>('baia');
   
   const currentDate = new Date();
   const [viewDate, setViewDate] = useState(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
@@ -26,6 +30,7 @@ export default function EggCollection() {
   useEffect(() => {
     loadLogs();
     loadBaias();
+    loadRacas();
   }, []);
 
   async function loadBaias() {
@@ -35,6 +40,16 @@ export default function EggCollection() {
       setUniqueBaias(baias);
     } catch (error) {
       console.error('Erro ao carregar baias:', error);
+    }
+  }
+
+  async function loadRacas() {
+    try {
+      const racasData = await dbService.getRacas();
+      const racasNames = (racasData || []).map((r: any) => r.name).filter(Boolean);
+      setUniqueRacas(racasNames);
+    } catch (error) {
+      console.error('Erro ao carregar raças:', error);
     }
   }
 
@@ -72,6 +87,8 @@ export default function EggCollection() {
     const pairsString = formData.get('pairs') as string;
     const pairs = pairsString ? pairsString.split(',').map(p => p.trim()).filter(p => p !== '') : [];
     const baia = formData.get('baia') as string;
+    const raca = formData.get('raca') as string;
+    const condition = formData.get('condition') as string || 'Normal';
 
     const logData: any = {
       day: editingDay,
@@ -79,7 +96,9 @@ export default function EggCollection() {
       year: viewDate.getFullYear(),
       count,
       pairs,
-      baia
+      baia: originType === 'baia' ? baia : null,
+      raca: originType === 'raca' ? raca : null,
+      condition
     };
     
     if (editingLogId) {
@@ -100,10 +119,27 @@ export default function EggCollection() {
           logData.pairs = Array.from(new Set([...existing.pairs, ...pairs]));
         }
         
-        if (existing.baia && baia && !existing.baia.includes(baia)) {
-           logData.baia = `${existing.baia}, ${baia}`;
-        } else if (existing.baia && !baia) {
-           logData.baia = existing.baia;
+        if (originType === 'baia') {
+          if (existing.baia && baia && !existing.baia.includes(baia)) {
+             logData.baia = `${existing.baia}, ${baia}`;
+          } else {
+             logData.baia = baia || existing.baia;
+          }
+          logData.raca = existing.raca;
+        } else {
+          if (existing.raca && raca && !existing.raca.includes(raca)) {
+             logData.raca = `${existing.raca}, ${raca}`;
+          } else {
+             logData.raca = raca || existing.raca;
+          }
+          logData.baia = existing.baia;
+        }
+
+        // Aggregate condition
+        if (existing.condition && condition && !existing.condition.includes(condition)) {
+           logData.condition = `${existing.condition}, ${condition}`;
+        } else {
+           logData.condition = condition || existing.condition;
         }
       }
     }
@@ -139,6 +175,18 @@ export default function EggCollection() {
   );
 
   const logToEdit = logs.find(l => l.id === editingLogId);
+
+  useEffect(() => {
+    if (logToEdit) {
+      if (logToEdit.raca) {
+        setOriginType('raca');
+      } else {
+        setOriginType('baia');
+      }
+    } else {
+      setOriginType('baia');
+    }
+  }, [editingLogId, logToEdit]);
 
   if (loading) {
     return (
@@ -265,7 +313,17 @@ export default function EggCollection() {
                   <div className="flex items-center gap-2">
                     {log.baia && (
                       <div className="bg-[#F3F4F6] text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border border-slate-200">
-                        {log.baia}
+                        Baia: {log.baia}
+                      </div>
+                    )}
+                    {log.raca && (
+                      <div className="bg-[#FAF5FF] text-purple-600 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border border-purple-200">
+                        Raça: {log.raca}
+                      </div>
+                    )}
+                    {log.condition && log.condition !== 'Normal' && (
+                      <div className="bg-[#FEF2F2] text-[#EF4444] text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border border-[#FECACA]">
+                        {log.condition}
                       </div>
                     )}
                     <div className="bg-[#DBEAFE] text-[#2563EB] text-xs font-bold px-2 py-0.5 rounded-full uppercase whitespace-nowrap">{log.count} Ovos</div>
@@ -329,9 +387,15 @@ export default function EggCollection() {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           {log.baia && (
-                            <span className="text-[10px] font-bold bg-[#E0E7FF] text-[#2563EB] px-2 py-0.5 rounded-md uppercase border border-[#DBEAFE]">{log.baia}</span>
+                            <span className="text-[10px] font-bold bg-[#E0E7FF] text-[#2563EB] px-2 py-0.5 rounded-md uppercase border border-[#DBEAFE]">Baia: {log.baia}</span>
+                          )}
+                          {log.raca && (
+                            <span className="text-[10px] font-bold bg-[#F3E8FF] text-[#8B5CF6] px-2 py-0.5 rounded-md uppercase border border-[#E9D5FF]">Raça: {log.raca}</span>
                           )}
                           <span className="text-sm font-black text-[#1F2937]">{log.count} Ovos</span>
+                          {log.condition && log.condition !== 'Normal' && (
+                            <span className="text-[10px] font-bold bg-[#FEF2F2] text-[#EF4444] px-2 py-0.5 rounded-md border border-[#FECACA] uppercase">{log.condition}</span>
+                          )}
                         </div>
                         {log.pairs && log.pairs.length > 0 && (
                           <div className="text-[10px] font-bold text-slate-500 uppercase">Casais: {log.pairs.join(', ')}</div>
@@ -381,21 +445,76 @@ export default function EggCollection() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Baia / Grupo de Origem</label>
-                  <input 
-                    name="baia" 
-                    list="egg-baias-list"
-                    defaultValue={logToEdit?.baia || ""} 
-                    type="text" 
-                    placeholder="Ex: Baia 01" 
-                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
-                  />
-                  <datalist id="egg-baias-list">
-                    {uniqueBaias.map(baia => (
-                      <option key={baia} value={baia} />
-                    ))}
-                  </datalist>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Condição dos Ovos</label>
+                  <select 
+                    name="condition" 
+                    defaultValue={logToEdit?.condition || "Normal"} 
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none"
+                  >
+                    <option value="Normal">Normal</option>
+                    <option value="Sujo">Sujo</option>
+                    <option value="Quebrado">Quebrado</option>
+                    <option value="Casca Mole">Casca Mole</option>
+                    <option value="Pequeno">Pequeno</option>
+                  </select>
                 </div>
+
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Origem da Coleta</label>
+                  <div className="flex gap-4">
+                    {['baia', 'raca'].map(option => (
+                      <label key={option} className="flex-1 flex items-center justify-center gap-2 bg-[#F8FAFC] border border-slate-200 rounded-2xl py-3 cursor-pointer transition-all hover:border-[#2563EB] has-[:checked]:bg-[#EFF6FF] has-[:checked]:border-[#2563EB] has-[:checked]:text-[#2563EB] text-slate-500">
+                        <input 
+                          type="radio" 
+                          name="origin_type" 
+                          value={option} 
+                          checked={originType === option}
+                          onChange={() => setOriginType(option as 'baia' | 'raca')}
+                          className="hidden" 
+                        />
+                        <span className="text-xs font-bold uppercase tracking-widest">
+                          {option === 'baia' ? 'Por Baia' : 'Por Raça'}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {originType === 'baia' ? (
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Baia / Grupo de Origem</label>
+                    <input 
+                      name="baia" 
+                      list="egg-baias-list"
+                      defaultValue={logToEdit?.baia || ""} 
+                      type="text" 
+                      placeholder="Ex: Baia 01" 
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                    />
+                    <datalist id="egg-baias-list">
+                      {uniqueBaias.map(baia => (
+                        <option key={baia} value={baia} />
+                      ))}
+                    </datalist>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Raça de Origem</label>
+                    <input 
+                      name="raca" 
+                      list="egg-racas-list"
+                      defaultValue={logToEdit?.raca || ""} 
+                      type="text" 
+                      placeholder="Ex: Canário da Terra" 
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                    />
+                    <datalist id="egg-racas-list">
+                      {uniqueRacas.map(raca => (
+                        <option key={raca} value={raca} />
+                      ))}
+                    </datalist>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Casais (Separe por vírgula)</label>
