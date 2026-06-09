@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Wallet, TrendingUp, TrendingDown, DollarSign, Download, Filter, Plus, X, Trash2, ArrowUpCircle, ArrowDownCircle, BarChart3, Calendar, Loader2, Lock, Star } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, DollarSign, Download, Filter, Plus, X, Trash2, Edit3, ArrowUpCircle, ArrowDownCircle, BarChart3, Calendar, Loader2, Lock, Star } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell } from 'recharts';
 import { dbService } from '../lib/dbService';
 import { useSubscription } from '../hooks/useSubscription';
@@ -21,6 +21,9 @@ export default function Finance() {
   const [filterType, setFilterType] = useState<'All' | 'Entrada' | 'Saída'>('All');
   const { isFreePlan } = useSubscription();
   const [transactionType, setTransactionType] = useState<'Entrada' | 'Saída'>('Entrada');
+  const [categories, setCategories] = useState<any[]>([]);
+  const [isEditingCategories, setIsEditingCategories] = useState(false);
+  const [categoryToEdit, setCategoryToEdit] = useState<any>(null);
 
   useEffect(() => {
     if (isAdding) {
@@ -34,10 +37,50 @@ export default function Finance() {
 
   async function loadTransactions() {
     try {
-      const data = await dbService.getTransactions();
-      setTransactions(data || []);
+      setLoading(true);
+      const [transData, catData] = await Promise.all([
+        dbService.getTransactions(),
+        dbService.getTransactionCategories().catch(err => {
+          console.warn('transaction_categories table might not exist yet');
+          return null;
+        })
+      ]);
+      setTransactions(transData || []);
+
+      let finalCats = catData || [];
+      if (finalCats.length === 0) {
+        const defaults = [
+          { name: 'Venda de Ovos', type: 'Entrada' },
+          { name: 'Venda de Aves', type: 'Entrada' },
+          { name: 'Outros', type: 'Entrada' },
+          { name: 'Aquisição de Aves', type: 'Saída' },
+          { name: 'Ração/Alimentação', type: 'Saída' },
+          { name: 'Medicamentos', type: 'Saída' },
+          { name: 'Infraestrutura', type: 'Saída' },
+          { name: 'Outros', type: 'Saída' }
+        ];
+
+        if (catData !== null) {
+          try {
+            const savedCats = [];
+            for (const item of defaults) {
+              const saved = await dbService.saveTransactionCategory(item);
+              if (saved) savedCats.push(saved);
+            }
+            if (savedCats.length > 0) {
+              finalCats = savedCats;
+            }
+          } catch (e) {
+            console.error('Erro ao seedar categorias padrão:', e);
+            finalCats = defaults.map((d, i) => ({ id: `default-${i}`, ...d }));
+          }
+        } else {
+          finalCats = defaults.map((d, i) => ({ id: `default-${i}`, ...d }));
+        }
+      }
+      setCategories(finalCats);
     } catch (error) {
-      console.error('Erro ao carregar transações:', error);
+      console.error('Erro ao carregar transações/categorias:', error);
     } finally {
       setLoading(false);
     }
@@ -148,6 +191,12 @@ export default function Finance() {
                 className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-full text-[#6B7280] text-sm font-semibold hover:border-[#2563EB] hover:text-[#2563EB] transition-colors shadow-sm"
               >
                 <Download size={16} /> Exportar CSV
+              </button>
+              <button 
+                onClick={() => setIsEditingCategories(true)}
+                className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-full text-[#6B7280] text-sm font-semibold hover:border-[#2563EB] hover:text-[#2563EB] transition-colors shadow-sm"
+              >
+                <Plus size={16} className="text-[#8B5CF6]" /> Categorias
               </button>
               <button 
                 onClick={() => setIsAdding(true)}
@@ -387,6 +436,165 @@ export default function Finance() {
       </div>
 
       <AnimatePresence>
+        {isEditingCategories && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 sm:p-0">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => { setIsEditingCategories(false); setCategoryToEdit(null); }} 
+              className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl flex flex-col max-h-[85vh] z-10"
+            >
+              <div className="flex justify-between items-center mb-6 shrink-0">
+                <h3 className="text-xl font-bold text-[#1F2937]">Gerenciar Categorias</h3>
+                <button 
+                  onClick={() => { setIsEditingCategories(false); setCategoryToEdit(null); }} 
+                  className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Add/Edit Form */}
+              <form 
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const form = e.currentTarget;
+                  const formData = new FormData(form);
+                  const name = formData.get('cat_name') as string;
+                  const type = formData.get('cat_type') as 'Entrada' | 'Saída';
+                  if (!name) return;
+
+                  try {
+                    const catData: any = { name, type };
+                    if (categoryToEdit?.id && !categoryToEdit.id.startsWith('default-')) {
+                      catData.id = categoryToEdit.id;
+                    }
+                    await dbService.saveTransactionCategory(catData);
+                    await loadTransactions();
+                    setCategoryToEdit(null);
+                    form.reset();
+                  } catch (err: any) {
+                    alert('Erro ao salvar categoria: ' + err.message);
+                  }
+                }}
+                className="space-y-4 mb-6 shrink-0"
+              >
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                    {categoryToEdit ? 'Editar Categoria' : 'Nova Categoria'}
+                  </label>
+                  <input 
+                    key={categoryToEdit?.id || 'new'}
+                    required 
+                    name="cat_name" 
+                    defaultValue={categoryToEdit?.name || ''} 
+                    placeholder="Ex: Venda de Ovos" 
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tipo de Categoria</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {['Entrada', 'Saída'].map(t => (
+                      <label key={t} className="flex items-center justify-center gap-2 bg-[#F8FAFC] border border-slate-200 rounded-2xl py-3.5 cursor-pointer transition-all hover:border-[#2563EB] has-[:checked]:bg-[#EFF6FF] has-[:checked]:border-[#2563EB] has-[:checked]:text-[#2563EB] text-slate-500">
+                        <input 
+                          type="radio" 
+                          name="cat_type" 
+                          value={t} 
+                          defaultChecked={categoryToEdit ? categoryToEdit.type === t : t === 'Entrada'}
+                          className="hidden"
+                        />
+                        <span className="text-xs font-bold uppercase tracking-widest">{t}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button 
+                    type="submit" 
+                    className="flex-1 py-3.5 bg-[#2563EB] text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-[#1D4ED8] transition-colors shadow-sm shrink-0"
+                  >
+                    {categoryToEdit ? 'Salvar Categoria' : 'Adicionar Categoria'}
+                  </button>
+                  {categoryToEdit && (
+                    <button 
+                      type="button" 
+                      onClick={() => setCategoryToEdit(null)} 
+                      className="px-4 py-3.5 bg-slate-100 text-slate-500 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                </div>
+              </form>
+
+              {/* Scrollable Categories List */}
+              <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                  Categorias Cadastradas ({categories.length})
+                </h4>
+                <div className="space-y-2">
+                  {categories.map(cat => (
+                    <div 
+                      key={cat.id} 
+                      className="flex items-center justify-between p-3.5 bg-[#F8FAFC] border border-slate-100 rounded-2xl"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-md ${cat.type === 'Entrada' ? 'bg-[#DCFCE7] text-[#16A34A]' : 'bg-[#FEE2E2] text-[#EF4444]'}`}>
+                          {cat.type}
+                        </span>
+                        <span className="text-sm font-bold text-[#1F2937]">{cat.name}</span>
+                      </div>
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={() => setCategoryToEdit(cat)} 
+                          className="p-2 text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] rounded-lg transition-colors"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button 
+                          onClick={async () => {
+                            if (confirm(`Excluir a categoria "${cat.name}"? Isso não alterará as transações já registradas.`)) {
+                              try {
+                                if (cat.id.startsWith('default-')) {
+                                  setCategories(prev => prev.filter(c => c.id !== cat.id));
+                                } else {
+                                  await dbService.deleteTransactionCategory(cat.id);
+                                  await loadTransactions();
+                                }
+                                if (categoryToEdit?.id === cat.id) setCategoryToEdit(null);
+                              } catch (err: any) {
+                                alert('Erro ao excluir: ' + err.message);
+                              }
+                            }
+                          }}
+                          className="p-2 text-slate-400 hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded-lg transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {categories.length === 0 && (
+                    <div className="text-center py-10 opacity-50 text-slate-400 font-medium">
+                      Nenhuma categoria registrada.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {isAdding && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAdding(false)} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
@@ -455,23 +663,23 @@ export default function Finance() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Categoria</label>
+                  <div className="flex justify-between items-center px-1">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Categoria</label>
+                    <button 
+                      type="button" 
+                      onClick={() => setIsEditingCategories(true)} 
+                      className="text-xs text-[#2563EB] hover:underline font-bold"
+                    >
+                      + Gerenciar
+                    </button>
+                  </div>
                   <select name="category" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none">
-                    {transactionType === 'Entrada' ? (
-                      <>
-                        <option value="Venda de Ovos">Venda de Ovos</option>
-                        <option value="Venda de Aves">Venda de Aves</option>
-                        <option value="Outros">Outros</option>
-                      </>
-                    ) : (
-                      <>
-                        <option value="Aquisição de Aves">Aquisição de Aves</option>
-                        <option value="Ração/Alimentação">Ração/Alimentação</option>
-                        <option value="Medicamentos">Medicamentos</option>
-                        <option value="Infraestrutura">Infraestrutura</option>
-                        <option value="Outros">Outros</option>
-                      </>
-                    )}
+                    {categories
+                      .filter(c => c.type === transactionType)
+                      .map(c => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))
+                    }
                   </select>
                 </div>
 

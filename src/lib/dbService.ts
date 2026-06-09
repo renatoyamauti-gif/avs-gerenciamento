@@ -247,6 +247,49 @@ export const dbService = {
     if (error) handleSupabaseError(error, 'delete', 'racas');
   },
 
+  // Transaction Categories
+  async getTransactionCategories() {
+    const { data, error } = await supabase
+      .from('transaction_categories')
+      .select('*')
+      .order('name');
+    if (error) handleSupabaseError(error, 'list', 'transaction_categories');
+    return data;
+  },
+
+  async saveTransactionCategory(category: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    const catData = { ...category, user_id: user.id };
+
+    if (category.id && category.id.length > 15) {
+      const { data, error } = await supabase
+        .from('transaction_categories')
+        .update(catData)
+        .eq('id', category.id)
+        .select();
+      if (error) handleSupabaseError(error, 'update', 'transaction_categories');
+      return data[0];
+    } else {
+      delete catData.id;
+      const { data, error } = await supabase
+        .from('transaction_categories')
+        .insert([catData])
+        .select();
+      if (error) handleSupabaseError(error, 'create', 'transaction_categories');
+      return data[0];
+    }
+  },
+
+  async deleteTransactionCategory(id: string) {
+    const { error } = await supabase
+      .from('transaction_categories')
+      .delete()
+      .eq('id', id);
+    if (error) handleSupabaseError(error, 'delete', 'transaction_categories');
+  },
+
   // Rations
   async getRations() {
     const { data, error } = await supabase
