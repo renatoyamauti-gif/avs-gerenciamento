@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Bird, Egg, Wallet, Hash, Thermometer, TrendingUp, TrendingDown, Activity, Loader2, CheckCircle2, Baby } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, LabelList } from 'recharts';
 import { dbService } from '../lib/dbService';
 
 export default function Dashboard() {
@@ -347,78 +347,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Estimativa Mensal de Ovos Section */}
-      <div className="bg-white border border-slate-100 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div>
-            <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937]">Estimativa Mensal de Produção</h3>
-            <p className="text-xs text-slate-500 mt-1 font-medium">
-              Projeção de produção de ovos para os próximos 30 dias com base na média das coletas diárias registradas.
-            </p>
-          </div>
-          <div className="bg-[#EFF6FF] text-[#2563EB] text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
-            Estimativa: Média Diária × 30 dias
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Gráfico Baias */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Projeção por Baia (Ovos / Mês)</h4>
-            <div className="h-[250px] w-full">
-              {baiaEstimates.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={baiaEstimates} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
-                    <Tooltip 
-                      cursor={{ fill: '#F8FAFC' }}
-                      contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
-                      formatter={(value: any) => [`${value} Ovos / Mês`, 'Estimativa']}
-                    />
-                    <Bar dataKey="estimativa" fill="#2563EB" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">Nenhuma projeção por baia disponível</div>
-              )}
-            </div>
-          </div>
-
-          {/* Gráfico Raças */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Projeção por Raça (Ovos / Mês)</h4>
-            <div className="h-[250px] w-full">
-              {racaEstimates.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={racaEstimates} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
-                    <Tooltip 
-                      cursor={{ fill: '#F8FAFC' }}
-                      contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
-                      formatter={(value: any) => [`${value} Ovos / Mês`, 'Estimativa']}
-                    />
-                    <Bar dataKey="estimativa" fill="#8B5CF6" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">Nenhuma projeção por raça disponível</div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-8 pt-6 border-t border-slate-100 flex items-start gap-2.5 text-slate-400 text-xs font-medium leading-relaxed">
-          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 font-bold shrink-0">!</span>
-          <p>
-            <strong>Observação Importante:</strong> Este gráfico apresenta uma estimativa projetada para 30 dias com base no histórico das coletas diárias inseridas no sistema. Os valores reais podem variar de acordo com fatores climáticos, alimentação, ciclo reprodutivo e manejo das aves.
-          </p>
-        </div>
-      </div>
-
       {/* Eggs by Baia and Raça Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Ovos por Baia */}
@@ -479,6 +407,82 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Estimativa Mensal de Ovos Section */}
+      <div className="bg-white border border-slate-100 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937]">Estimativa Mensal de Produção</h3>
+            <p className="text-xs text-slate-500 mt-1 font-medium">
+              Projeção de produção de ovos para os próximos 30 dias com base na média das coletas diárias registradas.
+            </p>
+          </div>
+          <div className="bg-[#EFF6FF] text-[#2563EB] text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
+            Estimativa: Média Diária × 30 dias
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Gráfico Baias */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Projeção por Baia (Ovos / Mês)</h4>
+            <div className="h-[250px] w-full">
+              {baiaEstimates.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={baiaEstimates} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
+                    <Tooltip 
+                      cursor={{ fill: '#F8FAFC' }}
+                      contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                      formatter={(value: any) => [`${value} Ovos / Mês`, 'Estimativa']}
+                    />
+                    <Bar dataKey="estimativa" fill="#2563EB" radius={[6, 6, 0, 0]}>
+                      <LabelList dataKey="estimativa" position="top" fill="#64748B" fontSize={11} fontWeight="bold" />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">Nenhuma projeção por baia disponível</div>
+              )}
+            </div>
+          </div>
+
+          {/* Gráfico Raças */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Projeção por Raça (Ovos / Mês)</h4>
+            <div className="h-[250px] w-full">
+              {racaEstimates.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={racaEstimates} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
+                    <Tooltip 
+                      cursor={{ fill: '#F8FAFC' }}
+                      contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                      formatter={(value: any) => [`${value} Ovos / Mês`, 'Estimativa']}
+                    />
+                    <Bar dataKey="estimativa" fill="#8B5CF6" radius={[6, 6, 0, 0]}>
+                      <LabelList dataKey="estimativa" position="top" fill="#64748B" fontSize={11} fontWeight="bold" />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">Nenhuma projeção por raça disponível</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-slate-100 flex items-start gap-2.5 text-slate-400 text-xs font-medium leading-relaxed">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 font-bold shrink-0">!</span>
+          <p>
+            <strong>Observação Importante:</strong> Este gráfico apresenta uma estimativa projetada para 30 dias com base no histórico das coletas diárias inseridas no sistema. Os valores reais podem variar de acordo com fatores climáticos, alimentação, ciclo reprodutivo e manejo das aves.
+          </p>
         </div>
       </div>
     </motion.div>
