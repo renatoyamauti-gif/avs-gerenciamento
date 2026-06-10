@@ -1143,43 +1143,56 @@ export default function Remessas() {
             <p className="font-medium text-sm">Nenhum cliente cadastrado ou encontrado.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredClients.map((client) => (
-              <div key={client.id} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.01)] flex flex-col justify-between gap-4">
-                <div className="space-y-3">
-                  <h4 className="font-bold text-[#1F2937] text-base leading-tight">{client.name}</h4>
-                  
-                  <div className="space-y-2 text-xs text-slate-500">
-                    {client.cpf_cnpj && <p><strong>CPF/CNPJ:</strong> {client.cpf_cnpj}</p>}
-                    <p><strong>Telefone:</strong> {client.phone}</p>
-                    <p><strong>E-mail:</strong> {client.email}</p>
-                    <div className="border-t border-slate-100 pt-2 mt-2 leading-relaxed text-slate-650">
-                      <strong>Endereço de Entrega:</strong> <br />
-                      {client.address}, {client.number} <br />
-                      {client.district} - {client.city}/{client.state} <br />
-                      CEP: {client.postal_code}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 border-t border-slate-50 pt-4 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => handleStartEditClient(client)}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-slate-205 hover:bg-slate-50 text-slate-600 py-2.5 px-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
-                  >
-                    <Edit2 size={12} /> Editar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteClient(client.id)}
-                    className="flex-1 flex items-center justify-center gap-1.5 border border-red-100 hover:bg-red-50 text-red-600 py-2.5 px-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
-                  >
-                    <Trash2 size={12} /> Excluir
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="bg-white border border-slate-100 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left text-sm text-slate-500">
+                <thead className="bg-[#F8FAFC] text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                  <tr>
+                    <th scope="col" className="px-6 py-4">Nome</th>
+                    <th scope="col" className="px-6 py-4">Contato</th>
+                    <th scope="col" className="px-6 py-4">CPF / CNPJ</th>
+                    <th scope="col" className="px-6 py-4">Endereço de Entrega</th>
+                    <th scope="col" className="px-6 py-4 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredClients.map((client) => (
+                    <tr key={client.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-[#1F2937]">{client.name}</td>
+                      <td className="px-6 py-4 text-xs">
+                        <div className="font-semibold text-slate-700">{client.phone}</div>
+                        <div className="text-slate-450">{client.email}</div>
+                      </td>
+                      <td className="px-6 py-4 text-xs font-semibold text-slate-650">{client.cpf_cnpj || '-'}</td>
+                      <td className="px-6 py-4 text-xs text-slate-600 leading-normal">
+                        <div>{client.address}, {client.number}</div>
+                        <div className="text-[10px] text-slate-400">{client.district} - {client.city}/{client.state} - CEP: {client.postal_code}</div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditClient(client)}
+                            className="text-slate-400 hover:text-[#2563EB] p-2 hover:bg-slate-100 rounded-xl transition-all"
+                            title="Editar cliente"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteClient(client.id)}
+                            className="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-xl transition-all"
+                            title="Excluir cliente"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
