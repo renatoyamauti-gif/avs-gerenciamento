@@ -18,8 +18,7 @@ const plans = [
       'Alertas de eclosão via e-mail',
       'Custos de alimentação',
       'Exportação de relatórios',
-      'Módulo de Remessas (Melhor Envio)',
-      'Chat Exclusivo'
+      'Módulo de Remessas (Melhor Envio)'
     ],
     buttonText: 'Plano Atual',
     isPopular: false,

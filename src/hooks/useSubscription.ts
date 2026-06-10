@@ -32,10 +32,10 @@ export function useSubscription() {
           const diffTime = now.getTime() - createdDate.getTime();
           const diffDays = Math.floor(diffTime / (1000 * 3600 * 24));
           
-          if (diffDays > 7) {
+          if (diffDays > 30) {
             expired = true;
           } else {
-            daysLeft = 7 - diffDays;
+            daysLeft = 30 - diffDays;
           }
         }
 
