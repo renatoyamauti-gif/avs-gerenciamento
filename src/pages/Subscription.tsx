@@ -7,15 +7,18 @@ import { useSubscription } from '../hooks/useSubscription';
 const plans = [
   {
     id: 'free',
-    name: 'Iniciante',
-    description: 'Para pequenos criadores começando no gerenciamento.',
+    name: 'Teste Grátis',
+    description: '30 dias de teste grátis com acesso total a todas as ferramentas.',
     price: 'Grátis',
-    period: '/para sempre',
+    period: '/30 dias',
     features: [
-      'Gestão de até 5 aves',
-      'Controle básico de chocadeiras',
-      'Registro simples de finanças',
-      'Suporte comunitário'
+      'Aves ilimitadas',
+      'Múltiplas chocadeiras e lotes',
+      'Análises financeiras avançadas',
+      'Alertas de eclosão via e-mail',
+      'Custos de alimentação',
+      'Exportação de relatórios',
+      'Módulo de Remessas (Melhor Envio)'
     ],
     buttonText: 'Plano Atual',
     isPopular: false,
@@ -35,7 +38,8 @@ const plans = [
       'Análises financeiras avançadas',
       'Alertas de eclosão via e-mail',
       'Custos de alimentação',
-      'Exportação de relatórios'
+      'Exportação de relatórios',
+      'Módulo de Remessas (Melhor Envio)'
     ],
     buttonText: 'Assine Mensal',
     isPopular: true,
@@ -57,7 +61,8 @@ const plans = [
       'Análises financeiras avançadas',
       'Alertas de eclosão via e-mail',
       'Custos de alimentação',
-      'Exportação de relatórios'
+      'Exportação de relatórios',
+      'Módulo de Remessas (Melhor Envio)'
     ],
     buttonText: 'Assine Anual',
     isPopular: false,
