@@ -110,6 +110,7 @@ export default function Remessas() {
   const [racas, setRacas] = useState<any[]>([]);
   const [eggLogs, setEggLogs] = useState<any[]>([]);
   const [incubators, setIncubators] = useState<any[]>([]);
+  const [baias, setBaias] = useState<any[]>([]);
   const [loadingOrdersClients, setLoadingOrdersClients] = useState(false);
 
   // Client Form State
@@ -131,7 +132,9 @@ export default function Remessas() {
   const [isAddingOrder, setIsAddingOrder] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any | null>(null);
   const [orderClientId, setOrderClientId] = useState('');
+  const [orderOrigemType, setOrderOrigemType] = useState<'raca' | 'baia'>('raca');
   const [orderRaca, setOrderRaca] = useState('');
+  const [orderBaia, setOrderBaia] = useState('');
   const [orderQuantity, setOrderQuantity] = useState('');
   const [orderStatus, setOrderStatus] = useState('Pendente');
   const [savingOrder, setSavingOrder] = useState(false);
@@ -148,18 +151,20 @@ export default function Remessas() {
   async function loadOrdersClientsData() {
     try {
       setLoadingOrdersClients(true);
-      const [clientsData, ordersData, racasData, eggLogsData, incubatorsData] = await Promise.all([
+      const [clientsData, ordersData, racasData, eggLogsData, incubatorsData, baiasData] = await Promise.all([
         dbService.getClients(),
         dbService.getOrders(),
         dbService.getRacas(),
         dbService.getEggLogs(),
-        dbService.getIncubators()
+        dbService.getIncubators(),
+        dbService.getBaias()
       ]);
       setClients(clientsData || []);
       setOrders(ordersData || []);
       setRacas(racasData || []);
       setEggLogs(eggLogsData || []);
       setIncubators(incubatorsData || []);
+      setBaias(baiasData || []);
     } catch (err) {
       console.error('Erro ao carregar dados de pedidos/clientes/estoque:', err);
     } finally {
@@ -203,34 +208,61 @@ export default function Remessas() {
     }
   }
 
-  // Egg Stock and Daily Collection Averages Calculation
+  // Egg Stock and Daily Collection Averages Calculation (both Breed and Baia)
   const eggStock = useMemo(() => {
-    const stockMap: Record<string, { collected: number; incubated: number; sold: number; available: number; dailyAvg: number; daysCollected: number }> = {};
+    const racaMap: Record<string, { collected: number; incubated: number; sold: number; available: number; dailyAvg: number; daysCollected: number }> = {};
+    const baiaMap: Record<string, { collected: number; incubated: number; sold: number; available: number; dailyAvg: number; daysCollected: number }> = {};
 
     // Initialize all breeds from racas table
     (racas || []).forEach(r => {
-      const breedName = typeof r === 'string' ? r : r.name;
-      if (breedName) {
-        stockMap[breedName] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+      const name = typeof r === 'string' ? r : r.name;
+      if (name) {
+        racaMap[name] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
       }
     });
 
-    const breedDays: Record<string, Set<string>> = {};
+    // Initialize all baias from baias table
+    (baias || []).forEach(b => {
+      const name = typeof b === 'string' ? b : b.name;
+      if (name) {
+        baiaMap[name] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+      }
+    });
+
+    const racaDays: Record<string, Set<string>> = {};
+    const baiaDays: Record<string, Set<string>> = {};
 
     // 1. Process Egg Logs (Collected)
     (eggLogs || []).forEach(log => {
+      const dateKey = `${log.year}-${log.month}-${log.day}`;
+      
+      // If collection is by breed (raca)
       if (log.raca && log.count) {
-        const dateKey = `${log.year}-${log.month}-${log.day}`;
         log.raca.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((breed: string) => {
-          if (!stockMap[breed]) {
-            stockMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+          if (!racaMap[breed]) {
+            racaMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
           }
-          stockMap[breed].collected += log.count;
+          racaMap[breed].collected += log.count;
 
-          if (!breedDays[breed]) {
-            breedDays[breed] = new Set();
+          if (!racaDays[breed]) {
+            racaDays[breed] = new Set();
           }
-          breedDays[breed].add(dateKey);
+          racaDays[breed].add(dateKey);
+        });
+      }
+
+      // If collection is by baia
+      if (log.baia && log.count) {
+        log.baia.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((bName: string) => {
+          if (!baiaMap[bName]) {
+            baiaMap[bName] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+          }
+          baiaMap[bName].collected += log.count;
+
+          if (!baiaDays[bName]) {
+            baiaDays[bName] = new Set();
+          }
+          baiaDays[bName].add(dateKey);
         });
       }
     });
@@ -238,13 +270,25 @@ export default function Remessas() {
     // 2. Process Incubator Batches (Incubated)
     (incubators || []).forEach(inc => {
       (inc.incubator_batches || []).forEach((batch: any) => {
+        // Breed details
         if (batch.raca_details) {
           Object.entries(batch.raca_details).forEach(([breed, qty]) => {
             const quantity = Number(qty) || 0;
-            if (!stockMap[breed]) {
-              stockMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+            if (!racaMap[breed]) {
+              racaMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
             }
-            stockMap[breed].incubated += quantity;
+            racaMap[breed].incubated += quantity;
+          });
+        }
+
+        // Baia details
+        if (batch.baia_details) {
+          Object.entries(batch.baia_details).forEach(([bName, qty]) => {
+            const quantity = Number(qty) || 0;
+            if (!baiaMap[bName]) {
+              baiaMap[bName] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+            }
+            baiaMap[bName].incubated += quantity;
           });
         }
       });
@@ -252,27 +296,44 @@ export default function Remessas() {
 
     // 3. Process Orders (Sold/Reserved)
     (orders || []).forEach(ord => {
-      if (ord.raca && ord.quantity && ord.status !== 'Cancelado') {
-        const breed = ord.raca;
-        if (!stockMap[breed]) {
-          stockMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+      if (ord.quantity && ord.status !== 'Cancelado') {
+        const isRaca = (ord.origem_type || 'raca') === 'raca';
+        if (isRaca && ord.raca) {
+          const breed = ord.raca;
+          if (!racaMap[breed]) {
+            racaMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+          }
+          racaMap[breed].sold += ord.quantity;
+        } else if (!isRaca && ord.baia) {
+          const bName = ord.baia;
+          if (!baiaMap[bName]) {
+            baiaMap[bName] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+          }
+          baiaMap[bName].sold += ord.quantity;
         }
-        stockMap[breed].sold += ord.quantity;
       }
     });
 
-    // 4. Calculate Available Stock and Daily Collection Average
-    Object.keys(stockMap).forEach(breed => {
-      const item = stockMap[breed];
+    // 4. Calculate Available Stock and Daily Collection Average for Breeds
+    Object.keys(racaMap).forEach(breed => {
+      const item = racaMap[breed];
       item.available = item.collected - item.incubated - item.sold;
-      
-      const days = breedDays[breed]?.size || 1;
+      const days = racaDays[breed]?.size || 1;
       item.daysCollected = days;
       item.dailyAvg = item.collected / days;
     });
 
-    return stockMap;
-  }, [eggLogs, incubators, orders, racas]);
+    // 5. Calculate Available Stock and Daily Collection Average for Baias
+    Object.keys(baiaMap).forEach(bName => {
+      const item = baiaMap[bName];
+      item.available = item.collected - item.incubated - item.sold;
+      const days = baiaDays[bName]?.size || 1;
+      item.daysCollected = days;
+      item.dailyAvg = item.collected / days;
+    });
+
+    return { racas: racaMap, baias: baiaMap };
+  }, [eggLogs, incubators, orders, racas, baias]);
 
   // CEP Lookup for Client form
   const handleCepLookup = async (cep: string) => {
@@ -378,8 +439,12 @@ export default function Remessas() {
       alert('Por favor, selecione um cliente.');
       return;
     }
-    if (!orderRaca) {
+    if (orderOrigemType === 'raca' && !orderRaca) {
       alert('Por favor, selecione a raça.');
+      return;
+    }
+    if (orderOrigemType === 'baia' && !orderBaia) {
+      alert('Por favor, selecione a baia.');
       return;
     }
     const qty = parseInt(orderQuantity);
@@ -392,7 +457,9 @@ export default function Remessas() {
     try {
       const orderData = {
         client_id: orderClientId,
-        raca: orderRaca,
+        origem_type: orderOrigemType,
+        raca: orderOrigemType === 'raca' ? orderRaca : '',
+        baia: orderOrigemType === 'baia' ? orderBaia : '',
         quantity: qty,
         status: orderStatus
       };
@@ -405,6 +472,8 @@ export default function Remessas() {
       // Reset Order Form
       setOrderClientId('');
       setOrderRaca('');
+      setOrderBaia('');
+      setOrderOrigemType('raca');
       setOrderQuantity('');
       setOrderStatus('Pendente');
       setEditingOrder(null);
@@ -433,7 +502,9 @@ export default function Remessas() {
   const handleStartEditOrder = (order: any) => {
     setEditingOrder(order);
     setOrderClientId(order.client_id || '');
+    setOrderOrigemType(order.origem_type || 'raca');
     setOrderRaca(order.raca || '');
+    setOrderBaia(order.baia || '');
     setOrderQuantity(String(order.quantity || ''));
     setOrderStatus(order.status || 'Pendente');
     setIsAddingOrder(true);
@@ -445,7 +516,9 @@ export default function Remessas() {
       const orderData = {
         id: order.id,
         client_id: order.client_id,
-        raca: order.raca,
+        origem_type: order.origem_type || 'raca',
+        raca: order.raca || '',
+        baia: order.baia || '',
         quantity: order.quantity,
         status: newStatus
       };
@@ -1061,11 +1134,13 @@ export default function Remessas() {
   const renderOrdersTab = () => {
     const filteredOrders = orders.filter(o => 
       o.clients?.name?.toLowerCase().includes(orderSearch.toLowerCase()) ||
-      o.raca?.toLowerCase().includes(orderSearch.toLowerCase())
+      o.raca?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+      o.baia?.toLowerCase().includes(orderSearch.toLowerCase())
     );
 
     if (isAddingOrder) {
-      const stockInfo = eggStock[orderRaca];
+      const isRacaType = orderOrigemType === 'raca';
+      const stockInfo = isRacaType ? eggStock.racas[orderRaca] : eggStock.baias[orderBaia];
       const availableStock = stockInfo ? stockInfo.available : 0;
       const dailyCollectionAvg = stockInfo ? stockInfo.dailyAvg : 0;
       const qtyRequested = parseInt(orderQuantity) || 0;
@@ -1121,22 +1196,75 @@ export default function Remessas() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Raça do Ovo</label>
-                <select
-                  required
-                  value={orderRaca}
-                  onChange={(e) => setOrderRaca(e.target.value)}
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
-                >
-                  <option value="">-- Selecione a raça --</option>
-                  {racas.map(r => {
-                    const name = typeof r === 'string' ? r : r.name;
-                    return <option key={name} value={name}>{name}</option>;
-                  })}
-                </select>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origem do Pedido</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-sm text-[#1F2937] font-semibold cursor-pointer">
+                  <input
+                    type="radio"
+                    name="orderOrigemType"
+                    value="raca"
+                    checked={orderOrigemType === 'raca'}
+                    onChange={() => {
+                      setOrderOrigemType('raca');
+                      setOrderBaia('');
+                    }}
+                    className="text-[#2563EB]"
+                  />
+                  Por Raça
+                </label>
+                <label className="flex items-center gap-2 text-sm text-[#1F2937] font-semibold cursor-pointer">
+                  <input
+                    type="radio"
+                    name="orderOrigemType"
+                    value="baia"
+                    checked={orderOrigemType === 'baia'}
+                    onChange={() => {
+                      setOrderOrigemType('baia');
+                      setOrderRaca('');
+                    }}
+                    className="text-[#2563EB]"
+                  />
+                  Por Baia
+                </label>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {orderOrigemType === 'raca' ? (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Raça do Ovo</label>
+                  <select
+                    required
+                    value={orderRaca}
+                    onChange={(e) => setOrderRaca(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                  >
+                    <option value="">-- Selecione a raça --</option>
+                    {racas.map(r => {
+                      const name = typeof r === 'string' ? r : r.name;
+                      return <option key={name} value={name}>{name}</option>;
+                    })}
+                  </select>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Baia de Origem</label>
+                  <select
+                    required
+                    value={orderBaia}
+                    onChange={(e) => setOrderBaia(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                  >
+                    <option value="">-- Selecione a baia --</option>
+                    {baias.map(b => {
+                      const name = typeof b === 'string' ? b : b.name;
+                      return <option key={name} value={name}>{name}</option>;
+                    })}
+                  </select>
+                </div>
+              )}
+              
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quantidade de Ovos</label>
                 <input
@@ -1152,13 +1280,13 @@ export default function Remessas() {
             </div>
 
             {/* Live Stock Check Indicator */}
-            {orderRaca && qtyRequested > 0 && (
+            {((orderOrigemType === 'raca' && orderRaca) || (orderOrigemType === 'baia' && orderBaia)) && qtyRequested > 0 && (
               <div className="space-y-2">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Verificação de Estoque</span>
                 {isStockSufficient ? (
                   <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center gap-2 text-xs font-semibold">
                     <Check className="text-emerald-600" size={18} />
-                    <span>Estoque suficiente! Disponível: <strong>{availableStock}</strong> ovos desta raça (Pedido: {qtyRequested} ovos).</span>
+                    <span>Estoque suficiente! Disponível: <strong>{availableStock}</strong> ovos {orderOrigemType === 'raca' ? 'desta raça' : 'desta baia'} (Pedido: {qtyRequested} ovos).</span>
                   </div>
                 ) : (
                   <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-4 rounded-2xl space-y-2 text-xs">
@@ -1167,7 +1295,7 @@ export default function Remessas() {
                       <span>Estoque Insuficiente!</span>
                     </div>
                     <p className="leading-relaxed">
-                      Estoque atual de <strong>{orderRaca}</strong>: <strong>{availableStock}</strong> ovos. <br />
+                      Estoque atual de <strong>{orderOrigemType === 'raca' ? orderRaca : `Baia ${orderBaia}`}</strong>: <strong>{availableStock}</strong> ovos. <br />
                       Faltam <strong>{eggsNeeded}</strong> ovos para completar este pedido de {qtyRequested} ovos.
                     </p>
                     {dailyCollectionAvg > 0 ? (
@@ -1178,7 +1306,7 @@ export default function Remessas() {
                       </p>
                     ) : (
                       <p className="bg-amber-100/40 p-3 rounded-xl border border-amber-200/50 mt-2 font-semibold text-amber-900">
-                        Não há registros recentes de coletas desta raça. Não é possível calcular o prazo previsto para coleta.
+                        Não há registros recentes de coletas {orderOrigemType === 'raca' ? 'desta raça' : 'desta baia'}. Não é possível calcular o prazo previsto para coleta.
                       </p>
                     )}
                   </div>
@@ -1218,7 +1346,7 @@ export default function Remessas() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-405" size={16} />
             <input
               type="text"
-              placeholder="Pesquisar pedidos por cliente ou raça..."
+              placeholder="Pesquisar pedidos por cliente, raça ou baia..."
               value={orderSearch}
               onChange={(e) => setOrderSearch(e.target.value)}
               className="w-full max-w-md bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-sm text-[#1F2937] outline-none focus:border-[#2563EB]/50 focus:bg-white focus:ring-4 focus:ring-[#2563EB]/5 transition-all"
@@ -1229,6 +1357,8 @@ export default function Remessas() {
             onClick={() => {
               setOrderClientId('');
               setOrderRaca('');
+              setOrderBaia('');
+              setOrderOrigemType('raca');
               setOrderQuantity('');
               setOrderStatus('Pendente');
               setEditingOrder(null);
@@ -1252,7 +1382,7 @@ export default function Remessas() {
                 <thead className="bg-[#F8FAFC] text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
                   <tr>
                     <th scope="col" className="px-6 py-4">Cliente</th>
-                    <th scope="col" className="px-6 py-4">Raça</th>
+                    <th scope="col" className="px-6 py-4">Origem</th>
                     <th scope="col" className="px-6 py-4 text-center">Quantidade</th>
                     <th scope="col" className="px-6 py-4">Status</th>
                     <th scope="col" className="px-6 py-4">Data do Pedido</th>
@@ -1268,7 +1398,17 @@ export default function Remessas() {
                           <div className="font-bold text-[#1F2937]">{client?.name || 'Sem Cliente'}</div>
                           <div className="text-xs text-slate-400">{client?.phone || client?.email}</div>
                         </td>
-                        <td className="px-6 py-4 font-semibold text-slate-700">{order.raca}</td>
+                        <td className="px-6 py-4 font-semibold text-slate-700">
+                          {(order.origem_type || 'raca') === 'baia' ? (
+                            <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100 uppercase">
+                              Baia: {order.baia}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100 uppercase">
+                              Raça: {order.raca}
+                            </span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 text-center font-bold text-[#1F2937]">{order.quantity} ovos</td>
                         <td className="px-6 py-4">
                           <select
@@ -1296,7 +1436,7 @@ export default function Remessas() {
                               <button
                                 type="button"
                                 onClick={() => handleGerarEnvio(order)}
-                                className="flex items-center gap-1.5 bg-green-605 hover:bg-green-600 text-white text-[10px] font-bold px-3.5 py-2 rounded-xl uppercase tracking-wider transition-colors shadow-sm active:scale-95"
+                                className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold px-3.5 py-2 rounded-xl uppercase tracking-wider transition-colors shadow-sm active:scale-95"
                                 title="Preencher simulador e etiquetas com dados deste pedido"
                               >
                                 <Truck size={12} /> Gerar Envio
@@ -1333,7 +1473,7 @@ export default function Remessas() {
   };
 
   const renderStockTab = () => {
-    const stockEntries = Object.entries(eggStock).map(([breed, val]) => {
+    const racaEntries = Object.entries(eggStock.racas).map(([breed, val]) => {
       const data = val as any;
       return {
         breed,
@@ -1346,65 +1486,137 @@ export default function Remessas() {
       };
     }).sort((a, b) => b.available - a.available);
 
+    const baiaEntries = Object.entries(eggStock.baias).map(([baia, val]) => {
+      const data = val as any;
+      return {
+        baia,
+        collected: data.collected,
+        incubated: data.incubated,
+        sold: data.sold,
+        available: data.available,
+        dailyAvg: data.dailyAvg,
+        daysCollected: data.daysCollected
+      };
+    }).sort((a, b) => b.available - a.available);
+
     return (
-      <div className="space-y-6">
+      <div className="space-y-10">
         <div className="bg-[#EFF6FF] border border-[#BFDBFE] p-6 rounded-3xl">
           <h4 className="font-bold text-sm text-[#1E40AF] mb-2 uppercase tracking-wider flex items-center gap-2">
             <TrendingUp size={16} className="text-[#2563EB]" />
             Como o estoque é calculado?
           </h4>
           <p className="text-xs text-[#1E40AF] leading-relaxed">
-            O **Estoque Disponível** para cada raça é obtido subtraindo-se dos ovos coletados aqueles que já foram colocados em chocadeiras ou que estão reservados para pedidos (pendentes ou enviados). <br />
+            O **Estoque Disponível** para cada item (raça ou baia) é obtido subtraindo-se dos ovos coletados aqueles que já foram colocados em chocadeiras ou que estão reservados para pedidos (pendentes ou enviados). <br />
             <span className="font-semibold">Fórmula:</span> Coletados - Incubados - Vendidos (Status diferente de 'Cancelado')
           </p>
         </div>
 
-        {stockEntries.length === 0 ? (
-          <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center text-slate-400">
-            <Egg className="mx-auto text-slate-300 mb-3" size={40} />
-            <p className="font-medium text-sm">Nenhum dado de estoque disponível. Cadastre coletas de ovos primeiro.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {stockEntries.map((entry) => {
-              const statusColor = entry.available > 50 
-                ? 'bg-green-100 text-green-800 border-green-200' 
-                : entry.available > 10 
-                ? 'bg-blue-100 text-blue-800 border-blue-200' 
-                : 'bg-amber-100 text-amber-800 border-amber-200';
+        {/* Stock by Breed */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-bold text-[#1F2937] flex items-center gap-2">
+            <Egg className="text-[#2563EB]" size={20} />
+            Estoque por Raça
+          </h3>
+          {racaEntries.length === 0 ? (
+            <div className="bg-white border border-slate-100 rounded-3xl p-8 text-center text-slate-400 text-sm">
+              Nenhum estoque por raça disponível.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {racaEntries.map((entry) => {
+                const statusColor = entry.available > 50 
+                  ? 'bg-green-100 text-green-800 border-green-200' 
+                  : entry.available > 10 
+                  ? 'bg-blue-100 text-blue-800 border-blue-200' 
+                  : 'bg-amber-100 text-amber-800 border-amber-200';
 
-              return (
-                <div key={entry.breed} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.01)] space-y-4">
-                  <div className="flex justify-between items-start">
-                    <h4 className="font-bold text-base text-[#1F2937]">{entry.breed}</h4>
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase border ${statusColor}`}>
-                      Estoque: {entry.available}
-                    </span>
-                  </div>
+                return (
+                  <div key={entry.breed} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.01)] space-y-4">
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-bold text-base text-[#1F2937]">{entry.breed}</h4>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase border ${statusColor}`}>
+                        Estoque: {entry.available}
+                      </span>
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-4 text-xs border-t border-slate-50 pt-3">
-                    <div>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Total Coletado</span>
-                      <span className="font-bold text-[#1F2937]">{entry.collected} ovos</span>
-                    </div>
-                    <div>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Incubados</span>
-                      <span className="font-bold text-[#1F2937]">{entry.incubated} ovos</span>
-                    </div>
-                    <div className="mt-2">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Reservados/Vendidos</span>
-                      <span className="font-bold text-[#1F2937]">{entry.sold} ovos</span>
-                    </div>
-                    <div className="mt-2">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Média de Coleta</span>
-                      <span className="font-bold text-[#2563EB]">{entry.dailyAvg.toFixed(1)} / dia</span>
+                    <div className="grid grid-cols-2 gap-4 text-xs border-t border-slate-50 pt-3">
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Total Coletado</span>
+                        <span className="font-bold text-[#1F2937]">{entry.collected} ovos</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Incubados</span>
+                        <span className="font-bold text-[#1F2937]">{entry.incubated} ovos</span>
+                      </div>
+                      <div className="mt-2">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Reservados</span>
+                        <span className="font-bold text-[#1F2937]">{entry.sold} ovos</span>
+                      </div>
+                      <div className="mt-2">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Média de Coleta</span>
+                        <span className="font-bold text-[#2563EB]">{entry.dailyAvg.toFixed(1)} / dia</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Stock by Baia */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-bold text-[#1F2937] flex items-center gap-2">
+            <MapPin className="text-[#2563EB]" size={20} />
+            Estoque por Baia
+          </h3>
+          {baiaEntries.length === 0 ? (
+            <div className="bg-white border border-slate-100 rounded-3xl p-8 text-center text-slate-400 text-sm">
+              Nenhum estoque por baia disponível.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {baiaEntries.map((entry) => {
+                const statusColor = entry.available > 50 
+                  ? 'bg-green-100 text-green-800 border-green-200' 
+                  : entry.available > 10 
+                  ? 'bg-blue-100 text-blue-800 border-blue-200' 
+                  : 'bg-amber-100 text-amber-800 border-amber-200';
+
+                return (
+                  <div key={entry.baia} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.01)] space-y-4">
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-bold text-base text-[#1F2937]">Baia {entry.baia}</h4>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase border ${statusColor}`}>
+                        Estoque: {entry.available}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-xs border-t border-slate-50 pt-3">
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Total Coletado</span>
+                        <span className="font-bold text-[#1F2937]">{entry.collected} ovos</span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Incubados</span>
+                        <span className="font-bold text-[#1F2937]">{entry.incubated} ovos</span>
+                      </div>
+                      <div className="mt-2">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Reservados</span>
+                        <span className="font-bold text-[#1F2937]">{entry.sold} ovos</span>
+                      </div>
+                      <div className="mt-2">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Média de Coleta</span>
+                        <span className="font-bold text-[#2563EB]">{entry.dailyAvg.toFixed(1)} / dia</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     );
   };
