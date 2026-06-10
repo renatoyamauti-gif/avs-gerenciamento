@@ -18,7 +18,8 @@ const plans = [
       'Alertas de eclosão via e-mail',
       'Custos de alimentação',
       'Exportação de relatórios',
-      'Módulo de Remessas (Melhor Envio)'
+      'Módulo de Remessas (Melhor Envio)',
+      'Chat Exclusivo'
     ],
     buttonText: 'Plano Atual',
     isPopular: false,
@@ -39,7 +40,8 @@ const plans = [
       'Alertas de eclosão via e-mail',
       'Custos de alimentação',
       'Exportação de relatórios',
-      'Módulo de Remessas (Melhor Envio)'
+      'Módulo de Remessas (Melhor Envio)',
+      'Chat Exclusivo'
     ],
     buttonText: 'Assine Mensal',
     isPopular: true,
@@ -62,7 +64,8 @@ const plans = [
       'Alertas de eclosão via e-mail',
       'Custos de alimentação',
       'Exportação de relatórios',
-      'Módulo de Remessas (Melhor Envio)'
+      'Módulo de Remessas (Melhor Envio)',
+      'Chat Exclusivo'
     ],
     buttonText: 'Assine Anual',
     isPopular: false,
