@@ -136,6 +136,7 @@ export default function Remessas() {
   const [orderRaca, setOrderRaca] = useState('');
   const [orderBaia, setOrderBaia] = useState('');
   const [orderQuantity, setOrderQuantity] = useState('');
+  const [formItems, setFormItems] = useState<{ origem_type: 'raca' | 'baia'; raca: string; baia: string; quantity: string }[]>([{ origem_type: 'raca', raca: '', baia: '', quantity: '' }]);
   const [orderStatus, setOrderStatus] = useState('Pendente');
   const [savingOrder, setSavingOrder] = useState(false);
   const [savingClient, setSavingClient] = useState(false);
@@ -296,21 +297,29 @@ export default function Remessas() {
 
     // 3. Process Orders (Sold/Reserved)
     (orders || []).forEach(ord => {
-      if (ord.quantity && ord.status !== 'Cancelado') {
-        const isRaca = (ord.origem_type || 'raca') === 'raca';
-        if (isRaca && ord.raca) {
-          const breed = ord.raca;
-          if (!racaMap[breed]) {
-            racaMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+      if (ord.status !== 'Cancelado') {
+        const orderItems = ord.items && Array.isArray(ord.items) && ord.items.length > 0
+          ? ord.items
+          : [{ origem_type: ord.origem_type || 'raca', raca: ord.raca || '', baia: ord.baia || '', quantity: ord.quantity || 0 }];
+
+        orderItems.forEach((item: any) => {
+          if (item.quantity) {
+            const isRaca = (item.origem_type || 'raca') === 'raca';
+            if (isRaca && item.raca) {
+              const breed = item.raca;
+              if (!racaMap[breed]) {
+                racaMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+              }
+              racaMap[breed].sold += item.quantity;
+            } else if (!isRaca && item.baia) {
+              const bName = item.baia;
+              if (!baiaMap[bName]) {
+                baiaMap[bName] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+              }
+              baiaMap[bName].sold += item.quantity;
+            }
           }
-          racaMap[breed].sold += ord.quantity;
-        } else if (!isRaca && ord.baia) {
-          const bName = ord.baia;
-          if (!baiaMap[bName]) {
-            baiaMap[bName] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
-          }
-          baiaMap[bName].sold += ord.quantity;
-        }
+        });
       }
     });
 
@@ -439,33 +448,57 @@ export default function Remessas() {
       alert('Por favor, selecione um cliente.');
       return;
     }
-    if (orderOrigemType === 'raca' && !orderRaca) {
-      alert('Por favor, selecione a raça.');
+    
+    // Validate each item in the list
+    if (formItems.length === 0) {
+      alert('Por favor, adicione pelo menos um item ao pedido.');
       return;
     }
-    if (orderOrigemType === 'baia' && !orderBaia) {
-      alert('Por favor, selecione a baia.');
-      return;
-    }
-    const qty = parseInt(orderQuantity);
-    if (isNaN(qty) || qty <= 0) {
-      alert('Por favor, insira uma quantidade válida.');
-      return;
+
+    for (let i = 0; i < formItems.length; i++) {
+      const item = formItems[i];
+      if (item.origem_type === 'raca' && !item.raca) {
+        alert(`Por favor, selecione a raça no item ${i + 1}.`);
+        return;
+      }
+      if (item.origem_type === 'baia' && !item.baia) {
+        alert(`Por favor, selecione a baia no item ${i + 1}.`);
+        return;
+      }
+      const qty = parseInt(item.quantity);
+      if (isNaN(qty) || qty <= 0) {
+        alert(`Por favor, insira uma quantidade válida no item ${i + 1}.`);
+        return;
+      }
     }
 
     setSavingOrder(true);
     try {
+      const parsedItems = formItems.map(item => ({
+        origem_type: item.origem_type,
+        raca: item.origem_type === 'raca' ? item.raca : '',
+        baia: item.origem_type === 'baia' ? item.baia : '',
+        quantity: parseInt(item.quantity)
+      }));
+
+      // Set top-level values based on first item for compatibility
+      const mainItem = parsedItems[0];
+      const totalQty = parsedItems.reduce((acc, curr) => acc + curr.quantity, 0);
+
       const orderData = {
         client_id: orderClientId,
-        origem_type: orderOrigemType,
-        raca: orderOrigemType === 'raca' ? orderRaca : '',
-        baia: orderOrigemType === 'baia' ? orderBaia : '',
-        quantity: qty,
+        origem_type: mainItem.origem_type,
+        raca: mainItem.raca,
+        baia: mainItem.baia,
+        quantity: totalQty,
+        items: parsedItems,
         status: orderStatus
       };
+
       if (editingOrder) {
         (orderData as any).id = editingOrder.id;
       }
+      
       await dbService.saveOrder(orderData);
       await loadOrdersClientsData();
 
@@ -475,6 +508,7 @@ export default function Remessas() {
       setOrderBaia('');
       setOrderOrigemType('raca');
       setOrderQuantity('');
+      setFormItems([{ origem_type: 'raca', raca: '', baia: '', quantity: '' }]);
       setOrderStatus('Pendente');
       setEditingOrder(null);
       setIsAddingOrder(false);
@@ -502,6 +536,25 @@ export default function Remessas() {
   const handleStartEditOrder = (order: any) => {
     setEditingOrder(order);
     setOrderClientId(order.client_id || '');
+    
+    // Set formItems list
+    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+      setFormItems(order.items.map((item: any) => ({
+        origem_type: item.origem_type || 'raca',
+        raca: item.raca || '',
+        baia: item.baia || '',
+        quantity: String(item.quantity || '')
+      })));
+    } else {
+      // Fallback
+      setFormItems([{
+        origem_type: order.origem_type || 'raca',
+        raca: order.raca || '',
+        baia: order.baia || '',
+        quantity: String(order.quantity || '')
+      }]);
+    }
+    
     setOrderOrigemType(order.origem_type || 'raca');
     setOrderRaca(order.raca || '');
     setOrderBaia(order.baia || '');
@@ -520,6 +573,7 @@ export default function Remessas() {
         raca: order.raca || '',
         baia: order.baia || '',
         quantity: order.quantity,
+        items: order.items || [],
         status: newStatus
       };
       await dbService.saveOrder(orderData);
@@ -1132,31 +1186,20 @@ export default function Remessas() {
   };
 
   const renderOrdersTab = () => {
-    const filteredOrders = orders.filter(o => 
-      o.clients?.name?.toLowerCase().includes(orderSearch.toLowerCase()) ||
-      o.raca?.toLowerCase().includes(orderSearch.toLowerCase()) ||
-      o.baia?.toLowerCase().includes(orderSearch.toLowerCase())
-    );
+    const filteredOrders = orders.filter(o => {
+      const matchClient = o.clients?.name?.toLowerCase().includes(orderSearch.toLowerCase());
+      const matchRaca = o.raca?.toLowerCase().includes(orderSearch.toLowerCase());
+      const matchBaia = o.baia?.toLowerCase().includes(orderSearch.toLowerCase());
+      
+      const matchItems = o.items && Array.isArray(o.items) && o.items.some((item: any) => 
+        (item.raca && item.raca.toLowerCase().includes(orderSearch.toLowerCase())) ||
+        (item.baia && item.baia.toLowerCase().includes(orderSearch.toLowerCase()))
+      );
+      
+      return matchClient || matchRaca || matchBaia || matchItems;
+    });
 
     if (isAddingOrder) {
-      const isRacaType = orderOrigemType === 'raca';
-      const stockInfo = isRacaType ? eggStock.racas[orderRaca] : eggStock.baias[orderBaia];
-      const availableStock = stockInfo ? stockInfo.available : 0;
-      const dailyCollectionAvg = stockInfo ? stockInfo.dailyAvg : 0;
-      const qtyRequested = parseInt(orderQuantity) || 0;
-      const isStockSufficient = availableStock >= qtyRequested;
-      const eggsNeeded = qtyRequested - availableStock;
-
-      let daysToCollect = 0;
-      let predictedShipDateStr = '';
-      if (!isStockSufficient && eggsNeeded > 0) {
-        if (dailyCollectionAvg > 0) {
-          daysToCollect = Math.ceil(eggsNeeded / dailyCollectionAvg);
-          const shipDate = new Date();
-          shipDate.setDate(shipDate.getDate() + daysToCollect);
-          predictedShipDateStr = shipDate.toLocaleDateString('pt-BR');
-        }
-      }
 
       return (
         <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] max-w-2xl">
@@ -1196,123 +1239,189 @@ export default function Remessas() {
               )}
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origem do Pedido</label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 text-sm text-[#1F2937] font-semibold cursor-pointer">
-                  <input
-                    type="radio"
-                    name="orderOrigemType"
-                    value="raca"
-                    checked={orderOrigemType === 'raca'}
-                    onChange={() => {
-                      setOrderOrigemType('raca');
-                      setOrderBaia('');
-                    }}
-                    className="text-[#2563EB]"
-                  />
-                  Por Raça
-                </label>
-                <label className="flex items-center gap-2 text-sm text-[#1F2937] font-semibold cursor-pointer">
-                  <input
-                    type="radio"
-                    name="orderOrigemType"
-                    value="baia"
-                    checked={orderOrigemType === 'baia'}
-                    onChange={() => {
-                      setOrderOrigemType('baia');
-                      setOrderRaca('');
-                    }}
-                    className="text-[#2563EB]"
-                  />
-                  Por Baia
-                </label>
+            {/* Itens do Pedido */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Itens do Pedido</span>
+                <button
+                  type="button"
+                  onClick={() => setFormItems([...formItems, { origem_type: 'raca', raca: '', baia: '', quantity: '' }])}
+                  className="flex items-center gap-1 text-xs text-[#2563EB] hover:text-[#1D4ED8] font-bold bg-[#2563EB]/5 px-3 py-1.5 rounded-xl hover:bg-[#2563EB]/10 transition-all"
+                >
+                  <Plus size={14} /> Adicionar Item
+                </button>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {orderOrigemType === 'raca' ? (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Raça do Ovo</label>
-                  <select
-                    required
-                    value={orderRaca}
-                    onChange={(e) => setOrderRaca(e.target.value)}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
-                  >
-                    <option value="">-- Selecione a raça --</option>
-                    {racas.map(r => {
-                      const name = typeof r === 'string' ? r : r.name;
-                      return <option key={name} value={name}>{name}</option>;
-                    })}
-                  </select>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Baia de Origem</label>
-                  <select
-                    required
-                    value={orderBaia}
-                    onChange={(e) => setOrderBaia(e.target.value)}
-                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
-                  >
-                    <option value="">-- Selecione a baia --</option>
-                    {baias.map(b => {
-                      const name = typeof b === 'string' ? b : b.name;
-                      return <option key={name} value={name}>{name}</option>;
-                    })}
-                  </select>
-                </div>
-              )}
-              
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quantidade de Ovos</label>
-                <input
-                  required
-                  type="number"
-                  min="1"
-                  placeholder="Ex: 12"
-                  value={orderQuantity}
-                  onChange={(e) => setOrderQuantity(e.target.value)}
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
-                />
-              </div>
-            </div>
+              <div className="space-y-4">
+                {formItems.map((item, index) => {
+                  const isRacaType = item.origem_type === 'raca';
+                  const selectedName = isRacaType ? item.raca : item.baia;
+                  const stockInfo = selectedName ? (isRacaType ? eggStock.racas[selectedName] : eggStock.baias[selectedName]) : null;
+                  const availableStock = stockInfo ? stockInfo.available : 0;
+                  const dailyCollectionAvg = stockInfo ? stockInfo.dailyAvg : 0;
+                  const qtyRequested = parseInt(item.quantity) || 0;
+                  const isStockSufficient = availableStock >= qtyRequested;
+                  const eggsNeeded = qtyRequested - availableStock;
 
-            {/* Live Stock Check Indicator */}
-            {((orderOrigemType === 'raca' && orderRaca) || (orderOrigemType === 'baia' && orderBaia)) && qtyRequested > 0 && (
-              <div className="space-y-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Verificação de Estoque</span>
-                {isStockSufficient ? (
-                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center gap-2 text-xs font-semibold">
-                    <Check className="text-emerald-600" size={18} />
-                    <span>Estoque suficiente! Disponível: <strong>{availableStock}</strong> ovos {orderOrigemType === 'raca' ? 'desta raça' : 'desta baia'} (Pedido: {qtyRequested} ovos).</span>
-                  </div>
-                ) : (
-                  <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-4 rounded-2xl space-y-2 text-xs">
-                    <div className="flex items-start gap-2 font-bold">
-                      <AlertCircle className="text-amber-600 mt-0.5 shrink-0" size={18} />
-                      <span>Estoque Insuficiente!</span>
+                  let daysToCollect = 0;
+                  let predictedShipDateStr = '';
+                  if (!isStockSufficient && eggsNeeded > 0) {
+                    if (dailyCollectionAvg > 0) {
+                      daysToCollect = Math.ceil(eggsNeeded / dailyCollectionAvg);
+                      const shipDate = new Date();
+                      shipDate.setDate(shipDate.getDate() + daysToCollect);
+                      predictedShipDateStr = shipDate.toLocaleDateString('pt-BR');
+                    }
+                  }
+
+                  return (
+                    <div key={index} className="p-4 bg-slate-50/50 border border-slate-200/50 rounded-2xl space-y-3 relative">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-500">Item #{index + 1}</span>
+                        {formItems.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setFormItems(formItems.filter((_, idx) => idx !== index))}
+                            className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-lg transition-all"
+                            title="Remover Item"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origem</label>
+                          <div className="flex bg-white border border-slate-200 rounded-xl p-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newItems = [...formItems];
+                                newItems[index] = { ...newItems[index], origem_type: 'raca', raca: '', baia: '' };
+                                setFormItems(newItems);
+                              }}
+                              className={`flex-1 py-1 text-xs font-bold rounded-lg transition-all ${
+                                isRacaType 
+                                  ? 'bg-[#2563EB] text-white' 
+                                  : 'text-slate-500 hover:text-slate-700'
+                              }`}
+                            >
+                              Raça
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newItems = [...formItems];
+                                newItems[index] = { ...newItems[index], origem_type: 'baia', raca: '', baia: '' };
+                                setFormItems(newItems);
+                              }}
+                              className={`flex-1 py-1 text-xs font-bold rounded-lg transition-all ${
+                                !isRacaType 
+                                  ? 'bg-[#2563EB] text-white' 
+                                  : 'text-slate-500 hover:text-slate-700'
+                              }`}
+                            >
+                              Baia
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            {isRacaType ? 'Raça do Ovo' : 'Baia de Origem'}
+                          </label>
+                          {isRacaType ? (
+                            <select
+                              required
+                              value={item.raca}
+                              onChange={(e) => {
+                                const newItems = [...formItems];
+                                newItems[index] = { ...newItems[index], raca: e.target.value };
+                                setFormItems(newItems);
+                              }}
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-[#1F2937] focus:border-[#2563EB]/50 transition-all outline-none"
+                            >
+                              <option value="">-- Selecione --</option>
+                              {racas.map(r => {
+                                const name = typeof r === 'string' ? r : r.name;
+                                return <option key={name} value={name}>{name}</option>;
+                              })}
+                            </select>
+                          ) : (
+                            <select
+                              required
+                              value={item.baia}
+                              onChange={(e) => {
+                                const newItems = [...formItems];
+                                newItems[index] = { ...newItems[index], baia: e.target.value };
+                                setFormItems(newItems);
+                              }}
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-[#1F2937] focus:border-[#2563EB]/50 transition-all outline-none"
+                            >
+                              <option value="">-- Selecione --</option>
+                              {baias.map(b => {
+                                const name = typeof b === 'string' ? b : b.name;
+                                return <option key={name} value={name}>{name}</option>;
+                              })}
+                            </select>
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quantidade</label>
+                          <input
+                            required
+                            type="number"
+                            min="1"
+                            placeholder="Ex: 12"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const newItems = [...formItems];
+                              newItems[index] = { ...newItems[index], quantity: e.target.value };
+                              setFormItems(newItems);
+                            }}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:border-[#2563EB]/50 transition-all outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Item Stock Warning */}
+                      {selectedName && qtyRequested > 0 && (
+                        <div className="text-[11px] mt-2">
+                          {isStockSufficient ? (
+                            <div className="text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl flex items-center gap-1.5 font-medium">
+                              <Check className="text-emerald-600 shrink-0" size={14} />
+                              <span>Estoque suficiente! Disponível: <strong>{availableStock}</strong> ovos.</span>
+                            </div>
+                          ) : (
+                            <div className="text-amber-800 bg-amber-50 border border-amber-100 p-3 rounded-xl space-y-1">
+                              <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                                <AlertCircle className="text-amber-600 shrink-0" size={14} />
+                                <span>Estoque Insuficiente!</span>
+                              </div>
+                              <p className="leading-relaxed">
+                                Disponível: <strong>{availableStock}</strong>. Faltam <strong>{eggsNeeded}</strong> para este item de {qtyRequested} ovos.
+                              </p>
+                              {dailyCollectionAvg > 0 ? (
+                                <p className="bg-amber-100/30 p-2 rounded-lg border border-amber-200/40 font-semibold text-[10px]">
+                                  Média: {dailyCollectionAvg.toFixed(1)}/dia. <br />
+                                  Envio previsto em: <strong>{daysToCollect} dias</strong> ({predictedShipDateStr}).
+                                </p>
+                              ) : (
+                                <p className="bg-amber-100/30 p-2 rounded-lg border border-amber-200/40 font-semibold text-[10px] text-amber-900">
+                                  Sem coletas recentes. Não é possível calcular prazo.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <p className="leading-relaxed">
-                      Estoque atual de <strong>{orderOrigemType === 'raca' ? orderRaca : `Baia ${orderBaia}`}</strong>: <strong>{availableStock}</strong> ovos. <br />
-                      Faltam <strong>{eggsNeeded}</strong> ovos para completar este pedido de {qtyRequested} ovos.
-                    </p>
-                    {dailyCollectionAvg > 0 ? (
-                      <p className="bg-amber-100/40 p-3 rounded-xl border border-amber-200/50 mt-2 font-semibold">
-                        Média de coleta: {dailyCollectionAvg.toFixed(1)} ovos/dia. <br />
-                        Prazo estimado de coleta dos ovos restantes: <strong>{daysToCollect} dias</strong>. <br />
-                        Previsão estimada para envio: <strong>{predictedShipDateStr}</strong>.
-                      </p>
-                    ) : (
-                      <p className="bg-amber-100/40 p-3 rounded-xl border border-amber-200/50 mt-2 font-semibold text-amber-900">
-                        Não há registros recentes de coletas {orderOrigemType === 'raca' ? 'desta raça' : 'desta baia'}. Não é possível calcular o prazo previsto para coleta.
-                      </p>
-                    )}
-                  </div>
-                )}
+                  );
+                })}
               </div>
-            )}
+            </div>
 
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status do Pedido</label>
@@ -1399,15 +1508,33 @@ export default function Remessas() {
                           <div className="text-xs text-slate-400">{client?.phone || client?.email}</div>
                         </td>
                         <td className="px-6 py-4 font-semibold text-slate-700">
-                          {(order.origem_type || 'raca') === 'baia' ? (
-                            <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100 uppercase">
-                              Baia: {order.baia}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100 uppercase">
-                              Raça: {order.raca}
-                            </span>
-                          )}
+                          <div className="flex flex-col gap-1.5">
+                            {order.items && Array.isArray(order.items) && order.items.length > 0 ? (
+                              order.items.map((item: any, idx: number) => (
+                                <div key={idx} className="flex items-center gap-1">
+                                  {item.origem_type === 'baia' ? (
+                                    <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100 uppercase">
+                                      Baia: {item.baia} <span className="text-slate-400 font-normal">({item.quantity} ovos)</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100 uppercase">
+                                      Raça: {item.raca} <span className="text-slate-400 font-normal">({item.quantity} ovos)</span>
+                                    </span>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              (order.origem_type || 'raca') === 'baia' ? (
+                                <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100 uppercase">
+                                  Baia: {order.baia} <span className="text-slate-400 font-normal">({order.quantity} ovos)</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100 uppercase">
+                                  Raça: {order.raca} <span className="text-slate-400 font-normal">({order.quantity} ovos)</span>
+                                </span>
+                              )
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-center font-bold text-[#1F2937]">{order.quantity} ovos</td>
                         <td className="px-6 py-4">
