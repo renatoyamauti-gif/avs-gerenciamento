@@ -303,20 +303,21 @@ export default function Remessas() {
           : [{ origem_type: ord.origem_type || 'raca', raca: ord.raca || '', baia: ord.baia || '', quantity: ord.quantity || 0 }];
 
         orderItems.forEach((item: any) => {
-          if (item.quantity) {
+          const qty = Number(item.quantity) || 0;
+          if (qty > 0) {
             const isRaca = (item.origem_type || 'raca') === 'raca';
             if (isRaca && item.raca) {
               const breed = item.raca;
               if (!racaMap[breed]) {
                 racaMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
               }
-              racaMap[breed].sold += item.quantity;
+              racaMap[breed].sold += qty;
             } else if (!isRaca && item.baia) {
               const bName = item.baia;
               if (!baiaMap[bName]) {
                 baiaMap[bName] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
               }
-              baiaMap[bName].sold += item.quantity;
+              baiaMap[bName].sold += qty;
             }
           }
         });
