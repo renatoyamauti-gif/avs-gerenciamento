@@ -540,8 +540,9 @@ export default function Remessas() {
               </button>
             </div>
           ) : (
-            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+            <div className="space-y-6">
+              <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
                 <div className="flex items-center gap-3">
                   <Settings className="text-[#2563EB]" size={20} />
                   <h3 className="font-bold text-[#1F2937] text-lg">Integração Melhor Envio</h3>
@@ -649,7 +650,27 @@ export default function Remessas() {
                 </div>
               </form>
             </div>
-          )}
+
+            <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-3xl p-6 space-y-4">
+              <h4 className="font-bold text-[#1E40AF] text-sm uppercase tracking-wider">Como gerar seu Token?</h4>
+              <ol className="list-decimal list-inside text-xs text-[#1E40AF] space-y-2 leading-relaxed">
+                <li>Acesse o painel do seu <strong>Melhor Envio</strong> (Sandbox ou Produção).</li>
+                <li>No menu lateral esquerdo, vá em <strong>Gerenciar &gt; Tokens</strong> ou em <strong>Integrações &gt; Permissões de Acesso</strong>.</li>
+                <li>Clique no botão <strong>Novo Token</strong> ou <strong>Gerar Novo Token</strong>.</li>
+                <li>Defina um nome para o token, clique no botão <strong>Selecionar todos</strong> (para conceder todas as permissões) e depois em <strong>Gerar</strong>.</li>
+                <li>Copie o token gerado imediatamente e cole no campo acima.</li>
+              </ol>
+              <a 
+                href={sandbox ? "https://sandbox.melhorenvio.com.br" : "https://melhorenvio.com.br"} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs font-bold text-[#2563EB] hover:underline flex items-center gap-1 mt-2"
+              >
+                Acessar Melhor Envio <ExternalLink size={12} />
+              </a>
+            </div>
+          </div>
+        )}
 
           {/* Card 2: Dados do Remetente */}
           {isSenderConfigured && !isEditingSender ? (
@@ -845,27 +866,6 @@ export default function Remessas() {
                   </button>
                 </div>
               </form>
-            </div>
-          )}
-
-          {(!isMelhorEnvioConfigured || isEditingMelhorEnvio) && (
-            <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-3xl p-6 space-y-4">
-              <h4 className="font-bold text-[#1E40AF] text-sm uppercase tracking-wider">Como gerar seu Token?</h4>
-              <ol className="list-decimal list-inside text-xs text-[#1E40AF] space-y-2 leading-relaxed">
-                <li>Acesse o painel do seu <strong>Melhor Envio</strong> (Sandbox ou Produção).</li>
-                <li>No menu lateral esquerdo, vá em <strong>Gerenciar &gt; Tokens</strong> ou em <strong>Integrações &gt; Permissões de Acesso</strong>.</li>
-                <li>Clique no botão <strong>Novo Token</strong> ou <strong>Gerar Novo Token</strong>.</li>
-                <li>Defina um nome para o token, clique no botão <strong>Selecionar todos</strong> (para conceder todas as permissões) e depois em <strong>Gerar</strong>.</li>
-                <li>Copie o token gerado imediatamente e cole no campo acima.</li>
-              </ol>
-              <a 
-                href={sandbox ? "https://sandbox.melhorenvio.com.br" : "https://melhorenvio.com.br"} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-xs font-bold text-[#2563EB] hover:underline flex items-center gap-1 mt-2"
-              >
-                Acessar Melhor Envio <ExternalLink size={12} />
-              </a>
             </div>
           )}
         </div>
