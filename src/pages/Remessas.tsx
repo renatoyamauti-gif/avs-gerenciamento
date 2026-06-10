@@ -26,7 +26,8 @@ import {
   Edit2,
   Clock,
   ArrowLeft,
-  Check
+  Check,
+  ClipboardList
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { supabase } from '../lib/supabaseClient';
@@ -1332,10 +1333,18 @@ export default function Remessas() {
   };
 
   const renderStockTab = () => {
-    const stockEntries = Object.entries(eggStock).map(([breed, data]) => ({
-      breed,
-      ...data
-    })).sort((a, b) => b.available - a.available);
+    const stockEntries = Object.entries(eggStock).map(([breed, val]) => {
+      const data = val as any;
+      return {
+        breed,
+        collected: data.collected,
+        incubated: data.incubated,
+        sold: data.sold,
+        available: data.available,
+        dailyAvg: data.dailyAvg,
+        daysCollected: data.daysCollected
+      };
+    }).sort((a, b) => b.available - a.available);
 
     return (
       <div className="space-y-6">
