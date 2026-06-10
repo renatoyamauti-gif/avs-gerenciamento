@@ -1759,34 +1759,60 @@ export default function Remessas() {
               Nenhum estoque por raça disponível.
             </div>
           ) : (
-            <div className="bg-white border border-slate-100 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left text-sm text-slate-500">
-                  <thead className="bg-[#F8FAFC] text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                    <tr>
-                      <th scope="col" className="px-6 py-4">Raça</th>
-                      <th scope="col" className="px-6 py-4 text-center">Coletados</th>
-                      <th scope="col" className="px-6 py-4 text-center">Incubados</th>
-                      <th scope="col" className="px-6 py-4 text-center">Reservados (Vendas)</th>
-                      <th scope="col" className="px-6 py-4 text-center">Média / Dia</th>
-                      <th scope="col" className="px-6 py-4 text-center">Estoque Disponível</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {racaEntries.map((entry) => (
-                      <tr key={entry.breed} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4 font-bold text-[#1F2937]">{entry.breed}</td>
-                        <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.collected} ovos</td>
-                        <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.incubated} ovos</td>
-                        <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.sold} ovos</td>
-                        <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB]">{entry.dailyAvg.toFixed(1)} / dia</td>
-                        <td className="px-6 py-4 text-center">{getStockBadge(entry.available)}</td>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block bg-white border border-slate-100 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left text-sm text-slate-500">
+                    <thead className="bg-[#F8FAFC] text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                      <tr>
+                        <th scope="col" className="px-6 py-4">Raça</th>
+                        <th scope="col" className="px-6 py-4 text-center">Coletados</th>
+                        <th scope="col" className="px-6 py-4 text-center">Incubados</th>
+                        <th scope="col" className="px-6 py-4 text-center">Reservados (Vendas)</th>
+                        <th scope="col" className="px-6 py-4 text-center">Média / Dia</th>
+                        <th scope="col" className="px-6 py-4 text-center">Estoque Disponível</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {racaEntries.map((entry) => (
+                        <tr key={entry.breed} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-6 py-4 font-bold text-[#1F2937]">{entry.breed}</td>
+                          <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.collected} ovos</td>
+                          <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.incubated} ovos</td>
+                          <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.sold} ovos</td>
+                          <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB]">{entry.dailyAvg.toFixed(1)} / dia</td>
+                          <td className="px-6 py-4 text-center">{getStockBadge(entry.available)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+
+              {/* Mobile List View */}
+              <div className="block md:hidden bg-white border border-slate-100 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden divide-y divide-slate-100">
+                {racaEntries.map((entry) => (
+                  <div key={entry.breed} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors gap-3">
+                    <div className="flex-1 min-w-0">
+                      <span className="font-bold text-sm text-[#1F2937] block truncate">{entry.breed}</span>
+                      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-500 mt-1 font-semibold">
+                        <span>Col: <span className="text-slate-800 font-bold">{entry.collected}</span></span>
+                        <span className="text-slate-300">•</span>
+                        <span>Inc: <span className="text-slate-800 font-bold">{entry.incubated}</span></span>
+                        <span className="text-slate-300">•</span>
+                        <span>Res: <span className="text-slate-800 font-bold">{entry.sold}</span></span>
+                        <span className="text-slate-300">•</span>
+                        <span>Méd: <span className="text-[#2563EB] font-bold">{entry.dailyAvg.toFixed(1)}/d</span></span>
+                      </div>
+                    </div>
+                    <div className="shrink-0 pl-1">
+                      {getStockBadge(entry.available)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
@@ -1801,34 +1827,60 @@ export default function Remessas() {
               Nenhum estoque por baia disponível.
             </div>
           ) : (
-            <div className="bg-white border border-slate-100 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left text-sm text-slate-500">
-                  <thead className="bg-[#F8FAFC] text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                    <tr>
-                      <th scope="col" className="px-6 py-4">Baia</th>
-                      <th scope="col" className="px-6 py-4 text-center">Coletados</th>
-                      <th scope="col" className="px-6 py-4 text-center">Incubados</th>
-                      <th scope="col" className="px-6 py-4 text-center">Reservados (Vendas)</th>
-                      <th scope="col" className="px-6 py-4 text-center">Média / Dia</th>
-                      <th scope="col" className="px-6 py-4 text-center">Estoque Disponível</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {baiaEntries.map((entry) => (
-                      <tr key={entry.baia} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4 font-bold text-[#1F2937]">Baia {entry.baia}</td>
-                        <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.collected} ovos</td>
-                        <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.incubated} ovos</td>
-                        <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.sold} ovos</td>
-                        <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB]">{entry.dailyAvg.toFixed(1)} / dia</td>
-                        <td className="px-6 py-4 text-center">{getStockBadge(entry.available)}</td>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block bg-white border border-slate-100 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left text-sm text-slate-500">
+                    <thead className="bg-[#F8FAFC] text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                      <tr>
+                        <th scope="col" className="px-6 py-4">Baia</th>
+                        <th scope="col" className="px-6 py-4 text-center">Coletados</th>
+                        <th scope="col" className="px-6 py-4 text-center">Incubados</th>
+                        <th scope="col" className="px-6 py-4 text-center">Reservados (Vendas)</th>
+                        <th scope="col" className="px-6 py-4 text-center">Média / Dia</th>
+                        <th scope="col" className="px-6 py-4 text-center">Estoque Disponível</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {baiaEntries.map((entry) => (
+                        <tr key={entry.baia} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-6 py-4 font-bold text-[#1F2937]">Baia {entry.baia}</td>
+                          <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.collected} ovos</td>
+                          <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.incubated} ovos</td>
+                          <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.sold} ovos</td>
+                          <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB]">{entry.dailyAvg.toFixed(1)} / dia</td>
+                          <td className="px-6 py-4 text-center">{getStockBadge(entry.available)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+
+              {/* Mobile List View */}
+              <div className="block md:hidden bg-white border border-slate-100 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden divide-y divide-slate-100">
+                {baiaEntries.map((entry) => (
+                  <div key={entry.baia} className="flex items-center justify-between p-4 hover:bg-slate-50/50 transition-colors gap-3">
+                    <div className="flex-1 min-w-0">
+                      <span className="font-bold text-sm text-[#1F2937] block truncate">Baia {entry.baia}</span>
+                      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-500 mt-1 font-semibold">
+                        <span>Col: <span className="text-slate-800 font-bold">{entry.collected}</span></span>
+                        <span className="text-slate-300">•</span>
+                        <span>Inc: <span className="text-slate-800 font-bold">{entry.incubated}</span></span>
+                        <span className="text-slate-300">•</span>
+                        <span>Res: <span className="text-slate-800 font-bold">{entry.sold}</span></span>
+                        <span className="text-slate-300">•</span>
+                        <span>Méd: <span className="text-[#2563EB] font-bold">{entry.dailyAvg.toFixed(1)}/d</span></span>
+                      </div>
+                    </div>
+                    <div className="shrink-0 pl-1">
+                      {getStockBadge(entry.available)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>
