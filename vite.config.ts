@@ -17,8 +17,20 @@ export default defineConfig(({mode}) => {
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
+      // Do not modifyâ€”file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
+      proxy: {
+        '/api/melhorenvio-sandbox': {
+          target: 'https://sandbox.melhorenvio.com.br',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/melhorenvio-sandbox/, ''),
+        },
+        '/api/melhorenvio-prod': {
+          target: 'https://melhorenvio.com.br',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/melhorenvio-prod/, ''),
+        },
+      },
     },
   };
 });

@@ -122,29 +122,24 @@ export default function Remessas() {
 
   const getBaseUrl = (isSandbox: boolean) => {
     return isSandbox 
+      ? '/api/melhorenvio-sandbox' 
+      : '/api/melhorenvio-prod';
+  };
+
+  const getExternalBaseUrl = (isSandbox: boolean) => {
+    return isSandbox 
       ? 'https://sandbox.melhorenvio.com.br' 
       : 'https://melhorenvio.com.br';
   };
 
   // Helper to query with proxy to bypass CORS
   const fetchWithProxy = async (url: string, options: any) => {
-    // 1st Attempt: corsproxy.io (faster and more reliable)
-    const corsProxyUrl = `https://corsproxy.io/?${url}`;
-    try {
-      const res = await fetch(corsProxyUrl, options);
-      if (res.ok) return res;
-      console.warn(`corsproxy.io returned status ${res.status}, attempting fallback...`);
-    } catch (e) {
-      console.warn("corsproxy.io connection failed, attempting fallback...", e);
-    }
-
-    // 2nd Attempt: allorigins as fallback
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-    return fetch(proxyUrl, options);
+    return fetch(url, options);
   };
 
   async function validateToken(testToken: string, isSandbox: boolean) {
-    if (!testToken) return;
+    const cleanToken = testToken.replace(/\s+/g, '');
+    if (!cleanToken) return;
     setValidationStatus('validating');
     setValidationError(null);
 
@@ -155,7 +150,7 @@ export default function Remessas() {
       const response = await fetchWithProxy(apiUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${testToken}`,
+          'Authorization': `Bearer ${cleanToken}`,
           'Accept': 'application/json'
         }
       });
@@ -195,14 +190,17 @@ export default function Remessas() {
     setSavingSettings(true);
     setValidationError(null);
 
+    const cleanToken = token.replace(/\s+/g, '');
+
     try {
       await dbService.updateProfile({
         origin_postal_code: originPostalCode.replace(/\D/g, ''),
-        melhor_envio_token: token,
+        melhor_envio_token: cleanToken,
         melhor_envio_sandbox: sandbox
       });
 
-      await validateToken(token, sandbox);
+      setToken(cleanToken);
+      await validateToken(cleanToken, sandbox);
       alert('Configurações salvas com sucesso!');
     } catch (err: any) {
       alert('Erro ao salvar configurações: ' + err.message);
@@ -213,7 +211,8 @@ export default function Remessas() {
 
   const handleCalculateShipping = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) {
+    const cleanToken = token.replace(/\s+/g, '');
+    if (!cleanToken) {
       setCalcError('Por favor, configure e valide seu token do Melhor Envio primeiro.');
       return;
     }
@@ -253,7 +252,7 @@ export default function Remessas() {
       const response = await fetchWithProxy(apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${cleanToken}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
@@ -310,7 +309,8 @@ export default function Remessas() {
 
   const handleCreateLabel = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedService || !token) return;
+    const cleanToken = token.replace(/\s+/g, '');
+    if (!selectedService || !cleanToken) return;
 
     setGeneratingLabel(true);
     setLabelError(null);
@@ -369,7 +369,7 @@ export default function Remessas() {
       const response = await fetchWithProxy(apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${cleanToken}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
@@ -832,7 +832,7 @@ export default function Remessas() {
                         </div>
                       </div>
                       <a 
-                        href={`${getBaseUrl(sandbox)}/painel/carrinho`} 
+                        href={`${getExternalBaseUrl(sandbox)}/painel/carrinho`} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="w-full py-3 bg-[#16A34A] text-white text-center rounded-2xl font-bold text-sm uppercase tracking-widest shadow-sm hover:bg-[#15803D] transition-colors flex items-center justify-center gap-2"

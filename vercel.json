@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/melhorenvio-sandbox/:path*",
+      "destination": "https://sandbox.melhorenvio.com.br/:path*"
+    },
+    {
+      "source": "/api/melhorenvio-prod/:path*",
+      "destination": "https://melhorenvio.com.br/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
