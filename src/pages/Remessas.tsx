@@ -128,6 +128,17 @@ export default function Remessas() {
 
   // Helper to query with proxy to bypass CORS
   const fetchWithProxy = async (url: string, options: any) => {
+    // 1st Attempt: corsproxy.io (faster and more reliable)
+    const corsProxyUrl = `https://corsproxy.io/?${url}`;
+    try {
+      const res = await fetch(corsProxyUrl, options);
+      if (res.ok) return res;
+      console.warn(`corsproxy.io returned status ${res.status}, attempting fallback...`);
+    } catch (e) {
+      console.warn("corsproxy.io connection failed, attempting fallback...", e);
+    }
+
+    // 2nd Attempt: allorigins as fallback
     const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
     return fetch(proxyUrl, options);
   };
@@ -149,11 +160,26 @@ export default function Remessas() {
         }
       });
 
+      const responseText = await response.text();
+
       if (!response.ok) {
-        throw new Error('Token inválido ou expirado.');
+        let errMsg = 'Token inválido ou expirado.';
+        try {
+          const errData = JSON.parse(responseText);
+          if (errData.message) errMsg = errData.message;
+        } catch (e) {
+          errMsg = responseText.substring(0, 150) || errMsg;
+        }
+        throw new Error(errMsg);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`Resposta do proxy não é um JSON válido: ${responseText.substring(0, 150)}`);
+      }
+
       setConnectedUser(data);
       setValidationStatus('success');
     } catch (err: any) {
@@ -234,11 +260,25 @@ export default function Remessas() {
         body: JSON.stringify(bodyData)
       });
 
+      const responseText = await response.text();
+
       if (!response.ok) {
-        throw new Error('Falha ao calcular frete. Verifique o CEP de destino.');
+        let errMsg = 'Falha ao calcular frete. Verifique o CEP de destino.';
+        try {
+          const errData = JSON.parse(responseText);
+          if (errData.message) errMsg = errData.message;
+        } catch (e) {
+          errMsg = responseText.substring(0, 150) || errMsg;
+        }
+        throw new Error(errMsg);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`Resposta do cálculo não é um JSON válido: ${responseText.substring(0, 150)}`);
+      }
       
       // Filter out options with errors or no price
       const validOptions = (data || [])
@@ -336,12 +376,25 @@ export default function Remessas() {
         body: JSON.stringify(cartData)
       });
 
+      const responseText = await response.text();
+
       if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || 'Falha ao gerar etiqueta no carrinho.');
+        let errMsg = 'Falha ao gerar etiqueta no carrinho.';
+        try {
+          const errData = JSON.parse(responseText);
+          if (errData.message) errMsg = errData.message;
+        } catch (e) {
+          errMsg = responseText.substring(0, 150) || errMsg;
+        }
+        throw new Error(errMsg);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error(`Resposta de criação de etiqueta não é um JSON válido: ${responseText.substring(0, 150)}`);
+      }
       setLabelResult(data);
       alert('Rascunho de envio inserido no carrinho do seu Melhor Envio!');
     } catch (err: any) {
@@ -479,9 +532,10 @@ export default function Remessas() {
             <h4 className="font-bold text-[#1E40AF] text-sm uppercase tracking-wider">Como gerar seu Token?</h4>
             <ol className="list-decimal list-inside text-xs text-[#1E40AF] space-y-2 leading-relaxed">
               <li>Acesse o painel do seu <strong>Melhor Envio</strong> (Sandbox ou Produção).</li>
-              <li>Vá em <strong>Gerenciar</strong> &gt; <strong>Tokens</strong> &gt; <strong>Novo Token</strong>.</li>
-              <li>Conceda as permissões necessárias e clique em Gerar.</li>
-              <li>Cole o token no formulário acima e defina o CEP de origem do seu criatório.</li>
+              <li>No menu lateral esquerdo, vá em <strong>Gerenciar &gt; Tokens</strong> ou em <strong>Integrações &gt; Permissões de Acesso</strong>.</li>
+              <li>Clique no botão <strong>Novo Token</strong> ou <strong>Gerar Novo Token</strong>.</li>
+              <li>Defina um nome para o token, clique no botão <strong>Selecionar todos</strong> (para conceder todas as permissões) e depois em <strong>Gerar</strong>.</li>
+              <li>Copie o token gerado imediatamente e cole no campo acima.</li>
             </ol>
             <a 
               href={sandbox ? "https://sandbox.melhorenvio.com.br" : "https://melhorenvio.com.br"} 
