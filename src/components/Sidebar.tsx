@@ -19,8 +19,6 @@ import {
   Truck
 } from 'lucide-react';
 
-import { useSubscription } from '../hooks/useSubscription';
-
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,7 +26,6 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const location = useLocation();
-  const { plan } = useSubscription();
   const menuItems = [
     { path: '/', label: 'PAINEL DE CONTROLE', icon: <LayoutDashboard size={18} /> },
     { path: '/birds', label: 'Gestão de Aves', icon: <Bird size={18} /> },
@@ -42,11 +39,6 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     { path: '/chat', label: 'Chat Exclusivo', icon: <MessageSquare size={18} /> },
     { path: '/subscription', label: 'Assinatura', icon: <CreditCard size={18} /> },
   ];
-
-  const filteredMenuItems = menuItems.filter(item => {
-    if (item.path === '/chat' && plan === 'free') return false;
-    return true;
-  });
 
   return (
     <>
@@ -77,7 +69,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         </div>
         
         <nav className="flex-1 space-y-1">
-          {filteredMenuItems.map((item) => (
+          {menuItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}
