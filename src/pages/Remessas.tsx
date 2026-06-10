@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Truck, 
@@ -16,7 +16,17 @@ import {
   Package,
   Calendar,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Users,
+  Plus,
+  Trash2,
+  Search,
+  Egg,
+  TrendingUp,
+  Edit2,
+  Clock,
+  ArrowLeft,
+  Check
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { supabase } from '../lib/supabaseClient';
@@ -89,9 +99,72 @@ export default function Remessas() {
   const [senderCity, setSenderCity] = useState('');
   const [senderState, setSenderState] = useState('');
 
+  // Tab Management State
+  const [activeTab, setActiveTab] = useState<'shipping' | 'orders_clients'>('shipping');
+  const [activeSubTab, setActiveSubTab] = useState<'orders' | 'clients' | 'stock'>('orders');
+
+  // Orders and Clients Data States
+  const [clients, setClients] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [racas, setRacas] = useState<any[]>([]);
+  const [eggLogs, setEggLogs] = useState<any[]>([]);
+  const [incubators, setIncubators] = useState<any[]>([]);
+  const [loadingOrdersClients, setLoadingOrdersClients] = useState(false);
+
+  // Client Form State
+  const [isAddingClient, setIsAddingClient] = useState(false);
+  const [editingClient, setEditingClient] = useState<any | null>(null);
+  const [clientName, setClientName] = useState('');
+  const [clientCpf, setClientCpf] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  const [clientPostalCode, setClientPostalCode] = useState('');
+  const [clientAddress, setClientAddress] = useState('');
+  const [clientNumber, setClientNumber] = useState('');
+  const [clientDistrict, setClientDistrict] = useState('');
+  const [clientCity, setClientCity] = useState('');
+  const [clientState, setClientState] = useState('');
+  const [loadingCep, setLoadingCep] = useState(false);
+
+  // Order Form State
+  const [isAddingOrder, setIsAddingOrder] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<any | null>(null);
+  const [orderClientId, setOrderClientId] = useState('');
+  const [orderRaca, setOrderRaca] = useState('');
+  const [orderQuantity, setOrderQuantity] = useState('');
+  const [orderStatus, setOrderStatus] = useState('Pendente');
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [savingClient, setSavingClient] = useState(false);
+
+  // Searches
+  const [clientSearch, setClientSearch] = useState('');
+  const [orderSearch, setOrderSearch] = useState('');
+
   useEffect(() => {
     loadSettings();
   }, []);
+
+  async function loadOrdersClientsData() {
+    try {
+      setLoadingOrdersClients(true);
+      const [clientsData, ordersData, racasData, eggLogsData, incubatorsData] = await Promise.all([
+        dbService.getClients(),
+        dbService.getOrders(),
+        dbService.getRacas(),
+        dbService.getEggLogs(),
+        dbService.getIncubators()
+      ]);
+      setClients(clientsData || []);
+      setOrders(ordersData || []);
+      setRacas(racasData || []);
+      setEggLogs(eggLogsData || []);
+      setIncubators(incubatorsData || []);
+    } catch (err) {
+      console.error('Erro ao carregar dados de pedidos/clientes/estoque:', err);
+    } finally {
+      setLoadingOrdersClients(false);
+    }
+  }
 
   async function loadSettings() {
     try {
@@ -121,12 +194,302 @@ export default function Remessas() {
           validateToken(prof.melhor_envio_token, prof.melhor_envio_sandbox ?? true);
         }
       }
-    } catch (err) {
-      console.error('Erro ao carregar configurações de envio:', err);
+      
+      // Load orders and clients
+      await loadOrdersClientsData();
     } finally {
       setLoading(false);
     }
   }
+
+  // Egg Stock and Daily Collection Averages Calculation
+  const eggStock = useMemo(() => {
+    const stockMap: Record<string, { collected: number; incubated: number; sold: number; available: number; dailyAvg: number; daysCollected: number }> = {};
+
+    // Initialize all breeds from racas table
+    (racas || []).forEach(r => {
+      const breedName = typeof r === 'string' ? r : r.name;
+      if (breedName) {
+        stockMap[breedName] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+      }
+    });
+
+    const breedDays: Record<string, Set<string>> = {};
+
+    // 1. Process Egg Logs (Collected)
+    (eggLogs || []).forEach(log => {
+      if (log.raca && log.count) {
+        const dateKey = `${log.year}-${log.month}-${log.day}`;
+        log.raca.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((breed: string) => {
+          if (!stockMap[breed]) {
+            stockMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+          }
+          stockMap[breed].collected += log.count;
+
+          if (!breedDays[breed]) {
+            breedDays[breed] = new Set();
+          }
+          breedDays[breed].add(dateKey);
+        });
+      }
+    });
+
+    // 2. Process Incubator Batches (Incubated)
+    (incubators || []).forEach(inc => {
+      (inc.incubator_batches || []).forEach((batch: any) => {
+        if (batch.raca_details) {
+          Object.entries(batch.raca_details).forEach(([breed, qty]) => {
+            const quantity = Number(qty) || 0;
+            if (!stockMap[breed]) {
+              stockMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+            }
+            stockMap[breed].incubated += quantity;
+          });
+        }
+      });
+    });
+
+    // 3. Process Orders (Sold/Reserved)
+    (orders || []).forEach(ord => {
+      if (ord.raca && ord.quantity && ord.status !== 'Cancelado') {
+        const breed = ord.raca;
+        if (!stockMap[breed]) {
+          stockMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+        }
+        stockMap[breed].sold += ord.quantity;
+      }
+    });
+
+    // 4. Calculate Available Stock and Daily Collection Average
+    Object.keys(stockMap).forEach(breed => {
+      const item = stockMap[breed];
+      item.available = item.collected - item.incubated - item.sold;
+      
+      const days = breedDays[breed]?.size || 1;
+      item.daysCollected = days;
+      item.dailyAvg = item.collected / days;
+    });
+
+    return stockMap;
+  }, [eggLogs, incubators, orders, racas]);
+
+  // CEP Lookup for Client form
+  const handleCepLookup = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '');
+    if (cleanCep.length !== 8) return;
+    setLoadingCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setClientAddress(data.logradouro || '');
+        setClientDistrict(data.bairro || '');
+        setClientCity(data.localidade || '');
+        setClientState(data.uf || '');
+      }
+    } catch (err) {
+      console.error('Erro ao buscar CEP:', err);
+    } finally {
+      setLoadingCep(false);
+    }
+  };
+
+  // Save/Edit Client
+  const handleSaveClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientName.trim()) {
+      alert('Nome do cliente é obrigatório.');
+      return;
+    }
+    setSavingClient(true);
+    try {
+      const clientData = {
+        name: clientName,
+        cpf_cnpj: clientCpf,
+        phone: clientPhone,
+        email: clientEmail,
+        postal_code: clientPostalCode.replace(/\D/g, ''),
+        address: clientAddress,
+        number: clientNumber,
+        district: clientDistrict,
+        city: clientCity,
+        state: clientState
+      };
+      if (editingClient) {
+        (clientData as any).id = editingClient.id;
+      }
+      await dbService.saveClient(clientData);
+      await loadOrdersClientsData();
+      
+      // Reset Client Form
+      setClientName('');
+      setClientCpf('');
+      setClientPhone('');
+      setClientEmail('');
+      setClientPostalCode('');
+      setClientAddress('');
+      setClientNumber('');
+      setClientDistrict('');
+      setClientCity('');
+      setClientState('');
+      setEditingClient(null);
+      setIsAddingClient(false);
+      alert('Cliente salvo com sucesso!');
+    } catch (err: any) {
+      alert('Erro ao salvar cliente: ' + err.message);
+    } finally {
+      setSavingClient(false);
+    }
+  };
+
+  // Delete Client
+  const handleDeleteClient = async (id: string) => {
+    if (!confirm('Deseja realmente excluir este cliente? Todos os pedidos associados serão excluídos.')) return;
+    try {
+      await dbService.deleteClient(id);
+      await loadOrdersClientsData();
+      alert('Cliente excluído com sucesso!');
+    } catch (err: any) {
+      alert('Erro ao excluir cliente: ' + err.message);
+    }
+  };
+
+  // Edit Client trigger
+  const handleStartEditClient = (client: any) => {
+    setEditingClient(client);
+    setClientName(client.name || '');
+    setClientCpf(client.cpf_cnpj || '');
+    setClientPhone(client.phone || '');
+    setClientEmail(client.email || '');
+    setClientPostalCode(client.postal_code || '');
+    setClientAddress(client.address || '');
+    setClientNumber(client.number || '');
+    setClientDistrict(client.district || '');
+    setClientCity(client.city || '');
+    setClientState(client.state || '');
+    setIsAddingClient(true);
+  };
+
+  // Save/Edit Order
+  const handleSaveOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orderClientId) {
+      alert('Por favor, selecione um cliente.');
+      return;
+    }
+    if (!orderRaca) {
+      alert('Por favor, selecione a raça.');
+      return;
+    }
+    const qty = parseInt(orderQuantity);
+    if (isNaN(qty) || qty <= 0) {
+      alert('Por favor, insira uma quantidade válida.');
+      return;
+    }
+
+    setSavingOrder(true);
+    try {
+      const orderData = {
+        client_id: orderClientId,
+        raca: orderRaca,
+        quantity: qty,
+        status: orderStatus
+      };
+      if (editingOrder) {
+        (orderData as any).id = editingOrder.id;
+      }
+      await dbService.saveOrder(orderData);
+      await loadOrdersClientsData();
+
+      // Reset Order Form
+      setOrderClientId('');
+      setOrderRaca('');
+      setOrderQuantity('');
+      setOrderStatus('Pendente');
+      setEditingOrder(null);
+      setIsAddingOrder(false);
+      alert('Pedido salvo com sucesso!');
+    } catch (err: any) {
+      alert('Erro ao salvar pedido: ' + err.message);
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
+  // Delete Order
+  const handleDeleteOrder = async (id: string) => {
+    if (!confirm('Deseja realmente excluir este pedido?')) return;
+    try {
+      await dbService.deleteOrder(id);
+      await loadOrdersClientsData();
+      alert('Pedido excluído com sucesso!');
+    } catch (err: any) {
+      alert('Erro ao excluir pedido: ' + err.message);
+    }
+  };
+
+  // Edit Order trigger
+  const handleStartEditOrder = (order: any) => {
+    setEditingOrder(order);
+    setOrderClientId(order.client_id || '');
+    setOrderRaca(order.raca || '');
+    setOrderQuantity(String(order.quantity || ''));
+    setOrderStatus(order.status || 'Pendente');
+    setIsAddingOrder(true);
+  };
+
+  // Update Order Status directly
+  const handleUpdateOrderStatus = async (order: any, newStatus: string) => {
+    try {
+      const orderData = {
+        id: order.id,
+        client_id: order.client_id,
+        raca: order.raca,
+        quantity: order.quantity,
+        status: newStatus
+      };
+      await dbService.saveOrder(orderData);
+      await loadOrdersClientsData();
+    } catch (err: any) {
+      alert('Erro ao atualizar status: ' + err.message);
+    }
+  };
+
+  // "Gerar Envio" Trigger from order list
+  const handleGerarEnvio = (order: any) => {
+    if (!order.clients) {
+      alert('Cliente não encontrado neste pedido.');
+      return;
+    }
+    const client = order.clients;
+    
+    // Set recipient fields
+    setRecipientName(client.name || '');
+    setRecipientPhone(client.phone || '');
+    setRecipientEmail(client.email || '');
+    setRecipientCpf(client.cpf_cnpj || '');
+    setRecipientAddress(client.address || '');
+    setRecipientNumber(client.number || '');
+    setRecipientDistrict(client.district || '');
+    setRecipientCity(client.city || '');
+    setRecipientState(client.state || '');
+    setDestPostalCode(client.postal_code || '');
+
+    // Estimate weight: 1 egg = 60g (0.06kg) + package box base 500g (0.5kg)
+    const estimatedWeight = (order.quantity * 0.06 + 0.5).toFixed(2);
+    setWeight(estimatedWeight);
+
+    // Switch tab
+    setActiveTab('shipping');
+
+    // Scroll to simulator
+    setTimeout(() => {
+      const element = document.getElementById('shipping-simulator-card');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 155);
+  };
 
   const getBaseUrl = (isSandbox: boolean) => {
     return isSandbox 
@@ -440,6 +803,659 @@ export default function Remessas() {
     }
   };
 
+  const renderClientsTab = () => {
+    const filteredClients = clients.filter(c => 
+      c.name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
+      c.cpf_cnpj?.includes(clientSearch)
+    );
+
+    if (isAddingClient) {
+      return (
+        <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] max-w-3xl">
+          <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
+            <h3 className="font-bold text-lg text-[#1F2937] flex items-center gap-2">
+              <Users className="text-[#2563EB]" size={20} />
+              {editingClient ? 'Editar Cliente' : 'Cadastrar Novo Cliente'}
+            </h3>
+            <button 
+              type="button"
+              onClick={() => {
+                setIsAddingClient(false);
+                setEditingClient(null);
+              }}
+              className="text-slate-400 hover:text-slate-600 font-bold text-xs uppercase tracking-wider"
+            >
+              Cancelar
+            </button>
+          </div>
+
+          <form onSubmit={handleSaveClient} className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome Completo</label>
+                <input
+                  required
+                  type="text"
+                  placeholder="Nome completo do comprador"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CPF / CNPJ</label>
+                  <input
+                    type="text"
+                    placeholder="Apenas números"
+                    value={clientCpf}
+                    onChange={(e) => setClientCpf(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Telefone</label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="DDD + Número"
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">E-mail</label>
+                <input
+                  required
+                  type="email"
+                  placeholder="comprador@exemplo.com"
+                  value={clientEmail}
+                  onChange={(e) => setClientEmail(e.target.value)}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CEP</label>
+                <div className="relative">
+                  <input
+                    required
+                    type="text"
+                    placeholder="Ex: 22021001"
+                    maxLength={9}
+                    value={clientPostalCode}
+                    onChange={(e) => {
+                      setClientPostalCode(e.target.value);
+                      if (e.target.value.replace(/\D/g, '').length === 8) {
+                        handleCepLookup(e.target.value);
+                      }
+                    }}
+                    onBlur={() => handleCepLookup(clientPostalCode)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl pl-3.5 pr-10 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                  />
+                  {loadingCep && <RefreshCw className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-slate-405" size={16} />}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="col-span-2 space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Endereço de Entrega</label>
+                <input
+                  required
+                  type="text"
+                  placeholder="Rua, Avenida..."
+                  value={clientAddress}
+                  onChange={(e) => setClientAddress(e.target.value)}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Número</label>
+                <input
+                  required
+                  type="text"
+                  value={clientNumber}
+                  onChange={(e) => setClientNumber(e.target.value)}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-center text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bairro</label>
+                <input
+                  required
+                  type="text"
+                  value={clientDistrict}
+                  onChange={(e) => setClientDistrict(e.target.value)}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cidade</label>
+                <input
+                  required
+                  type="text"
+                  value={clientCity}
+                  onChange={(e) => setClientCity(e.target.value)}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estado (UF)</label>
+                <input
+                  required
+                  type="text"
+                  maxLength={2}
+                  placeholder="Ex: RJ"
+                  value={clientState}
+                  onChange={(e) => setClientState(e.target.value.toUpperCase())}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-center text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={savingClient}
+              className="w-full py-3.5 bg-[#2563EB] text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {savingClient ? <RefreshCw className="animate-spin" size={14} /> : editingClient ? 'Salvar Alterações' : 'Cadastrar Cliente'}
+            </button>
+          </form>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-405" size={16} />
+            <input
+              type="text"
+              placeholder="Pesquisar clientes por nome..."
+              value={clientSearch}
+              onChange={(e) => setClientSearch(e.target.value)}
+              className="w-full max-w-md bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-sm text-[#1F2937] outline-none focus:border-[#2563EB]/50 focus:bg-white focus:ring-4 focus:ring-[#2563EB]/5 transition-all"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setClientName('');
+              setClientCpf('');
+              setClientPhone('');
+              setClientEmail('');
+              setClientPostalCode('');
+              setClientAddress('');
+              setClientNumber('');
+              setClientDistrict('');
+              setClientCity('');
+              setClientState('');
+              setEditingClient(null);
+              setIsAddingClient(true);
+            }}
+            className="bg-[#2563EB] text-white py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-sm hover:bg-[#1D4ED8] active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <Plus size={14} /> Cadastrar Cliente
+          </button>
+        </div>
+
+        {filteredClients.length === 0 ? (
+          <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center text-slate-400 space-y-3">
+            <Users className="mx-auto text-slate-300" size={40} />
+            <p className="font-medium text-sm">Nenhum cliente cadastrado ou encontrado.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredClients.map((client) => (
+              <div key={client.id} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.01)] flex flex-col justify-between gap-4">
+                <div className="space-y-3">
+                  <h4 className="font-bold text-[#1F2937] text-base leading-tight">{client.name}</h4>
+                  
+                  <div className="space-y-2 text-xs text-slate-500">
+                    {client.cpf_cnpj && <p><strong>CPF/CNPJ:</strong> {client.cpf_cnpj}</p>}
+                    <p><strong>Telefone:</strong> {client.phone}</p>
+                    <p><strong>E-mail:</strong> {client.email}</p>
+                    <div className="border-t border-slate-100 pt-2 mt-2 leading-relaxed text-slate-650">
+                      <strong>Endereço de Entrega:</strong> <br />
+                      {client.address}, {client.number} <br />
+                      {client.district} - {client.city}/{client.state} <br />
+                      CEP: {client.postal_code}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 border-t border-slate-50 pt-4 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleStartEditClient(client)}
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-slate-205 hover:bg-slate-50 text-slate-600 py-2.5 px-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                  >
+                    <Edit2 size={12} /> Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteClient(client.id)}
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-red-100 hover:bg-red-50 text-red-600 py-2.5 px-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                  >
+                    <Trash2 size={12} /> Excluir
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderOrdersTab = () => {
+    const filteredOrders = orders.filter(o => 
+      o.clients?.name?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+      o.raca?.toLowerCase().includes(orderSearch.toLowerCase())
+    );
+
+    if (isAddingOrder) {
+      const stockInfo = eggStock[orderRaca];
+      const availableStock = stockInfo ? stockInfo.available : 0;
+      const dailyCollectionAvg = stockInfo ? stockInfo.dailyAvg : 0;
+      const qtyRequested = parseInt(orderQuantity) || 0;
+      const isStockSufficient = availableStock >= qtyRequested;
+      const eggsNeeded = qtyRequested - availableStock;
+
+      let daysToCollect = 0;
+      let predictedShipDateStr = '';
+      if (!isStockSufficient && eggsNeeded > 0) {
+        if (dailyCollectionAvg > 0) {
+          daysToCollect = Math.ceil(eggsNeeded / dailyCollectionAvg);
+          const shipDate = new Date();
+          shipDate.setDate(shipDate.getDate() + daysToCollect);
+          predictedShipDateStr = shipDate.toLocaleDateString('pt-BR');
+        }
+      }
+
+      return (
+        <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] max-w-2xl">
+          <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
+            <h3 className="font-bold text-lg text-[#1F2937] flex items-center gap-2">
+              <ClipboardList className="text-[#2563EB]" size={20} />
+              {editingOrder ? 'Editar Pedido' : 'Registrar Novo Pedido'}
+            </h3>
+            <button 
+              type="button"
+              onClick={() => {
+                setIsAddingOrder(false);
+                setEditingOrder(null);
+              }}
+              className="text-slate-400 hover:text-slate-600 font-bold text-xs uppercase tracking-wider"
+            >
+              Cancelar
+            </button>
+          </div>
+
+          <form onSubmit={handleSaveOrder} className="space-y-6">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Selecione o Cliente</label>
+              <select
+                required
+                value={orderClientId}
+                onChange={(e) => setOrderClientId(e.target.value)}
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+              >
+                <option value="">-- Escolha um cliente registrado --</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name} {c.cpf_cnpj ? `(${c.cpf_cnpj})` : ''}</option>
+                ))}
+              </select>
+              {clients.length === 0 && (
+                <p className="text-xs text-amber-600 font-medium mt-1">Nenhum cliente cadastrado. Cadastre um cliente primeiro na aba "Clientes".</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Raça do Ovo</label>
+                <select
+                  required
+                  value={orderRaca}
+                  onChange={(e) => setOrderRaca(e.target.value)}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                >
+                  <option value="">-- Selecione a raça --</option>
+                  {racas.map(r => {
+                    const name = typeof r === 'string' ? r : r.name;
+                    return <option key={name} value={name}>{name}</option>;
+                  })}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quantidade de Ovos</label>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  placeholder="Ex: 12"
+                  value={orderQuantity}
+                  onChange={(e) => setOrderQuantity(e.target.value)}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Live Stock Check Indicator */}
+            {orderRaca && qtyRequested > 0 && (
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Verificação de Estoque</span>
+                {isStockSufficient ? (
+                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center gap-2 text-xs font-semibold">
+                    <Check className="text-emerald-600" size={18} />
+                    <span>Estoque suficiente! Disponível: <strong>{availableStock}</strong> ovos desta raça (Pedido: {qtyRequested} ovos).</span>
+                  </div>
+                ) : (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-4 rounded-2xl space-y-2 text-xs">
+                    <div className="flex items-start gap-2 font-bold">
+                      <AlertCircle className="text-amber-600 mt-0.5 shrink-0" size={18} />
+                      <span>Estoque Insuficiente!</span>
+                    </div>
+                    <p className="leading-relaxed">
+                      Estoque atual de <strong>{orderRaca}</strong>: <strong>{availableStock}</strong> ovos. <br />
+                      Faltam <strong>{eggsNeeded}</strong> ovos para completar este pedido de {qtyRequested} ovos.
+                    </p>
+                    {dailyCollectionAvg > 0 ? (
+                      <p className="bg-amber-100/40 p-3 rounded-xl border border-amber-200/50 mt-2 font-semibold">
+                        Média de coleta: {dailyCollectionAvg.toFixed(1)} ovos/dia. <br />
+                        Prazo estimado de coleta dos ovos restantes: <strong>{daysToCollect} dias</strong>. <br />
+                        Previsão estimada para envio: <strong>{predictedShipDateStr}</strong>.
+                      </p>
+                    ) : (
+                      <p className="bg-amber-100/40 p-3 rounded-xl border border-amber-200/50 mt-2 font-semibold text-amber-900">
+                        Não há registros recentes de coletas desta raça. Não é possível calcular o prazo previsto para coleta.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status do Pedido</label>
+              <select
+                value={orderStatus}
+                onChange={(e) => setOrderStatus(e.target.value)}
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+              >
+                <option value="Pendente">Pendente (Aguardando envio)</option>
+                <option value="Enviado">Enviado (Etiqueta emitida / postado)</option>
+                <option value="Cancelado">Cancelado</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              disabled={savingOrder}
+              className="w-full py-3.5 bg-[#2563EB] text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {savingOrder ? <RefreshCw className="animate-spin" size={14} /> : editingOrder ? 'Salvar Alterações' : 'Confirmar Pedido'}
+            </button>
+          </form>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-405" size={16} />
+            <input
+              type="text"
+              placeholder="Pesquisar pedidos por cliente ou raça..."
+              value={orderSearch}
+              onChange={(e) => setOrderSearch(e.target.value)}
+              className="w-full max-w-md bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-sm text-[#1F2937] outline-none focus:border-[#2563EB]/50 focus:bg-white focus:ring-4 focus:ring-[#2563EB]/5 transition-all"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setOrderClientId('');
+              setOrderRaca('');
+              setOrderQuantity('');
+              setOrderStatus('Pendente');
+              setEditingOrder(null);
+              setIsAddingOrder(true);
+            }}
+            className="bg-[#2563EB] text-white py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-sm hover:bg-[#1D4ED8] active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <Plus size={14} /> Novo Pedido
+          </button>
+        </div>
+
+        {filteredOrders.length === 0 ? (
+          <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center text-slate-400 space-y-3">
+            <ClipboardList className="mx-auto text-slate-300" size={40} />
+            <p className="font-medium text-sm">Nenhum pedido registrado ou encontrado.</p>
+          </div>
+        ) : (
+          <div className="bg-white border border-slate-100 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left text-sm text-slate-500">
+                <thead className="bg-[#F8FAFC] text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                  <tr>
+                    <th scope="col" className="px-6 py-4">Cliente</th>
+                    <th scope="col" className="px-6 py-4">Raça</th>
+                    <th scope="col" className="px-6 py-4 text-center">Quantidade</th>
+                    <th scope="col" className="px-6 py-4">Status</th>
+                    <th scope="col" className="px-6 py-4">Data do Pedido</th>
+                    <th scope="col" className="px-6 py-4 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredOrders.map((order) => {
+                    const client = order.clients;
+                    return (
+                      <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="font-bold text-[#1F2937]">{client?.name || 'Sem Cliente'}</div>
+                          <div className="text-xs text-slate-400">{client?.phone || client?.email}</div>
+                        </td>
+                        <td className="px-6 py-4 font-semibold text-slate-700">{order.raca}</td>
+                        <td className="px-6 py-4 text-center font-bold text-[#1F2937]">{order.quantity} ovos</td>
+                        <td className="px-6 py-4">
+                          <select
+                            value={order.status}
+                            onChange={(e) => handleUpdateOrderStatus(order, e.target.value)}
+                            className={`text-xs font-bold px-3 py-1.5 rounded-full border outline-none cursor-pointer ${
+                              order.status === 'Enviado' 
+                                ? 'bg-green-50 text-green-800 border-green-200' 
+                                : order.status === 'Cancelado'
+                                ? 'bg-slate-50 text-slate-600 border-slate-200'
+                                : 'bg-amber-50 text-amber-800 border-amber-200'
+                            }`}
+                          >
+                            <option value="Pendente">Pendente</option>
+                            <option value="Enviado">Enviado</option>
+                            <option value="Cancelado">Cancelado</option>
+                          </select>
+                        </td>
+                        <td className="px-6 py-4 text-xs font-medium">
+                          {new Date(order.created_at).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {order.status === 'Pendente' && (
+                              <button
+                                type="button"
+                                onClick={() => handleGerarEnvio(order)}
+                                className="flex items-center gap-1.5 bg-green-605 hover:bg-green-600 text-white text-[10px] font-bold px-3.5 py-2 rounded-xl uppercase tracking-wider transition-colors shadow-sm active:scale-95"
+                                title="Preencher simulador e etiquetas com dados deste pedido"
+                              >
+                                <Truck size={12} /> Gerar Envio
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleStartEditOrder(order)}
+                              className="text-slate-400 hover:text-[#2563EB] p-2 hover:bg-slate-100 rounded-xl transition-all"
+                              title="Editar pedido"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteOrder(order.id)}
+                              className="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-xl transition-all"
+                              title="Excluir pedido"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderStockTab = () => {
+    const stockEntries = Object.entries(eggStock).map(([breed, data]) => ({
+      breed,
+      ...data
+    })).sort((a, b) => b.available - a.available);
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-[#EFF6FF] border border-[#BFDBFE] p-6 rounded-3xl">
+          <h4 className="font-bold text-sm text-[#1E40AF] mb-2 uppercase tracking-wider flex items-center gap-2">
+            <TrendingUp size={16} className="text-[#2563EB]" />
+            Como o estoque é calculado?
+          </h4>
+          <p className="text-xs text-[#1E40AF] leading-relaxed">
+            O **Estoque Disponível** para cada raça é obtido subtraindo-se dos ovos coletados aqueles que já foram colocados em chocadeiras ou que estão reservados para pedidos (pendentes ou enviados). <br />
+            <span className="font-semibold">Fórmula:</span> Coletados - Incubados - Vendidos (Status diferente de 'Cancelado')
+          </p>
+        </div>
+
+        {stockEntries.length === 0 ? (
+          <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center text-slate-400">
+            <Egg className="mx-auto text-slate-300 mb-3" size={40} />
+            <p className="font-medium text-sm">Nenhum dado de estoque disponível. Cadastre coletas de ovos primeiro.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {stockEntries.map((entry) => {
+              const statusColor = entry.available > 50 
+                ? 'bg-green-100 text-green-800 border-green-200' 
+                : entry.available > 10 
+                ? 'bg-blue-100 text-blue-800 border-blue-200' 
+                : 'bg-amber-100 text-amber-800 border-amber-200';
+
+              return (
+                <div key={entry.breed} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.01)] space-y-4">
+                  <div className="flex justify-between items-start">
+                    <h4 className="font-bold text-base text-[#1F2937]">{entry.breed}</h4>
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase border ${statusColor}`}>
+                      Estoque: {entry.available}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-xs border-t border-slate-50 pt-3">
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Total Coletado</span>
+                      <span className="font-bold text-[#1F2937]">{entry.collected} ovos</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Incubados</span>
+                      <span className="font-bold text-[#1F2937]">{entry.incubated} ovos</span>
+                    </div>
+                    <div className="mt-2">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Reservados/Vendidos</span>
+                      <span className="font-bold text-[#1F2937]">{entry.sold} ovos</span>
+                    </div>
+                    <div className="mt-2">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Média de Coleta</span>
+                      <span className="font-bold text-[#2563EB]">{entry.dailyAvg.toFixed(1)} / dia</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderOrdersClients = () => {
+    return (
+      <div className="space-y-8">
+        {/* Sub-tab navigation */}
+        <div className="flex border-b border-slate-200 gap-6">
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('orders')}
+            className={`pb-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all ${
+              activeSubTab === 'orders'
+                ? 'border-[#2563EB] text-[#2563EB]'
+                : 'border-transparent text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Package size={16} /> Pedidos
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('clients')}
+            className={`pb-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all ${
+              activeSubTab === 'clients'
+                ? 'border-[#2563EB] text-[#2563EB]'
+                : 'border-transparent text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Users size={16} /> Clientes
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('stock')}
+            className={`pb-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all ${
+              activeSubTab === 'stock'
+                ? 'border-[#2563EB] text-[#2563EB]'
+                : 'border-transparent text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Egg size={16} /> Estoque de Ovos
+          </button>
+        </div>
+
+        {loadingOrdersClients ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <RefreshCw className="animate-spin text-[#2563EB]" size={32} />
+            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Carregando dados...</p>
+          </div>
+        ) : (
+          <div>
+            {activeSubTab === 'clients' && renderClientsTab()}
+            {activeSubTab === 'orders' && renderOrdersTab()}
+            {activeSubTab === 'stock' && renderStockTab()}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const isMelhorEnvioConfigured = !!(
     originPostalCode && 
     token && 
@@ -480,12 +1496,37 @@ export default function Remessas() {
             Gestão de Remessas
           </h2>
           <p className="text-slate-500 font-medium text-sm mt-1">
-            Simulador de frete e geração de etiquetas integrado ao **Melhor Envio** (Abordagem Privada).
+            Simulador de frete, etiquetas de envio e controle de pedidos vinculados ao estoque de ovos.
           </p>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex bg-[#F1F5F9] p-1.5 rounded-2xl border border-slate-100 shadow-sm shrink-0 self-stretch md:self-auto">
+          <button
+            onClick={() => setActiveTab('shipping')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
+              activeTab === 'shipping'
+                ? 'bg-white text-[#2563EB] shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Truck size={14} /> Envios & Simulação
+          </button>
+          <button
+            onClick={() => setActiveTab('orders_clients')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
+              activeTab === 'orders_clients'
+                ? 'bg-white text-[#2563EB] shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Users size={14} /> Pedidos & Clientes
+          </button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {activeTab === 'shipping' ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left column - Integration settings */}
         <div className="lg:col-span-1 space-y-6">
@@ -872,7 +1913,7 @@ export default function Remessas() {
 
         {/* Center/Right column - Simulator and Label purchase */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div id="shipping-simulator-card" className="bg-white border border-slate-100 rounded-3xl p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
             <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
               <Calculator className="text-[#2563EB]" size={20} />
               <h3 className="font-bold text-[#1F2937] text-lg">Simular Valores e Prazos</h3>
@@ -1165,6 +2206,9 @@ export default function Remessas() {
           </AnimatePresence>
         </div>
       </div>
+      ) : (
+        renderOrdersClients()
+      )}
     </motion.div>
   );
 }

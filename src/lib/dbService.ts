@@ -826,5 +826,93 @@ export const dbService = {
       maternalGrandfather,
       maternalGrandmother
     };
+  },
+
+  // Clients
+  async getClients() {
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .order('name');
+    if (error) handleSupabaseError(error, 'list', 'clients');
+    return data;
+  },
+
+  async saveClient(client: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    const clientData = { ...client, user_id: user.id };
+
+    if (client.id && client.id.length > 15) {
+      const { data, error } = await supabase
+        .from('clients')
+        .update(clientData)
+        .eq('id', client.id)
+        .select();
+      if (error) handleSupabaseError(error, 'update', 'clients');
+      return data[0];
+    } else {
+      const { id, ...cleanData } = clientData;
+      const { data, error } = await supabase
+        .from('clients')
+        .insert([cleanData])
+        .select();
+      if (error) handleSupabaseError(error, 'create', 'clients');
+      return data[0];
+    }
+  },
+
+  async deleteClient(id: string) {
+    const { error } = await supabase
+      .from('clients')
+      .delete()
+      .eq('id', id);
+    if (error) handleSupabaseError(error, 'delete', 'clients');
+  },
+
+  // Orders
+  async getOrders() {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, clients(*)')
+      .order('created_at', { ascending: false });
+    if (error) handleSupabaseError(error, 'list', 'orders');
+    return data;
+  },
+
+  async saveOrder(order: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    const orderData = { ...order, user_id: user.id };
+    delete orderData.clients; // Remove preloaded relationship if any
+
+    if (order.id && order.id.length > 15) {
+      const { data, error } = await supabase
+        .from('orders')
+        .update(orderData)
+        .eq('id', order.id)
+        .select();
+      if (error) handleSupabaseError(error, 'update', 'orders');
+      return data[0];
+    } else {
+      const { id, ...cleanData } = orderData;
+      const { data, error } = await supabase
+        .from('orders')
+        .insert([cleanData])
+        .select();
+      if (error) handleSupabaseError(error, 'create', 'orders');
+      return data[0];
+    }
+  },
+
+  async deleteOrder(id: string) {
+    const { error } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', id);
+    if (error) handleSupabaseError(error, 'delete', 'orders');
   }
 };
+
