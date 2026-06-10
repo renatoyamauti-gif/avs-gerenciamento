@@ -848,24 +848,26 @@ export default function Remessas() {
             </div>
           )}
 
-          <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-3xl p-6 space-y-4">
-            <h4 className="font-bold text-[#1E40AF] text-sm uppercase tracking-wider">Como gerar seu Token?</h4>
-            <ol className="list-decimal list-inside text-xs text-[#1E40AF] space-y-2 leading-relaxed">
-              <li>Acesse o painel do seu <strong>Melhor Envio</strong> (Sandbox ou Produção).</li>
-              <li>No menu lateral esquerdo, vá em <strong>Gerenciar &gt; Tokens</strong> ou em <strong>Integrações &gt; Permissões de Acesso</strong>.</li>
-              <li>Clique no botão <strong>Novo Token</strong> ou <strong>Gerar Novo Token</strong>.</li>
-              <li>Defina um nome para o token, clique no botão <strong>Selecionar todos</strong> (para conceder todas as permissões) e depois em <strong>Gerar</strong>.</li>
-              <li>Copie o token gerado imediatamente e cole no campo acima.</li>
-            </ol>
-            <a 
-              href={sandbox ? "https://sandbox.melhorenvio.com.br" : "https://melhorenvio.com.br"} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-xs font-bold text-[#2563EB] hover:underline flex items-center gap-1 mt-2"
-            >
-              Acessar Melhor Envio <ExternalLink size={12} />
-            </a>
-          </div>
+          {(!isMelhorEnvioConfigured || isEditingMelhorEnvio) && (
+            <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-3xl p-6 space-y-4">
+              <h4 className="font-bold text-[#1E40AF] text-sm uppercase tracking-wider">Como gerar seu Token?</h4>
+              <ol className="list-decimal list-inside text-xs text-[#1E40AF] space-y-2 leading-relaxed">
+                <li>Acesse o painel do seu <strong>Melhor Envio</strong> (Sandbox ou Produção).</li>
+                <li>No menu lateral esquerdo, vá em <strong>Gerenciar &gt; Tokens</strong> ou em <strong>Integrações &gt; Permissões de Acesso</strong>.</li>
+                <li>Clique no botão <strong>Novo Token</strong> ou <strong>Gerar Novo Token</strong>.</li>
+                <li>Defina um nome para o token, clique no botão <strong>Selecionar todos</strong> (para conceder todas as permissões) e depois em <strong>Gerar</strong>.</li>
+                <li>Copie o token gerado imediatamente e cole no campo acima.</li>
+              </ol>
+              <a 
+                href={sandbox ? "https://sandbox.melhorenvio.com.br" : "https://melhorenvio.com.br"} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs font-bold text-[#2563EB] hover:underline flex items-center gap-1 mt-2"
+              >
+                Acessar Melhor Envio <ExternalLink size={12} />
+              </a>
+            </div>
+          )}
         </div>
 
         {/* Center/Right column - Simulator and Label purchase */}
