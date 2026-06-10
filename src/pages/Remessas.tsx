@@ -43,7 +43,7 @@ export default function Remessas() {
   // Settings State
   const [originPostalCode, setOriginPostalCode] = useState('');
   const [token, setToken] = useState('');
-  const [sandbox, setSandbox] = useState(true);
+  const [sandbox, setSandbox] = useState(false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
   const [connectedUser, setConnectedUser] = useState<any>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -98,7 +98,7 @@ export default function Remessas() {
       if (prof) {
         setOriginPostalCode(prof.origin_postal_code || '');
         setToken(prof.melhor_envio_token || '');
-        setSandbox(prof.melhor_envio_sandbox ?? true);
+        setSandbox(prof.melhor_envio_sandbox ?? false);
         
         // Auto-fill sender details with what we know
         setSenderName(prof.full_name || '');

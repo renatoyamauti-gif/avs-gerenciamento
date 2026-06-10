@@ -561,7 +561,7 @@ export const dbService = {
       criatorio_name: user.user_metadata?.criatorio_name || data?.criatorio_name || '',
       melhor_envio_token: user.user_metadata?.melhor_envio_token || data?.melhor_envio_token || '',
       origin_postal_code: user.user_metadata?.origin_postal_code || data?.origin_postal_code || '',
-      melhor_envio_sandbox: user.user_metadata?.melhor_envio_sandbox ?? data?.melhor_envio_sandbox ?? true
+      melhor_envio_sandbox: user.user_metadata?.melhor_envio_sandbox ?? data?.melhor_envio_sandbox ?? false
     };
   },
 
