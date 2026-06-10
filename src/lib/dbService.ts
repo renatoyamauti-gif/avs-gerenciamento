@@ -561,7 +561,16 @@ export const dbService = {
       criatorio_name: user.user_metadata?.criatorio_name || data?.criatorio_name || '',
       melhor_envio_token: user.user_metadata?.melhor_envio_token || data?.melhor_envio_token || '',
       origin_postal_code: user.user_metadata?.origin_postal_code || data?.origin_postal_code || '',
-      melhor_envio_sandbox: user.user_metadata?.melhor_envio_sandbox ?? data?.melhor_envio_sandbox ?? false
+      melhor_envio_sandbox: user.user_metadata?.melhor_envio_sandbox ?? data?.melhor_envio_sandbox ?? false,
+      sender_name: user.user_metadata?.sender_name || data?.sender_name || '',
+      sender_cpf: user.user_metadata?.sender_cpf || data?.sender_cpf || '',
+      sender_phone: user.user_metadata?.sender_phone || data?.sender_phone || '',
+      sender_email: user.user_metadata?.sender_email || data?.sender_email || '',
+      sender_address: user.user_metadata?.sender_address || data?.sender_address || '',
+      sender_number: user.user_metadata?.sender_number || data?.sender_number || '',
+      sender_district: user.user_metadata?.sender_district || data?.sender_district || '',
+      sender_city: user.user_metadata?.sender_city || data?.sender_city || '',
+      sender_state: user.user_metadata?.sender_state || data?.sender_state || ''
     };
   },
 
