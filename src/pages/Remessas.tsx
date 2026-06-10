@@ -1186,6 +1186,54 @@ export default function Remessas() {
     );
   };
 
+  const getOrderShippingForecast = (order: any) => {
+    if (order.status === 'Enviado') return { text: 'Enviado', type: 'sent' };
+    if (order.status === 'Cancelado') return { text: 'Cancelado', type: 'canceled' };
+
+    const orderItems = order.items && Array.isArray(order.items) && order.items.length > 0
+      ? order.items
+      : [{ origem_type: order.origem_type || 'raca', raca: order.raca || '', baia: order.baia || '', quantity: order.quantity || 0 }];
+
+    let maxDays = 0;
+    let hasInsufficientStock = false;
+    let missingCollectionsData = false;
+
+    orderItems.forEach((item: any) => {
+      const isRaca = (item.origem_type || 'raca') === 'raca';
+      const selectedName = isRaca ? item.raca : item.baia;
+      const stockInfo = selectedName ? (isRaca ? eggStock.racas[selectedName] : eggStock.baias[selectedName]) : null;
+
+      const availableStock = stockInfo ? stockInfo.available : 0;
+      const dailyCollectionAvg = stockInfo ? stockInfo.dailyAvg : 0;
+
+      // In eggStock calculation, available = collected - incubated - sold
+      // where 'sold' includes all active orders (including this one).
+      // So if available < 0, it means we have a deficit of Math.abs(available) eggs.
+      if (availableStock < 0) {
+        hasInsufficientStock = true;
+        const deficit = Math.abs(availableStock);
+        if (dailyCollectionAvg > 0) {
+          const days = Math.ceil(deficit / dailyCollectionAvg);
+          if (days > maxDays) {
+            maxDays = days;
+          }
+        } else {
+          missingCollectionsData = true;
+        }
+      }
+    });
+
+    if (!hasInsufficientStock) {
+      return { text: 'Pronto para Envio', type: 'ready' };
+    }
+
+    if (missingCollectionsData && maxDays === 0) {
+      return { text: 'Sem dados de coleta', type: 'no_data' };
+    }
+
+    return { text: `${maxDays} ${maxDays === 1 ? 'dia' : 'dias'}`, type: 'forecast', days: maxDays };
+  };
+
   const renderOrdersTab = () => {
     const filteredOrders = orders.filter(o => {
       const matchClient = o.clients?.name?.toLowerCase().includes(orderSearch.toLowerCase());
@@ -1495,6 +1543,7 @@ export default function Remessas() {
                     <th scope="col" className="px-6 py-4">Origem</th>
                     <th scope="col" className="px-6 py-4 text-center">Quantidade</th>
                     <th scope="col" className="px-6 py-4">Status</th>
+                    <th scope="col" className="px-6 py-4">Previsão de Envio</th>
                     <th scope="col" className="px-6 py-4">Data do Pedido</th>
                     <th scope="col" className="px-6 py-4 text-right">Ações</th>
                   </tr>
@@ -1554,6 +1603,36 @@ export default function Remessas() {
                             <option value="Enviado">Enviado</option>
                             <option value="Cancelado">Cancelado</option>
                           </select>
+                        </td>
+                        <td className="px-6 py-4 text-xs font-semibold">
+                          {(() => {
+                            const forecast = getOrderShippingForecast(order);
+                            if (forecast.type === 'ready') {
+                              return (
+                                <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-200 uppercase">
+                                  Pronto
+                                </span>
+                              );
+                            }
+                            if (forecast.type === 'sent') {
+                              return <span className="text-slate-400 italic font-medium">Enviado</span>;
+                            }
+                            if (forecast.type === 'canceled') {
+                              return <span className="text-slate-400 italic font-medium">Cancelado</span>;
+                            }
+                            if (forecast.type === 'no_data') {
+                              return (
+                                <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-200 uppercase">
+                                  Sem Coleta
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-blue-200 uppercase">
+                                {forecast.text}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-6 py-4 text-xs font-medium">
                           {new Date(order.created_at).toLocaleDateString('pt-BR')}
