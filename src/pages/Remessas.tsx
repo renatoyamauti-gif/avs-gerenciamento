@@ -1719,6 +1719,22 @@ export default function Remessas() {
       };
     }).sort((a, b) => b.available - a.available);
 
+    const getStockBadge = (available: number) => {
+      let badgeStyle = '';
+      if (available > 0) {
+        badgeStyle = 'bg-green-50 text-green-800 border-green-200';
+      } else if (available === 0) {
+        badgeStyle = 'bg-orange-50 text-orange-800 border-orange-200';
+      } else {
+        badgeStyle = 'bg-red-50 text-red-800 border-red-200';
+      }
+      return (
+        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase border ${badgeStyle}`}>
+          {available}
+        </span>
+      );
+    };
+
     return (
       <div className="space-y-10">
         <div className="bg-[#EFF6FF] border border-[#BFDBFE] p-6 rounded-3xl">
@@ -1743,42 +1759,33 @@ export default function Remessas() {
               Nenhum estoque por raça disponível.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {racaEntries.map((entry) => {
-                const statusColor = entry.available >= 0 
-                  ? 'bg-green-100 text-green-800 border-green-200' 
-                  : 'bg-red-100 text-red-800 border-red-200';
-
-                return (
-                  <div key={entry.breed} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.01)] space-y-4">
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-bold text-base text-[#1F2937]">{entry.breed}</h4>
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase border ${statusColor}`}>
-                        Estoque: {entry.available}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-xs border-t border-slate-50 pt-3">
-                      <div>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Total Coletado</span>
-                        <span className="font-bold text-[#1F2937]">{entry.collected} ovos</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Incubados</span>
-                        <span className="font-bold text-[#1F2937]">{entry.incubated} ovos</span>
-                      </div>
-                      <div className="mt-2">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Reservados</span>
-                        <span className="font-bold text-[#1F2937]">{entry.sold} ovos</span>
-                      </div>
-                      <div className="mt-2">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Média de Coleta</span>
-                        <span className="font-bold text-[#2563EB]">{entry.dailyAvg.toFixed(1)} / dia</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="bg-white border border-slate-100 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-sm text-slate-500">
+                  <thead className="bg-[#F8FAFC] text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                    <tr>
+                      <th scope="col" className="px-6 py-4">Raça</th>
+                      <th scope="col" className="px-6 py-4 text-center">Coletados</th>
+                      <th scope="col" className="px-6 py-4 text-center">Incubados</th>
+                      <th scope="col" className="px-6 py-4 text-center">Reservados (Vendas)</th>
+                      <th scope="col" className="px-6 py-4 text-center">Média / Dia</th>
+                      <th scope="col" className="px-6 py-4 text-center">Estoque Disponível</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {racaEntries.map((entry) => (
+                      <tr key={entry.breed} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4 font-bold text-[#1F2937]">{entry.breed}</td>
+                        <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.collected} ovos</td>
+                        <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.incubated} ovos</td>
+                        <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.sold} ovos</td>
+                        <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB]">{entry.dailyAvg.toFixed(1)} / dia</td>
+                        <td className="px-6 py-4 text-center">{getStockBadge(entry.available)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
@@ -1794,42 +1801,33 @@ export default function Remessas() {
               Nenhum estoque por baia disponível.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {baiaEntries.map((entry) => {
-                const statusColor = entry.available >= 0 
-                  ? 'bg-green-100 text-green-800 border-green-200' 
-                  : 'bg-red-100 text-red-800 border-red-200';
-
-                return (
-                  <div key={entry.baia} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.01)] space-y-4">
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-bold text-base text-[#1F2937]">Baia {entry.baia}</h4>
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase border ${statusColor}`}>
-                        Estoque: {entry.available}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-xs border-t border-slate-50 pt-3">
-                      <div>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Total Coletado</span>
-                        <span className="font-bold text-[#1F2937]">{entry.collected} ovos</span>
-                      </div>
-                      <div>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Incubados</span>
-                        <span className="font-bold text-[#1F2937]">{entry.incubated} ovos</span>
-                      </div>
-                      <div className="mt-2">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Reservados</span>
-                        <span className="font-bold text-[#1F2937]">{entry.sold} ovos</span>
-                      </div>
-                      <div className="mt-2">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Média de Coleta</span>
-                        <span className="font-bold text-[#2563EB]">{entry.dailyAvg.toFixed(1)} / dia</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="bg-white border border-slate-100 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-sm text-slate-500">
+                  <thead className="bg-[#F8FAFC] text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                    <tr>
+                      <th scope="col" className="px-6 py-4">Baia</th>
+                      <th scope="col" className="px-6 py-4 text-center">Coletados</th>
+                      <th scope="col" className="px-6 py-4 text-center">Incubados</th>
+                      <th scope="col" className="px-6 py-4 text-center">Reservados (Vendas)</th>
+                      <th scope="col" className="px-6 py-4 text-center">Média / Dia</th>
+                      <th scope="col" className="px-6 py-4 text-center">Estoque Disponível</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {baiaEntries.map((entry) => (
+                      <tr key={entry.baia} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4 font-bold text-[#1F2937]">Baia {entry.baia}</td>
+                        <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.collected} ovos</td>
+                        <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.incubated} ovos</td>
+                        <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.sold} ovos</td>
+                        <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB]">{entry.dailyAvg.toFixed(1)} / dia</td>
+                        <td className="px-6 py-4 text-center">{getStockBadge(entry.available)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
