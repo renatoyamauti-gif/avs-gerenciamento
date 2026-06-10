@@ -388,11 +388,11 @@ export default function Chocadeira() {
                           <div className="flex items-center gap-2">
                             <button 
                               onClick={() => openEditBatch(inc.id, batch)}
-                              className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-slate-400 hover:text-[#2563EB] text-xs font-bold uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-lg"
+                              className="text-slate-400 hover:text-[#2563EB] text-xs font-bold uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-lg transition-colors"
                             >
                               Editar
                             </button>
-                            <button onClick={() => removeBatch(batch.id)} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-slate-400 hover:text-[#EF4444] p-2 hover:bg-[#FEF2F2] rounded-lg"><Trash2 size={16} /></button>
+                            <button onClick={() => removeBatch(batch.id)} className="text-slate-400 hover:text-[#EF4444] p-2 hover:bg-[#FEF2F2] rounded-lg transition-colors"><Trash2 size={16} /></button>
                           </div>
                         </div>
 
