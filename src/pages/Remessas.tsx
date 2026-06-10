@@ -1887,6 +1887,35 @@ export default function Remessas() {
             </>
           )}
         </div>
+
+        {/* Legend for mobile abbreviations */}
+        <div className="block md:hidden bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+          <h5 className="font-bold text-[10px] text-slate-400 uppercase tracking-widest mb-3">
+            Legenda (Abreviações Mobile)
+          </h5>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500 font-medium">
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-800 font-bold bg-slate-200/60 px-1.5 py-0.5 rounded text-[10px]">Col</span>
+              <span>Coletados</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-800 font-bold bg-slate-200/60 px-1.5 py-0.5 rounded text-[10px]">Est</span>
+              <span>Estoque</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-800 font-bold bg-slate-200/60 px-1.5 py-0.5 rounded text-[10px]">Res</span>
+              <span>Reservados</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#2563EB] font-bold bg-[#2563EB]/10 px-1.5 py-0.5 rounded text-[10px]">Méd</span>
+              <span>Média / Dia</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-800 font-bold bg-slate-200/60 px-1.5 py-0.5 rounded text-[10px]">Inc</span>
+              <span>Incubados</span>
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
