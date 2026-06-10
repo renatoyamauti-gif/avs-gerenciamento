@@ -1768,10 +1768,10 @@ export default function Remessas() {
                       <tr>
                         <th scope="col" className="px-6 py-4">Raça</th>
                         <th scope="col" className="px-6 py-4 text-center">Coletados</th>
-                        <th scope="col" className="px-6 py-4 text-center">Incubados</th>
-                        <th scope="col" className="px-6 py-4 text-center">Reservados (Vendas)</th>
+                        <th scope="col" className="px-6 py-4 text-center">Estoque</th>
+                        <th scope="col" className="px-6 py-4 text-center">Reservados</th>
                         <th scope="col" className="px-6 py-4 text-center">Média / Dia</th>
-                        <th scope="col" className="px-6 py-4 text-center">Estoque Disponível</th>
+                        <th scope="col" className="px-6 py-4 text-center">Incubados</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1779,10 +1779,10 @@ export default function Remessas() {
                         <tr key={entry.breed} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-6 py-4 font-bold text-[#1F2937]">{entry.breed}</td>
                           <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.collected} ovos</td>
-                          <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.incubated} ovos</td>
+                          <td className="px-6 py-4 text-center">{getStockBadge(entry.available)}</td>
                           <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.sold} ovos</td>
                           <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB]">{entry.dailyAvg.toFixed(1)} / dia</td>
-                          <td className="px-6 py-4 text-center">{getStockBadge(entry.available)}</td>
+                          <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.incubated} ovos</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1799,11 +1799,13 @@ export default function Remessas() {
                       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-500 mt-1 font-semibold">
                         <span>Col: <span className="text-slate-800 font-bold">{entry.collected}</span></span>
                         <span className="text-slate-300">•</span>
-                        <span>Inc: <span className="text-slate-800 font-bold">{entry.incubated}</span></span>
+                        <span>Est: <span className="text-slate-800 font-bold">{entry.available}</span></span>
                         <span className="text-slate-300">•</span>
                         <span>Res: <span className="text-slate-800 font-bold">{entry.sold}</span></span>
                         <span className="text-slate-300">•</span>
                         <span>Méd: <span className="text-[#2563EB] font-bold">{entry.dailyAvg.toFixed(1)}/d</span></span>
+                        <span className="text-slate-300">•</span>
+                        <span>Inc: <span className="text-slate-800 font-bold">{entry.incubated}</span></span>
                       </div>
                     </div>
                     <div className="shrink-0 pl-1">
@@ -1836,10 +1838,10 @@ export default function Remessas() {
                       <tr>
                         <th scope="col" className="px-6 py-4">Baia</th>
                         <th scope="col" className="px-6 py-4 text-center">Coletados</th>
-                        <th scope="col" className="px-6 py-4 text-center">Incubados</th>
-                        <th scope="col" className="px-6 py-4 text-center">Reservados (Vendas)</th>
+                        <th scope="col" className="px-6 py-4 text-center">Estoque</th>
+                        <th scope="col" className="px-6 py-4 text-center">Reservados</th>
                         <th scope="col" className="px-6 py-4 text-center">Média / Dia</th>
-                        <th scope="col" className="px-6 py-4 text-center">Estoque Disponível</th>
+                        <th scope="col" className="px-6 py-4 text-center">Incubados</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1847,10 +1849,10 @@ export default function Remessas() {
                         <tr key={entry.baia} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-6 py-4 font-bold text-[#1F2937]">Baia {entry.baia}</td>
                           <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.collected} ovos</td>
-                          <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.incubated} ovos</td>
+                          <td className="px-6 py-4 text-center">{getStockBadge(entry.available)}</td>
                           <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.sold} ovos</td>
                           <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB]">{entry.dailyAvg.toFixed(1)} / dia</td>
-                          <td className="px-6 py-4 text-center">{getStockBadge(entry.available)}</td>
+                          <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700">{entry.incubated} ovos</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1867,11 +1869,13 @@ export default function Remessas() {
                       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-500 mt-1 font-semibold">
                         <span>Col: <span className="text-slate-800 font-bold">{entry.collected}</span></span>
                         <span className="text-slate-300">•</span>
-                        <span>Inc: <span className="text-slate-800 font-bold">{entry.incubated}</span></span>
+                        <span>Est: <span className="text-slate-800 font-bold">{entry.available}</span></span>
                         <span className="text-slate-300">•</span>
                         <span>Res: <span className="text-slate-800 font-bold">{entry.sold}</span></span>
                         <span className="text-slate-300">•</span>
                         <span>Méd: <span className="text-[#2563EB] font-bold">{entry.dailyAvg.toFixed(1)}/d</span></span>
+                        <span className="text-slate-300">•</span>
+                        <span>Inc: <span className="text-slate-800 font-bold">{entry.incubated}</span></span>
                       </div>
                     </div>
                     <div className="shrink-0 pl-1">
