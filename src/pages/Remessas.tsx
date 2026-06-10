@@ -1745,11 +1745,9 @@ export default function Remessas() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {racaEntries.map((entry) => {
-                const statusColor = entry.available > 50 
+                const statusColor = entry.available >= 0 
                   ? 'bg-green-100 text-green-800 border-green-200' 
-                  : entry.available > 10 
-                  ? 'bg-blue-100 text-blue-800 border-blue-200' 
-                  : 'bg-amber-100 text-amber-800 border-amber-200';
+                  : 'bg-red-100 text-red-800 border-red-200';
 
                 return (
                   <div key={entry.breed} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.01)] space-y-4">
@@ -1798,11 +1796,9 @@ export default function Remessas() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {baiaEntries.map((entry) => {
-                const statusColor = entry.available > 50 
+                const statusColor = entry.available >= 0 
                   ? 'bg-green-100 text-green-800 border-green-200' 
-                  : entry.available > 10 
-                  ? 'bg-blue-100 text-blue-800 border-blue-200' 
-                  : 'bg-amber-100 text-amber-800 border-amber-200';
+                  : 'bg-red-100 text-red-800 border-red-200';
 
                 return (
                   <div key={entry.baia} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.01)] space-y-4">
