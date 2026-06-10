@@ -24,6 +24,8 @@ export default function EggCollection() {
   const [uniqueBaias, setUniqueBaias] = useState<string[]>([]);
   const [uniqueRacas, setUniqueRacas] = useState<string[]>([]);
   const [originType, setOriginType] = useState<'baia' | 'raca'>('baia');
+  const [incubators, setIncubators] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   
   const currentDate = new Date();
   const [viewDate, setViewDate] = useState(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
@@ -39,7 +41,7 @@ export default function EggCollection() {
 
     (logs || []).forEach(log => {
       const dateKey = `${log.year}-${log.month}-${log.day}`;
-      if (log.baia) {
+      if (log.baia && log.count) {
         log.baia.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((name: string) => {
           baiaMap[name] = (baiaMap[name] || 0) + log.count;
           baiaTotalMap[name] = (baiaTotalMap[name] || 0) + log.count;
@@ -47,7 +49,7 @@ export default function EggCollection() {
           baiaDaysMap[name].add(dateKey);
         });
       }
-      if (log.raca) {
+      if (log.raca && log.count) {
         log.raca.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((name: string) => {
           racaMap[name] = (racaMap[name] || 0) + log.count;
           racaTotalMap[name] = (racaTotalMap[name] || 0) + log.count;
@@ -57,8 +59,65 @@ export default function EggCollection() {
       }
     });
 
-    const ebBaia = Object.entries(baiaMap).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
-    const ebRaca = Object.entries(racaMap).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+    // Subtract incubated eggs from breed/baia maps
+    (incubators || []).forEach(inc => {
+      (inc.incubator_batches || []).forEach((batch: any) => {
+        if (batch.baia_details) {
+          Object.entries(batch.baia_details).forEach(([bName, qty]) => {
+            const q = Number(qty) || 0;
+            if (baiaMap[bName] !== undefined) {
+              baiaMap[bName] -= q;
+            } else {
+              baiaMap[bName] = -q;
+            }
+          });
+        }
+        if (batch.raca_details) {
+          Object.entries(batch.raca_details).forEach(([breed, qty]) => {
+            const q = Number(qty) || 0;
+            if (racaMap[breed] !== undefined) {
+              racaMap[breed] -= q;
+            } else {
+              racaMap[breed] = -q;
+            }
+          });
+        }
+      });
+    });
+
+    // Subtract sold eggs from orders (status !== 'Cancelado')
+    (orders || []).forEach(ord => {
+      if (ord.status !== 'Cancelado') {
+        const orderItems = ord.items && Array.isArray(ord.items) && ord.items.length > 0
+          ? ord.items
+          : [{ origem_type: ord.origem_type || 'raca', raca: ord.raca || '', baia: ord.baia || '', quantity: ord.quantity || 0 }];
+
+        orderItems.forEach((item: any) => {
+          const qty = Number(item.quantity) || 0;
+          if (qty > 0) {
+            const isRaca = (item.origem_type || 'raca') === 'raca';
+            if (isRaca && item.raca) {
+              const breed = item.raca;
+              if (racaMap[breed] !== undefined) {
+                racaMap[breed] -= qty;
+              } else {
+                racaMap[breed] = -qty;
+              }
+            } else if (!isRaca && item.baia) {
+              const bName = item.baia;
+              if (baiaMap[bName] !== undefined) {
+                baiaMap[bName] -= qty;
+              } else {
+                baiaMap[bName] = -qty;
+              }
+            }
+          }
+        });
+      }
+    });
+
+    const ebBaia = Object.entries(baiaMap).map(([name, count]) => ({ name, count: Math.max(0, count) })).sort((a, b) => b.count - a.count);
+    const ebRaca = Object.entries(racaMap).map(([name, count]) => ({ name, count: Math.max(0, count) })).sort((a, b) => b.count - a.count);
 
     const bEst = Object.entries(baiaTotalMap).map(([name, total]) => {
       const days = baiaDaysMap[name].size || 1;
@@ -80,7 +139,7 @@ export default function EggCollection() {
       baiaEstimates: bEst,
       racaEstimates: rEst
     };
-  }, [logs]);
+  }, [logs, incubators, orders]);
 
   useEffect(() => {
     loadLogs();
@@ -110,11 +169,18 @@ export default function EggCollection() {
 
   async function loadLogs() {
     try {
-      const data = await dbService.getEggLogs();
-      setLogs(data || []);
+      const [logsData, incubatorsData, ordersData] = await Promise.all([
+        dbService.getEggLogs(),
+        dbService.getIncubators(),
+        dbService.getOrders()
+      ]);
+      setLogs(logsData || []);
+      setIncubators(incubatorsData || []);
+      setOrders(ordersData || []);
     } catch (error) {
-      console.error('Erro ao carregar logs de ovos:', error);
+      console.error('Erro ao carregar logs e estoque de ovos:', error);
     } finally {
+      setViewDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
       setLoading(false);
     }
   }

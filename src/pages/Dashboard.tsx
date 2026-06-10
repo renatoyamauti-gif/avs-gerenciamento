@@ -25,35 +25,114 @@ export default function Dashboard() {
   async function loadDashboardData() {
     try {
       setLoading(true);
-      // Load Birds
-      const birds = await dbService.getBirds();
+      // Load all data in parallel
+      const [birds, eggLogs, maternityRecords, incubators, transactions, orders] = await Promise.all([
+        dbService.getBirds(),
+        dbService.getEggLogs(),
+        dbService.getMaternityRecords(),
+        dbService.getIncubators(),
+        dbService.getTransactions(),
+        dbService.getOrders()
+      ]);
+
       const activeBirds = (birds || []).filter(b => b.status !== 'Vendida' && b.status !== 'Óbito' && b.status !== 'Reservada');
       setBirdCount(activeBirds.length);
-
-      // Load Eggs
-      const eggLogs = await dbService.getEggLogs();
-      const totalEggs = (eggLogs || []).reduce((acc, curr) => acc + curr.count, 0);
-      setEggCount(totalEggs);
 
       // Process eggs by Baia and by Raça
       const baiaMap: { [key: string]: number } = {};
       const racaMap: { [key: string]: number } = {};
       (eggLogs || []).forEach(log => {
-        if (log.baia) {
+        if (log.baia && log.count) {
           log.baia.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((name: string) => {
             baiaMap[name] = (baiaMap[name] || 0) + log.count;
           });
         }
-        if (log.raca) {
+        if (log.raca && log.count) {
           log.raca.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((name: string) => {
             racaMap[name] = (racaMap[name] || 0) + log.count;
           });
         }
       });
-      setEggsByBaia(Object.entries(baiaMap).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count));
-      setEggsByRaca(Object.entries(racaMap).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count));
 
-      // Calculate monthly estimate based on daily collections
+      // Subtract incubated eggs from breed/baia maps
+      (incubators || []).forEach(inc => {
+        (inc.incubator_batches || []).forEach((batch: any) => {
+          if (batch.baia_details) {
+            Object.entries(batch.baia_details).forEach(([bName, qty]) => {
+              const q = Number(qty) || 0;
+              if (baiaMap[bName] !== undefined) {
+                baiaMap[bName] -= q;
+              } else {
+                baiaMap[bName] = -q;
+              }
+            });
+          }
+          if (batch.raca_details) {
+            Object.entries(batch.raca_details).forEach(([breed, qty]) => {
+              const q = Number(qty) || 0;
+              if (racaMap[breed] !== undefined) {
+                racaMap[breed] -= q;
+              } else {
+                racaMap[breed] = -q;
+              }
+            });
+          }
+        });
+      });
+
+      // Subtract sold eggs from orders (status !== 'Cancelado')
+      (orders || []).forEach(ord => {
+        if (ord.status !== 'Cancelado') {
+          const orderItems = ord.items && Array.isArray(ord.items) && ord.items.length > 0
+            ? ord.items
+            : [{ origem_type: ord.origem_type || 'raca', raca: ord.raca || '', baia: ord.baia || '', quantity: ord.quantity || 0 }];
+
+          orderItems.forEach((item: any) => {
+            const qty = Number(item.quantity) || 0;
+            if (qty > 0) {
+              const isRaca = (item.origem_type || 'raca') === 'raca';
+              if (isRaca && item.raca) {
+                const breed = item.raca;
+                if (racaMap[breed] !== undefined) {
+                  racaMap[breed] -= qty;
+                } else {
+                  racaMap[breed] = -qty;
+                }
+              } else if (!isRaca && item.baia) {
+                const bName = item.baia;
+                if (baiaMap[bName] !== undefined) {
+                  baiaMap[bName] -= qty;
+                } else {
+                  baiaMap[bName] = -qty;
+                }
+              }
+            }
+          });
+        }
+      });
+
+      // Set eggs by Baia and by Raça (using available stock, minimum 0)
+      setEggsByBaia(Object.entries(baiaMap).map(([name, count]) => ({ name, count: Math.max(0, count) })).sort((a, b) => b.count - a.count));
+      setEggsByRaca(Object.entries(racaMap).map(([name, count]) => ({ name, count: Math.max(0, count) })).sort((a, b) => b.count - a.count));
+
+      // Calculate total available egg stock
+      const totalCollected = (eggLogs || []).reduce((acc, curr) => acc + curr.count, 0);
+      let totalIncubated = 0;
+      (incubators || []).forEach(inc => {
+        (inc.incubator_batches || []).forEach(batch => {
+          totalIncubated += batch.count || 0;
+        });
+      });
+      let totalSold = 0;
+      (orders || []).forEach(ord => {
+        if (ord.status !== 'Cancelado') {
+          totalSold += Number(ord.quantity) || 0;
+        }
+      });
+      const totalAvailable = Math.max(0, totalCollected - totalIncubated - totalSold);
+      setEggCount(totalAvailable);
+
+      // Projections (based purely on collection logs)
       const baiaTotalMap: { [key: string]: number } = {};
       const baiaDaysMap: { [key: string]: Set<string> } = {};
       const racaTotalMap: { [key: string]: number } = {};
@@ -94,13 +173,11 @@ export default function Dashboard() {
       setBaiaEstimates(bEstimates);
       setRacaEstimates(rEstimates);
 
-      // Load Chicks (Maternidade)
-      const maternityRecords = await dbService.getMaternityRecords();
+      // Maternity count
       const activeChicks = (maternityRecords || []).filter(r => r.status !== 'Óbito' && r.status !== 'Transferido');
       setChickCount(activeChicks.length);
 
-      // Load Incubators
-      const incubators = await dbService.getIncubators();
+      // Incubator details
       let totalIncEggs = 0;
       let minDiff = Infinity;
       let nearestStatus = null;
@@ -131,13 +208,12 @@ export default function Dashboard() {
       setIncubatorEggs(totalIncEggs);
       setNextHatch(nearestStatus);
 
-      // Load Finance
-      const transactions = await dbService.getTransactions();
+      // Finance summary
       const income = (transactions || []).filter(t => t.type === 'Entrada').reduce((acc, t) => acc + t.amount, 0);
       const expense = (transactions || []).filter(t => t.type === 'Saída').reduce((acc, t) => acc + t.amount, 0);
       setFinanceSummary({ income, expense, balance: income - expense });
 
-      // Build simple chart data from transactions
+      // Transactions chart
       const months: { [key: string]: number } = {};
       (transactions || []).forEach(t => {
         const date = new Date(t.date);
@@ -180,17 +256,17 @@ export default function Dashboard() {
       {/* Metrics Section */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
         
-        {/* Ovos Coletados */}
+        {/* Estoque de Ovos */}
         <div className="bg-white border border-slate-100 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
           <div className="flex items-center gap-4 mb-4">
             <div className="bg-[#FFF7ED] p-3 rounded-full">
               <Egg size={24} className="text-[#F59E0B]" />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Ovos Coletados</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Estoque de Ovos</p>
               <div className="flex items-baseline gap-1 mt-0.5">
                 <p className="text-2xl font-black text-[#1F2937]">{eggCount}</p>
-                <span className="text-[10px] text-slate-400">Total</span>
+                <span className="text-[10px] text-slate-400">Disponível</span>
               </div>
             </div>
           </div>
