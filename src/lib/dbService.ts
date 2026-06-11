@@ -808,9 +808,15 @@ export const dbService = {
     const adminProfile = await this.getProfile();
     const criatorioName = adminProfile?.criatorio_name || '';
 
+    // Convert username to @avs.local email format if it's not a standard email
+    let userEmail = email.trim();
+    if (!userEmail.includes('@')) {
+      userEmail = `${userEmail.toLowerCase().replace(/\s+/g, '')}@avs.local`;
+    }
+
     // 1. Create the user account using admin API
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
+      email: userEmail,
       password,
       email_confirm: true,
       user_metadata: {
@@ -831,7 +837,7 @@ export const dbService = {
       .insert([{
         id: authData.user.id,
         full_name: fullName,
-        email: email,
+        email: userEmail,
         parent_user_id: adminUser.id,
         role: 'tratador',
         permissions,

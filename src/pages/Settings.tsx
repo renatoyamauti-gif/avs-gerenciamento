@@ -153,6 +153,13 @@ export default function Settings() {
     setSubmittingSubUser(true);
     setTeamMessage(null);
 
+    const sanitizedUsername = subUserUsername.trim().toLowerCase().replace(/\s+/g, '');
+    if (!sanitizedUsername) {
+      setTeamMessage({ type: 'error', text: 'O nome de usuário não pode ser vazio.' });
+      setSubmittingSubUser(false);
+      return;
+    }
+
     if (subUserPassword.length < 6) {
       setTeamMessage({ type: 'error', text: 'A senha do tratador deve ter pelo menos 6 caracteres.' });
       setSubmittingSubUser(false);
@@ -161,7 +168,7 @@ export default function Settings() {
 
     try {
       await dbService.createSubUser(
-        subUserUsername,
+        sanitizedUsername,
         subUserPassword,
         subUserFullName,
         subUserPermissions
@@ -185,7 +192,16 @@ export default function Settings() {
       await loadTeam();
     } catch (error: any) {
       console.error('Erro ao adicionar tratador:', error);
-      setTeamMessage({ type: 'error', text: 'Erro ao cadastrar tratador: ' + error.message });
+      let errorMsg = error.message || 'Erro inesperado.';
+      if (
+        errorMsg.includes('Email already exists') || 
+        errorMsg.includes('User already registered') || 
+        errorMsg.includes('email_exists') ||
+        errorMsg.includes('already exists')
+      ) {
+        errorMsg = 'Este nome de usuário já está em uso.';
+      }
+      setTeamMessage({ type: 'error', text: 'Erro ao cadastrar tratador: ' + errorMsg });
     } finally {
       setSubmittingSubUser(false);
     }

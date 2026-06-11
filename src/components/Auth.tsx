@@ -45,9 +45,9 @@ export default function Auth() {
       if (errorMsg.toLowerCase().includes('rate limit')) {
         errorMsg = 'Muitas tentativas. Aguarde um momento antes de tentar novamente.';
       } else if (errorMsg.includes('Invalid login credentials')) {
-        errorMsg = 'E-mail ou senha inválidos.';
+        errorMsg = 'Usuário, e-mail ou senha inválidos.';
       } else if (errorMsg.includes('User already registered')) {
-        errorMsg = 'Este e-mail já está cadastrado.';
+        errorMsg = 'Este usuário ou e-mail já está cadastrado.';
       }
       setError(errorMsg);
     } finally {
