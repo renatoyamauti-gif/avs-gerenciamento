@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Egg, Trash2, X, Loader2, Edit2 } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Egg, Trash2, X, Loader2, Edit2, QrCode, Printer } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
+import { useSearchParams } from 'react-router-dom';
 
 interface CollectionEntry {
   id: string;
@@ -26,6 +27,15 @@ export default function EggCollection() {
   const [originType, setOriginType] = useState<'baia' | 'raca'>('baia');
   const [incubators, setIncubators] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [prefilledBaia, setPrefilledBaia] = useState('');
+  const [prefilledRaca, setPrefilledRaca] = useState('');
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrTab, setQrTab] = useState<'baia' | 'raca'>('baia');
+  const [printSingleItem, setPrintSingleItem] = useState<{type: 'baia' | 'raca', name: string} | null>(null);
+
+  const countInputRef = useRef<HTMLInputElement>(null);
   
   const currentDate = new Date();
   const [viewDate, setViewDate] = useState(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
@@ -185,6 +195,40 @@ export default function EggCollection() {
     }
   }
 
+  // Handle URL Query parameters for QR Code collections
+  useEffect(() => {
+    const baiaParam = searchParams.get('baia');
+    const racaParam = searchParams.get('raca');
+    if (baiaParam || racaParam) {
+      if (baiaParam) {
+        setOriginType('baia');
+        setPrefilledBaia(baiaParam);
+      } else if (racaParam) {
+        setOriginType('raca');
+        setPrefilledRaca(racaParam);
+      }
+      setEditingDay(new Date().getDate());
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Autofocus the count input when modal opens
+  useEffect(() => {
+    if (editingDay !== null) {
+      setTimeout(() => {
+        countInputRef.current?.focus();
+        countInputRef.current?.select();
+      }, 100);
+    }
+  }, [editingDay]);
+
+  const handleCloseModal = () => {
+    setEditingDay(null);
+    setEditingLogId(null);
+    setPrefilledBaia('');
+    setPrefilledRaca('');
+  };
+
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
   const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
@@ -272,7 +316,7 @@ export default function EggCollection() {
       form.reset(); // Keeps modal open but clears form for the next baia
       
       if (shouldClose) {
-        setEditingDay(null);
+        handleCloseModal();
       }
     } catch (error) {
       alert('Erro ao salvar coleta: ' + error);
@@ -339,10 +383,16 @@ export default function EggCollection() {
             </div>
           </div>
           <button 
-            onClick={() => setEditingDay(new Date().getDate())}
-            className="bg-[#2563EB] text-white p-5 rounded-3xl shadow-md hover:bg-[#1D4ED8] hover:scale-105 active:scale-95 transition-all text-sm font-bold uppercase tracking-widest flex items-center justify-center"
+            onClick={() => setShowQRModal(true)}
+            className="bg-white border border-slate-200 text-slate-700 px-6 py-4 rounded-[24px] shadow-sm hover:bg-slate-50 hover:scale-[1.02] active:scale-95 transition-all text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2"
           >
-            Adicionar Coleta
+            <QrCode size={16} /> QR Codes
+          </button>
+          <button 
+            onClick={() => setEditingDay(new Date().getDate())}
+            className="bg-[#2563EB] text-white px-6 py-4 rounded-[24px] shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+          >
+            <Plus size={16} /> Adicionar Coleta
           </button>
         </div>
       </section>
@@ -630,10 +680,7 @@ export default function EggCollection() {
                   </p>
                 </div>
                 <button 
-                  onClick={() => {
-                    setEditingDay(null);
-                    setEditingLogId(null);
-                  }}
+                  onClick={handleCloseModal}
                   className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"
                 >
                   <X size={20} />
@@ -680,7 +727,7 @@ export default function EggCollection() {
                 </div>
               )}
 
-              <form key={editingLogId || 'new'} onSubmit={handleUpdateDay} className="space-y-6 pt-6 border-t border-slate-100">
+              <form key={editingLogId || prefilledBaia || prefilledRaca || 'new'} onSubmit={handleUpdateDay} className="space-y-6 pt-6 border-t border-slate-100">
                 <div className="flex justify-between items-center">
                   <h4 className="text-sm font-bold text-[#2563EB] uppercase tracking-widest">
                     {editingLogId ? 'Editar Coleta' : 'Adicionar Nova Coleta'}
@@ -693,6 +740,7 @@ export default function EggCollection() {
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Quantidade de Ovos</label>
                   <div className="flex items-center gap-4">
                     <input 
+                      ref={countInputRef}
                       required 
                       name="count" 
                       type="number" 
@@ -746,7 +794,7 @@ export default function EggCollection() {
                     <input 
                       name="baia" 
                       list="egg-baias-list"
-                      defaultValue={logToEdit?.baia || ""} 
+                      defaultValue={logToEdit?.baia || prefilledBaia} 
                       type="text" 
                       placeholder="Ex: Baia 01" 
                       className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
@@ -763,7 +811,7 @@ export default function EggCollection() {
                     <input 
                       name="raca" 
                       list="egg-racas-list"
-                      defaultValue={logToEdit?.raca || ""} 
+                      defaultValue={logToEdit?.raca || prefilledRaca} 
                       type="text" 
                       placeholder="Ex: GSB, Galo Índio" 
                       className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
@@ -806,6 +854,172 @@ export default function EggCollection() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* QR Code Modal */}
+      <AnimatePresence>
+        {showQRModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setShowQRModal(false)}
+              className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-4xl bg-white p-6 sm:p-8 rounded-[32px] shadow-2xl flex flex-col max-h-[90vh] z-10"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] font-headline">QR Codes para Coleta</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Imprima e cole nas portas das baias para fazer a coleta lendo o QR Code.</p>
+                </div>
+                <button 
+                  onClick={() => setShowQRModal(false)}
+                  className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Tabs and Actions */}
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 border-b border-slate-100 pb-6">
+                <div className="flex bg-[#F8FAFC] p-1.5 rounded-2xl border border-slate-100 w-full sm:w-auto">
+                  <button
+                    onClick={() => setQrTab('baia')}
+                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${qrTab === 'baia' ? 'bg-[#2563EB] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Por Baia ({uniqueBaias.length})
+                  </button>
+                  <button
+                    onClick={() => setQrTab('raca')}
+                    className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all ${qrTab === 'raca' ? 'bg-[#2563EB] text-white shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Por Raça ({uniqueRacas.length})
+                  </button>
+                </div>
+                
+                <button
+                  onClick={() => {
+                    setPrintSingleItem(null);
+                    setTimeout(() => {
+                      window.print();
+                    }, 100);
+                  }}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#2563EB] text-white px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] transition-all"
+                >
+                  <Printer size={16} /> Imprimir Todos
+                </button>
+              </div>
+
+              {/* QR Gallery */}
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  {(qrTab === 'baia' ? uniqueBaias : uniqueRacas).map((item) => {
+                    const url = `${window.location.origin}/eggs?${qrTab}=${encodeURIComponent(item)}`;
+                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(url)}`;
+                    return (
+                      <div key={item} className="bg-[#F8FAFC] border border-slate-100 rounded-3xl p-6 flex flex-col items-center justify-between text-center relative group hover:border-[#2563EB]/30 transition-all">
+                        <div className="text-sm font-black text-slate-800 mb-1 uppercase font-headline">{item}</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Coleta rápida</div>
+                        
+                        <div className="bg-white p-4 rounded-2xl border border-slate-100 mb-4 shadow-sm">
+                          <img src={qrUrl} alt={item} className="w-32 h-32 object-contain" />
+                        </div>
+                        
+                        <button
+                          onClick={() => {
+                            setPrintSingleItem({ type: qrTab, name: item });
+                            setTimeout(() => {
+                              window.print();
+                              setPrintSingleItem(null);
+                            }, 100);
+                          }}
+                          className="flex items-center gap-1.5 text-[10px] font-black text-[#2563EB] uppercase tracking-widest hover:text-[#1D4ED8]"
+                        >
+                          <Printer size={12} /> Imprimir este
+                        </button>
+                      </div>
+                    );
+                  })}
+                  {(qrTab === 'baia' ? uniqueBaias : uniqueRacas).length === 0 && (
+                    <div className="col-span-full py-16 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">
+                      Nenhum item cadastrado para gerar QR Codes.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Printable Area (Hidden on screen, visible during print) */}
+      <div id="print-section" className="hidden">
+        {printSingleItem ? (
+          <div className="print-card">
+            <div className="text-xl font-black text-slate-800 mb-2 uppercase font-headline">{printSingleItem.name}</div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Coleta de Ovos</div>
+            <img 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/eggs?${printSingleItem.type}=${encodeURIComponent(printSingleItem.name)}`)}`} 
+              alt={printSingleItem.name} 
+              className="w-40 h-40 object-contain mx-auto mb-4" 
+            />
+            <div className="text-[9px] font-bold text-blue-600 tracking-tight">
+              {`${window.location.origin}/eggs?${printSingleItem.type}=${encodeURIComponent(printSingleItem.name)}`}
+            </div>
+          </div>
+        ) : (
+          (qrTab === 'baia' ? uniqueBaias : uniqueRacas).map((item) => {
+            const url = `${window.location.origin}/eggs?${qrTab}=${encodeURIComponent(item)}`;
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+            return (
+              <div key={item} className="print-card">
+                <div className="text-xl font-black text-slate-800 mb-2 uppercase font-headline">{item}</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Coleta de Ovos</div>
+                <img src={qrUrl} alt={item} className="w-40 h-40 object-contain mx-auto mb-4" />
+                <div className="text-[9px] font-bold text-blue-600 tracking-tight">{url}</div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <style dangerouslySetInnerHTML={{__html: `
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #print-section, #print-section * {
+            visibility: visible !important;
+          }
+          #print-section {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 20px !important;
+            background: white !important;
+          }
+          .print-card {
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 16px !important;
+            padding: 24px !important;
+            text-align: center !important;
+            page-break-inside: avoid !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: white !important;
+          }
+        }
+      `}} />
     </motion.div>
   );
 }
