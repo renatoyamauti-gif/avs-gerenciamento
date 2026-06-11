@@ -831,10 +831,10 @@ export const dbService = {
     if (authError) throw authError;
     if (!authData.user) throw new Error('Falha ao criar usuário de autenticação');
 
-    // 2. Create the profile record in profiles table
+    // 2. Create the profile record in profiles table (use upsert to prevent conflicts with database triggers)
     const { data: profileData, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .insert([{
+      .upsert({
         id: authData.user.id,
         full_name: fullName,
         email: userEmail,
@@ -842,7 +842,7 @@ export const dbService = {
         role: 'tratador',
         permissions,
         criatorio_name: criatorioName
-      }])
+      })
       .select();
 
     if (profileError) {
