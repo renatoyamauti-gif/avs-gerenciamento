@@ -547,7 +547,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
@@ -591,7 +591,7 @@ export const dbService = {
       data: updates
     });
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('profiles')
       .upsert({ id: user.id, ...updates, updated_at: new Date().toISOString() })
       .select();
@@ -730,7 +730,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const { error } = await supabaseAdmin
+    const { error } = await supabase
       .from('profiles')
       .update({ chat_enabled: enabled })
       .eq('id', user.id);
@@ -786,12 +786,11 @@ export const dbService = {
     return data || [];
   },
 
-  // Team Management
   async getTeamMembers() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('parent_user_id', user.id)

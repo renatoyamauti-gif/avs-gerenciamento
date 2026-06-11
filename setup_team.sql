@@ -175,3 +175,6 @@ CREATE POLICY "Allow update profiles within team" ON profiles FOR UPDATE
 
 CREATE POLICY "Allow insert profiles" ON profiles FOR INSERT
   WITH CHECK (public.check_profile_access(id, parent_user_id));
+
+CREATE POLICY "Allow delete profiles within team" ON profiles FOR DELETE
+  USING (public.check_profile_access(id, parent_user_id));
