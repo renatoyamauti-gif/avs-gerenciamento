@@ -71,7 +71,7 @@ const plans = [
     icon: <Shield size={24} className="text-[#16A34A]" />,
     gradient: 'from-[#DCFCE7] to-[#F0FDF4]',
     border: 'border-[#BBF7D0]',
-    link: 'https://buy.stripe.com/test_placeholder_trimestral',
+    link: 'https://buy.stripe.com/aFa8wOgYJd6BgAt6J94Rq03',
   },
   {
     id: 'anual',
