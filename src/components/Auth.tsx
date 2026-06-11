@@ -17,8 +17,13 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      let loginEmail = email.trim();
+      if (!loginEmail.includes('@')) {
+        loginEmail = `${loginEmail.toLowerCase().replace(/\s+/g, '')}@avs.local`;
+      }
+
       if (mode === 'forgot_password') {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        const { error } = await supabase.auth.resetPasswordForEmail(loginEmail, {
           redirectTo: `${window.location.origin}/`,
         });
         if (error) throw error;
@@ -28,11 +33,11 @@ export default function Auth() {
         if (password !== confirmPassword) {
           throw new Error('As senhas não coincidem.');
         }
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({ email: loginEmail, password });
         if (error) throw error;
         alert('Confirme seu e-mail para completar o cadastro!');
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
         if (error) throw error;
       }
     } catch (err: any) {
@@ -135,17 +140,17 @@ export default function Auth() {
               
               <div className="space-y-2">
                 <label htmlFor="email" className="block text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
-                  E-mail
+                  Usuário ou E-mail
                 </label>
                 <div className="relative group">
                   <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#2563EB] transition-colors duration-300" />
                   <input
                     id="email"
                     required
-                    type="email"
+                    type="text"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="voce@exemplo.com"
+                    placeholder="Ex: joao ou voce@exemplo.com"
                     className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-11 pr-4 py-3.5 text-[#1F2937] text-sm font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all duration-300 outline-none placeholder:text-slate-400"
                   />
                 </div>

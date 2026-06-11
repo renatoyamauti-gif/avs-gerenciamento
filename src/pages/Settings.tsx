@@ -44,7 +44,7 @@ export default function Settings() {
   const [teamMessage, setTeamMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   // New subuser fields
-  const [subUserEmail, setSubUserEmail] = useState('');
+  const [subUserUsername, setSubUserUsername] = useState('');
   const [subUserPassword, setSubUserPassword] = useState('');
   const [subUserFullName, setSubUserFullName] = useState('');
   const [subUserPermissions, setSubUserPermissions] = useState<any>({
@@ -161,14 +161,14 @@ export default function Settings() {
 
     try {
       await dbService.createSubUser(
-        subUserEmail,
+        subUserUsername,
         subUserPassword,
         subUserFullName,
         subUserPermissions
       );
 
       setTeamMessage({ type: 'success', text: 'Tratador cadastrado com sucesso!' });
-      setSubUserEmail('');
+      setSubUserUsername('');
       setSubUserPassword('');
       setSubUserFullName('');
       setSubUserPermissions({
@@ -209,6 +209,14 @@ export default function Settings() {
       setLoadingTeam(false);
     }
   }
+
+  const getDisplayEmail = (emailStr: string) => {
+    if (!emailStr) return '';
+    if (emailStr.endsWith('@avs.local')) {
+      return emailStr.split('@')[0];
+    }
+    return emailStr;
+  };
 
   const handlePermissionToggle = (key: string) => {
     setSubUserPermissions({
@@ -513,15 +521,15 @@ export default function Settings() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">E-mail</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nome de Usuário</label>
                     <div className="relative group">
-                      <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#2563EB] transition-colors" />
+                       <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#2563EB] transition-colors" />
                       <input
                         required
-                        type="email"
-                        placeholder="tratador@exemplo.com"
-                        value={subUserEmail}
-                        onChange={(e) => setSubUserEmail(e.target.value)}
+                        type="text"
+                        placeholder="Ex: joaosilva"
+                        value={subUserUsername}
+                        onChange={(e) => setSubUserUsername(e.target.value)}
                         className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-11 pr-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none"
                       />
                     </div>
@@ -608,7 +616,7 @@ export default function Settings() {
                   <thead className="bg-[#F8FAFC] text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
                     <tr>
                       <th scope="col" className="px-6 py-4">Nome</th>
-                      <th scope="col" className="px-6 py-4">E-mail</th>
+                      <th scope="col" className="px-6 py-4">Usuário</th>
                       <th scope="col" className="px-6 py-4">Módulos Ativos</th>
                       <th scope="col" className="px-6 py-4 text-center">Ações</th>
                     </tr>
@@ -621,7 +629,7 @@ export default function Settings() {
                       return (
                         <tr key={member.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-6 py-4 font-bold text-[#1F2937]">{member.full_name}</td>
-                          <td className="px-6 py-4 font-semibold text-xs text-slate-600">{member.email || member.sender_email || member.id}</td>
+                          <td className="px-6 py-4 font-semibold text-xs text-slate-600">{getDisplayEmail(member.email || member.sender_email) || member.id}</td>
                           <td className="px-6 py-4">
                             <div className="flex flex-wrap gap-1">
                               {allowedModules.length === 0 ? (
