@@ -76,9 +76,9 @@ const plans = [
   {
     id: 'anual',
     name: 'Completo Anual',
-    description: 'Plano Anual com 20% de desconto.',
+    description: 'Plano Anual com 16% de desconto.',
     originalPrice: 'R$ 479,88',
-    price: 'R$ 383,99',
+    price: 'R$ 399,99',
     period: '/ano',
     features: [
       'Aves ilimitadas',
