@@ -13,6 +13,36 @@ RETURNS UUID AS $$
   );
 $$ LANGUAGE sql SECURITY DEFINER;
 
+-- Criar função SQL para verificar o acesso ao perfil sem recursão infinita
+CREATE OR REPLACE FUNCTION public.check_profile_access(target_profile_id UUID, target_parent_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  current_user_parent UUID;
+BEGIN
+  -- 1. Se o perfil de destino for o próprio usuário logado, permite
+  IF target_profile_id = auth.uid() THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- 2. Se o perfil de destino for um filho do usuário logado (dono), permite
+  IF target_parent_id = auth.uid() THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- 3. Obter o parent_user_id do usuário logado
+  SELECT parent_user_id INTO current_user_parent
+  FROM public.profiles
+  WHERE id = auth.uid();
+  
+  -- 4. Se o usuário logado for filho, permite ver o pai (dono) ou outros filhos do mesmo pai (colegas de equipe)
+  IF current_user_parent IS NOT NULL AND (target_profile_id = current_user_parent OR target_parent_id = current_user_parent) THEN
+    RETURN TRUE;
+  END IF;
+  
+  RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- 3. Habilitar RLS e configurar políticas para todas as tabelas transacionais
 
 -- Tabela: birds
@@ -138,20 +168,10 @@ DROP POLICY IF EXISTS "Allow update profiles within team" ON profiles;
 DROP POLICY IF EXISTS "Allow insert profiles" ON profiles;
 
 CREATE POLICY "Allow select profiles within team" ON profiles FOR SELECT
-  USING (
-    id = auth.uid()
-    OR parent_user_id = auth.uid()
-    OR id = (SELECT parent_user_id FROM public.profiles WHERE id = auth.uid())
-  );
+  USING (public.check_profile_access(id, parent_user_id));
 
 CREATE POLICY "Allow update profiles within team" ON profiles FOR UPDATE
-  USING (
-    id = auth.uid()
-    OR parent_user_id = auth.uid()
-  );
+  USING (public.check_profile_access(id, parent_user_id));
 
 CREATE POLICY "Allow insert profiles" ON profiles FOR INSERT
-  WITH CHECK (
-    id = auth.uid()
-    OR parent_user_id = auth.uid()
-  );
+  WITH CHECK (public.check_profile_access(id, parent_user_id));
