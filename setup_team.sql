@@ -99,12 +99,20 @@ CREATE POLICY "Users can manage their own incubator_batches" ON incubator_batche
   USING (user_id = public.get_effective_user_id()) 
   WITH CHECK (user_id = public.get_effective_user_id());
 
--- Tabela: maternity_records
-ALTER TABLE maternity_records ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Users can manage their own maternity_records" ON maternity_records;
-CREATE POLICY "Users can manage their own maternity_records" ON maternity_records FOR ALL 
+-- Tabela: maternity
+ALTER TABLE maternity ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage their own maternity" ON maternity;
+CREATE POLICY "Users can manage their own maternity" ON maternity FOR ALL 
   USING (user_id = public.get_effective_user_id()) 
   WITH CHECK (user_id = public.get_effective_user_id());
+
+-- Tabela: maternity_history
+ALTER TABLE maternity_history ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can manage their own maternity_history" ON maternity_history;
+CREATE POLICY "Users can manage their own maternity_history" ON maternity_history FOR ALL 
+  USING (user_id = public.get_effective_user_id()) 
+  WITH CHECK (user_id = public.get_effective_user_id());
+
 
 -- Tabela: clients
 ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
