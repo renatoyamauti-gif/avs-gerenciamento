@@ -43,10 +43,17 @@ serve(async (req) => {
       const session = event.data.object as any;
       const clientReferenceId = session.client_reference_id;
       
-      // Lógica simples: se o valor foi mais de 400 reais (40000 centavos), consideramos Anual
+      // Mapeamento de planos com base no valor pago (em centavos):
+      // - Completo Mensal (pro): R$ 39,99 (3999 centavos)
+      // - Completo Trimestral: R$ 99,99 (9999 centavos)
+      // - Completo Anual: R$ 399,99 (39999 centavos)
       let planName = 'pro';
-      if (session.amount_total && session.amount_total > 40000) { 
-         planName = 'anual';
+      if (session.amount_total) {
+        if (session.amount_total > 30000) {
+          planName = 'anual';
+        } else if (session.amount_total > 5000) {
+          planName = 'trimestral';
+        }
       }
 
       if (clientReferenceId) {
