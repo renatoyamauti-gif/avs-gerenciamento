@@ -109,10 +109,16 @@ export default function App() {
     );
   }
 
+  const hasPermission = (moduleName: string) => {
+    if (!profile) return true;
+    if (profile.role !== 'tratador') return true;
+    return profile.permissions?.[moduleName] ?? false;
+  };
+
   return (
     <Router>
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col lg:flex-row pb-16 lg:pb-0">
-        {!isLocked && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />}
+        {!isLocked && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} profile={profile} />}
         
         <main className={`flex-1 min-h-screen relative transition-all ${!isLocked ? 'lg:ml-64' : ''}`}>
           {/* Mobile Header */}
@@ -199,17 +205,17 @@ export default function App() {
               ) : (
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
-                  <Route path="/birds" element={<Plantel />} />
-                  <Route path="/birds/lineage/:id" element={<BreedingLineage />} />
-                  <Route path="/breeding" element={<Chocadeira />} />
-                  <Route path="/maternity" element={<Maternity />} />
-                  <Route path="/eggs" element={<EggCollection />} />
-                  <Route path="/shipping" element={<Remessas />} />
-                  <Route path="/ration" element={<Ration />} />
-                  <Route path="/finance" element={<Finance />} />
+                  <Route path="/birds" element={hasPermission('birds') ? <Plantel /> : <Navigate to="/" />} />
+                  <Route path="/birds/lineage/:id" element={hasPermission('birds') ? <BreedingLineage /> : <Navigate to="/" />} />
+                  <Route path="/breeding" element={hasPermission('breeding') ? <Chocadeira /> : <Navigate to="/" />} />
+                  <Route path="/maternity" element={hasPermission('maternity') ? <Maternity /> : <Navigate to="/" />} />
+                  <Route path="/eggs" element={hasPermission('eggs') ? <EggCollection /> : <Navigate to="/" />} />
+                  <Route path="/shipping" element={hasPermission('shipping') ? <Remessas /> : <Navigate to="/" />} />
+                  <Route path="/ration" element={hasPermission('ration') ? <Ration /> : <Navigate to="/" />} />
+                  <Route path="/finance" element={hasPermission('finance') ? <Finance /> : <Navigate to="/" />} />
                   <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/chat" element={<Chat />} />
-                  <Route path="/subscription" element={<Subscription />} />
+                  <Route path="/chat" element={hasPermission('chat') ? <Chat /> : <Navigate to="/" />} />
+                  <Route path="/subscription" element={profile?.role !== 'tratador' ? <Subscription /> : <Navigate to="/" />} />
                   <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
               )}
@@ -228,7 +234,7 @@ export default function App() {
         
         
         {/* Bottom Navigation for Mobile */}
-        {!isLocked && <BottomNav onOpenMenu={() => setIsSidebarOpen(true)} />}
+        {!isLocked && <BottomNav onOpenMenu={() => setIsSidebarOpen(true)} profile={profile} />}
       </div>
     </Router>
   );

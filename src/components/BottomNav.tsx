@@ -3,9 +3,10 @@ import { LayoutDashboard, Egg, Thermometer, Bird, MoreHorizontal } from 'lucide-
 
 interface BottomNavProps {
   onOpenMenu: () => void;
+  profile?: any;
 }
 
-const BottomNav = ({ onOpenMenu }: BottomNavProps) => {
+const BottomNav = ({ onOpenMenu, profile }: BottomNavProps) => {
   const location = useLocation();
 
   const navItems = [
@@ -15,10 +16,28 @@ const BottomNav = ({ onOpenMenu }: BottomNavProps) => {
     { path: '/birds', label: 'Aves', icon: <Bird size={20} /> },
   ];
 
+  const hasPermission = (path: string) => {
+    if (!profile) return true;
+    if (profile.role !== 'tratador') return true;
+
+    if (path === '/') return true;
+
+    const mapping: { [key: string]: string } = {
+      '/eggs': 'eggs',
+      '/breeding': 'breeding',
+      '/birds': 'birds',
+    };
+
+    const moduleKey = mapping[path];
+    return moduleKey ? (profile.permissions?.[moduleKey] ?? false) : false;
+  };
+
+  const visibleNavItems = navItems.filter((item) => hasPermission(item.path));
+
   return (
     <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 z-50 pb-safe">
       <div className="flex justify-around items-center h-16">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link

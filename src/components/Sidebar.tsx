@@ -22,9 +22,10 @@ import {
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  profile?: any;
 }
 
-const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
+const Sidebar = ({ isOpen, onClose, profile }: SidebarProps) => {
   const location = useLocation();
   const menuItems = [
     { path: '/', label: 'PAINEL DE CONTROLE', icon: <LayoutDashboard size={18} /> },
@@ -39,6 +40,31 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     { path: '/chat', label: 'Chat Exclusivo', icon: <MessageSquare size={18} /> },
     { path: '/subscription', label: 'Assinatura', icon: <CreditCard size={18} /> },
   ];
+
+  const hasPermission = (path: string) => {
+    if (!profile) return true;
+    if (profile.role !== 'tratador') return true;
+
+    if (path === '/') return true;
+    if (path === '/settings') return true;
+    if (path === '/subscription') return false;
+
+    const mapping: { [key: string]: string } = {
+      '/birds': 'birds',
+      '/breeding': 'breeding',
+      '/maternity': 'maternity',
+      '/eggs': 'eggs',
+      '/shipping': 'shipping',
+      '/ration': 'ration',
+      '/finance': 'finance',
+      '/chat': 'chat'
+    };
+
+    const moduleKey = mapping[path];
+    return moduleKey ? (profile.permissions?.[moduleKey] ?? false) : false;
+  };
+
+  const visibleMenuItems = menuItems.filter(item => hasPermission(item.path));
 
   return (
     <>
@@ -69,7 +95,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         </div>
         
         <nav className="flex-1 space-y-1">
-          {menuItems.map((item) => (
+          {visibleMenuItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}

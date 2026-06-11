@@ -1,6 +1,8 @@
 import { supabase, supabaseAdmin } from './supabaseClient';
 import { handleSupabaseError } from './errorHandlers';
 
+let _cachedProfile: any = null;
+
 export const dbService = {
   // Birds (Plantel)
   async getBirds() {
@@ -17,7 +19,7 @@ export const dbService = {
 
     const birdData = {
       ...bird,
-      user_id: user.id
+      user_id: await this.getOwnerId()
     };
 
     if (bird.id && bird.id.length > 15) { // Simple check for UUID vs temporary local ID
@@ -69,7 +71,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const historyData = { ...history, user_id: user.id };
+    const historyData = { ...history, user_id: await this.getOwnerId() };
 
     if (history.id && history.id.length > 15) {
       const { data, error } = await supabase
@@ -113,7 +115,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const historyData = { ...history, user_id: user.id };
+    const historyData = { ...history, user_id: await this.getOwnerId() };
 
     if (history.id && history.id.length > 15) {
       const { data, error } = await supabase
@@ -158,7 +160,7 @@ export const dbService = {
 
     const oldName = baia.old_name;
     delete baia.old_name;
-    const baiaData = { ...baia, user_id: user.id };
+    const baiaData = { ...baia, user_id: await this.getOwnerId() };
     
     let resultData;
 
@@ -218,7 +220,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const racaData = { ...raca, user_id: user.id };
+    const racaData = { ...raca, user_id: await this.getOwnerId() };
 
     if (raca.id && raca.id.length > 15) {
       const { data, error } = await supabase
@@ -261,7 +263,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const catData = { ...category, user_id: user.id };
+    const catData = { ...category, user_id: await this.getOwnerId() };
 
     if (category.id && category.id.length > 15) {
       const { data, error } = await supabase
@@ -304,7 +306,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const rationData = { ...ration, user_id: user.id };
+    const rationData = { ...ration, user_id: await this.getOwnerId() };
 
     if (ration.id && ration.id.length > 15) {
       const { data, error } = await supabase
@@ -347,7 +349,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const ingredientData = { ...ingredient, user_id: user.id };
+    const ingredientData = { ...ingredient, user_id: await this.getOwnerId() };
 
     if (ingredient.id && ingredient.id.length > 15) {
       const { data, error } = await supabase
@@ -390,7 +392,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const transactionData = { ...transaction, user_id: user.id };
+    const transactionData = { ...transaction, user_id: await this.getOwnerId() };
 
     if (transaction.id && transaction.id.length > 15) {
       const { data, error } = await supabase
@@ -435,7 +437,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const logData = { ...log, user_id: user.id };
+    const logData = { ...log, user_id: await this.getOwnerId() };
 
     if (log.id && log.id.length > 15) {
       const { data, error } = await supabase
@@ -477,7 +479,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const incData = { ...incubator, user_id: user.id };
+    const incData = { ...incubator, user_id: await this.getOwnerId() };
     delete incData.incubator_batches; // Don't try to save child relationship items directly here
 
     if (incubator.id && incubator.id.length > 15) {
@@ -511,7 +513,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const batchData = { ...batch, user_id: user.id };
+    const batchData = { ...batch, user_id: await this.getOwnerId() };
 
     if (batch.id && batch.id.length > 15) {
       const { data, error } = await supabase
@@ -552,8 +554,7 @@ export const dbService = {
       .single();
 
     // Prioridade absoluta para o Auth Metadata.
-    // Isso previne que Triggers antigos ou corrompidos do banco de dados sobrescrevam o nome.
-    return {
+    const profileData = {
       ...(data || {}),
       id: user.id,
       full_name: user.user_metadata?.full_name || data?.full_name || '',
@@ -570,15 +571,22 @@ export const dbService = {
       sender_number: user.user_metadata?.sender_number || data?.sender_number || '',
       sender_district: user.user_metadata?.sender_district || data?.sender_district || '',
       sender_city: user.user_metadata?.sender_city || data?.sender_city || '',
-      sender_state: user.user_metadata?.sender_state || data?.sender_state || ''
+      sender_state: user.user_metadata?.sender_state || data?.sender_state || '',
+      role: user.user_metadata?.role || data?.role || 'admin',
+      permissions: user.user_metadata?.permissions || data?.permissions || null,
+      parent_user_id: user.user_metadata?.parent_user_id || data?.parent_user_id || null
     };
+
+    _cachedProfile = profileData;
+    return profileData;
   },
 
   async updateProfile(updates: any) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    // Salva também diretamente no Auth Metadata como um backup infalível!
+    _cachedProfile = null; // Invalidate cache
+
     await supabase.auth.updateUser({
       data: updates
     });
@@ -595,6 +603,16 @@ export const dbService = {
     return data ? data[0] : updates;
   },
 
+  async getOwnerId() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+    if (_cachedProfile && _cachedProfile.id === user.id) {
+      return _cachedProfile.parent_user_id || user.id;
+    }
+    const profile = await this.getProfile();
+    return profile ? (profile.parent_user_id || profile.id) : user.id;
+  },
+
   // Maternity
   async getMaternityRecords() {
     const { data, error } = await supabase
@@ -609,7 +627,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const recordData = { ...record, user_id: user.id };
+    const recordData = { ...record, user_id: await this.getOwnerId() };
 
     if (record.id && record.id.length > 15) {
       const { data, error } = await supabase
@@ -652,7 +670,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const historyData = { ...history, user_id: user.id };
+    const historyData = { ...history, user_id: await this.getOwnerId() };
 
     if (history.id && history.id.length > 15) {
       const { data, error } = await supabase
@@ -768,6 +786,97 @@ export const dbService = {
     return data || [];
   },
 
+  // Team Management
+  async getTeamMembers() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('parent_user_id', user.id)
+      .order('full_name');
+
+    if (error) handleSupabaseError(error, 'list', 'profiles');
+    return data || [];
+  },
+
+  async createSubUser(email: string, password: string, fullName: string, permissions: any) {
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    if (!adminUser) throw new Error('Não autenticado');
+
+    const adminProfile = await this.getProfile();
+    const criatorioName = adminProfile?.criatorio_name || '';
+
+    // 1. Create the user account using admin API
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
+        role: 'tratador',
+        parent_user_id: adminUser.id,
+        criatorio_name: criatorioName,
+        permissions
+      }
+    });
+
+    if (authError) throw authError;
+    if (!authData.user) throw new Error('Falha ao criar usuário de autenticação');
+
+    // 2. Create the profile record in profiles table
+    const { data: profileData, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .insert([{
+        id: authData.user.id,
+        full_name: fullName,
+        email: email,
+        parent_user_id: adminUser.id,
+        role: 'tratador',
+        permissions,
+        criatorio_name: criatorioName
+      }])
+      .select();
+
+    if (profileError) {
+      // Rollback auth user creation if profile fails to ensure consistency
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      throw profileError;
+    }
+
+    return profileData[0];
+  },
+
+  async deleteSubUser(id: string) {
+    // Verify that the user being deleted is indeed a child of the logged-in admin user
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    if (!adminUser) throw new Error('Não autenticado');
+
+    const { data: profileToDelete, error: fetchError } = await supabaseAdmin
+      .from('profiles')
+      .select('parent_user_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (profileToDelete.parent_user_id !== adminUser.id) {
+      throw new Error('Você não tem permissão para excluir este usuário.');
+    }
+
+    // 1. Delete authentication account
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+    if (authError) throw authError;
+
+    // 2. Delete database profile
+    const { error: dbError } = await supabaseAdmin
+      .from('profiles')
+      .delete()
+      .eq('id', id);
+
+    if (dbError) throw dbError;
+  },
+
   // Bird Lineage / Pedigree
   async getBirdLineage(birdId: string) {
     const { data: target, error } = await supabase
@@ -842,7 +951,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const clientData = { ...client, user_id: user.id };
+    const clientData = { ...client, user_id: await this.getOwnerId() };
 
     if (client.id && client.id.length > 15) {
       const { data, error } = await supabase
@@ -885,7 +994,7 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const orderData = { ...order, user_id: user.id };
+    const orderData = { ...order, user_id: await this.getOwnerId() };
     delete orderData.clients; // Remove preloaded relationship if any
 
     if (order.id && order.id.length > 15) {
