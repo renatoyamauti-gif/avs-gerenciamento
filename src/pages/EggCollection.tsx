@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Egg, Trash2, X, Loader2, Edit2, QrCode, Printer } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Egg, Trash2, X, Loader2, Edit2, QrCode, Printer, Camera } from 'lucide-react';
 import { dbService } from '../lib/dbService';
+import QRScannerModal from '../components/QRScannerModal';
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { useSearchParams } from 'react-router-dom';
 
@@ -34,6 +35,7 @@ export default function EggCollection() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrTab, setQrTab] = useState<'baia' | 'raca'>('baia');
   const [printSingleItem, setPrintSingleItem] = useState<{type: 'baia' | 'raca', name: string} | null>(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const countInputRef = useRef<HTMLInputElement>(null);
   
@@ -150,6 +152,65 @@ export default function EggCollection() {
       racaEstimates: rEst
     };
   }, [logs, incubators, orders]);
+
+  const handleQRScan = (scannedText: string) => {
+    if (!scannedText) return;
+
+    let targetBaia = '';
+    let targetRaca = '';
+
+    try {
+      if (scannedText.startsWith('http://') || scannedText.startsWith('https://')) {
+        const urlObj = new URL(scannedText);
+        targetBaia = urlObj.searchParams.get('baia') || '';
+        targetRaca = urlObj.searchParams.get('raca') || '';
+      } else if (scannedText.startsWith('?')) {
+        const searchParamsObj = new URLSearchParams(scannedText);
+        targetBaia = searchParamsObj.get('baia') || '';
+        targetRaca = searchParamsObj.get('raca') || '';
+      }
+    } catch (err) {
+      console.error('Erro ao analisar URL do QR Code:', err);
+    }
+
+    if (!targetBaia && !targetRaca) {
+      const trimmedText = scannedText.trim();
+      
+      const matchedBaia = uniqueBaias.find(b => b.toLowerCase() === trimmedText.toLowerCase()) ||
+                          uniqueBaias.find(b => b.toLowerCase().includes(trimmedText.toLowerCase()));
+      
+      const matchedRaca = uniqueRacas.find(r => r.toLowerCase() === trimmedText.toLowerCase()) ||
+                          uniqueRacas.find(r => r.toLowerCase().includes(trimmedText.toLowerCase()));
+
+      if (matchedBaia) {
+        targetBaia = matchedBaia;
+      } else if (matchedRaca) {
+        targetRaca = matchedRaca;
+      } else {
+        if (trimmedText.toLowerCase().includes('baia')) {
+          targetBaia = trimmedText;
+        } else {
+          if (originType === 'baia') {
+            targetBaia = trimmedText;
+          } else {
+            targetRaca = trimmedText;
+          }
+        }
+      }
+    }
+
+    if (targetBaia) {
+      setOriginType('baia');
+      setPrefilledBaia(targetBaia);
+      setPrefilledRaca('');
+    } else if (targetRaca) {
+      setOriginType('raca');
+      setPrefilledRaca(targetRaca);
+      setPrefilledBaia('');
+    }
+
+    setEditingDay(new Date().getDate());
+  };
 
   useEffect(() => {
     loadLogs();
@@ -374,7 +435,7 @@ export default function EggCollection() {
           <h2 className="text-3xl font-bold text-[#1F2937] font-headline tracking-tight">Coleta de Ovos</h2>
           <p className="mt-1 text-slate-500 font-medium text-sm">Registro diário e monitoramento de incubação.</p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 w-full md:w-auto">
           <div className="bg-white border border-slate-100 px-6 py-4 rounded-3xl flex items-center gap-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
             <Egg className="text-[#2563EB] size-8" />
             <div>
@@ -383,14 +444,20 @@ export default function EggCollection() {
             </div>
           </div>
           <button 
+            onClick={() => setIsScannerOpen(true)}
+            className="bg-[#10B981] hover:bg-[#059669] text-white px-6 py-4 rounded-[24px] shadow-md hover:scale-[1.02] active:scale-95 transition-all text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Camera size={16} /> Escanear QR Code
+          </button>
+          <button 
             onClick={() => setShowQRModal(true)}
-            className="bg-white border border-slate-200 text-slate-700 px-6 py-4 rounded-[24px] shadow-sm hover:bg-slate-50 hover:scale-[1.02] active:scale-95 transition-all text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+            className="bg-white border border-slate-200 text-slate-700 px-6 py-4 rounded-[24px] shadow-sm hover:bg-slate-50 hover:scale-[1.02] active:scale-95 transition-all text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer"
           >
             <QrCode size={16} /> QR Codes
           </button>
           <button 
             onClick={() => setEditingDay(new Date().getDate())}
-            className="bg-[#2563EB] text-white px-6 py-4 rounded-[24px] shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+            className="bg-[#2563EB] text-white px-6 py-4 rounded-[24px] shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer"
           >
             <Plus size={16} /> Adicionar Coleta
           </button>
@@ -956,6 +1023,12 @@ export default function EggCollection() {
           </div>
         )}
       </AnimatePresence>
+
+      <QRScannerModal 
+        isOpen={isScannerOpen} 
+        onClose={() => setIsScannerOpen(false)} 
+        onScan={handleQRScan} 
+      />
 
       {/* Printable Area (Hidden on screen, visible during print) */}
       <div id="print-section" className="hidden">
