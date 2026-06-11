@@ -50,6 +50,30 @@ const plans = [
     link: 'https://buy.stripe.com/14A14m5g1feJac5c3t4Rq00',
   },
   {
+    id: 'trimestral',
+    name: 'Completo Trimestral',
+    description: 'Plano Trimestral com 16% de desconto.',
+    originalPrice: 'R$ 119,97',
+    price: 'R$ 99,99',
+    period: '/trimestre',
+    features: [
+      'Aves ilimitadas',
+      'Múltiplas chocadeiras e lotes',
+      'Análises financeiras avançadas',
+      'Alertas de eclosão via e-mail',
+      'Custos de alimentação',
+      'Exportação de relatórios',
+      'Módulo de Remessas (Melhor Envio)',
+      'Chat Exclusivo'
+    ],
+    buttonText: 'Assine Trimestral',
+    isPopular: false,
+    icon: <Shield size={24} className="text-[#16A34A]" />,
+    gradient: 'from-[#DCFCE7] to-[#F0FDF4]',
+    border: 'border-[#BBF7D0]',
+    link: 'https://buy.stripe.com/test_placeholder_trimestral',
+  },
+  {
     id: 'anual',
     name: 'Completo Anual',
     description: 'Plano Anual com 20% de desconto.',
@@ -140,7 +164,7 @@ export default function Subscription() {
         </motion.p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-start">
         {plans.map((plan, index) => {
           const isCurrentPlan = plan.id === currentPlan;
           
@@ -202,7 +226,7 @@ export default function Subscription() {
                   ? 'bg-[#DCFCE7] text-[#16A34A] cursor-default'
                   : plan.isPopular
                     ? 'bg-[#F59E0B] text-white hover:bg-[#D97706]'
-                    : plan.name === 'Completo Anual'
+                    : plan.name === 'Completo Anual' || plan.name === 'Completo Trimestral'
                       ? 'bg-[#2563EB] text-white hover:bg-[#1D4ED8]'
                       : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-600 border border-slate-200'
                 }

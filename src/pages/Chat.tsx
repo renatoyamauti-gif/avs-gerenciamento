@@ -37,7 +37,7 @@ export default function Chat() {
   const [warningInput, setWarningInput] = useState('');
   const [activeWarning, setActiveWarning] = useState<string | null>(null);
 
-  const isSubscriber = plan === 'pro' || plan === 'anual';
+  const isSubscriber = plan === 'pro' || plan === 'trimestral' || plan === 'anual';
 
   useEffect(() => {
     loadProfile();
@@ -254,7 +254,7 @@ export default function Chat() {
         </div>
         <h2 className="text-3xl font-bold text-[#1F2937] font-headline tracking-tight mb-4">Acesso Restrito</h2>
         <p className="text-slate-500 font-medium mb-8">
-          O chat exclusivo da comunidade é um benefício reservado apenas para assinantes dos planos PRO e ANUAL. Assine agora para trocar experiências com outros criadores!
+          O chat exclusivo da comunidade é um benefício reservado apenas para assinantes dos planos pagos (Mensal, Trimestral e Anual). Assine agora para trocar experiências com outros criadores!
         </p>
         <Link 
           to="/subscription"

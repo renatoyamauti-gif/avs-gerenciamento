@@ -269,7 +269,7 @@ export default function Ration() {
           <div className="max-w-lg">
             <h3 className="text-2xl font-bold text-[#1F2937] font-headline tracking-tight mb-4">Funcionalidade Premium</h3>
             <p className="text-slate-500 font-medium leading-relaxed mb-8">
-              O módulo de Nutrição Técnica e gestão de ingredientes está disponível apenas nos planos Profissional e Anual. Assine agora para ter controle total sobre a dieta e os custos de alimentação das suas aves!
+              O módulo de Nutrição Técnica e gestão de ingredientes está disponível apenas nos planos pagos (Mensal, Trimestral e Anual). Assine agora para ter controle total sobre a dieta e os custos de alimentação das suas aves!
             </p>
             <a href="/subscription" className="inline-flex items-center gap-2 bg-[#F59E0B] text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#D97706] hover:scale-[1.02] active:scale-95 transition-all">
               <Star size={18} /> Fazer Upgrade

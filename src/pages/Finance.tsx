@@ -229,7 +229,7 @@ export default function Finance() {
           <div className="max-w-lg">
             <h3 className="text-2xl font-bold text-[#1F2937] font-headline mb-4">Funcionalidade Premium</h3>
             <p className="text-slate-500 font-medium leading-relaxed mb-8">
-              O controle financeiro completo, com gráficos de fluxo de caixa, relatórios e gestão de resultados, está disponível apenas nos planos Profissional e Anual. Assine agora para ter visão total sobre o lucro do seu plantel!
+              O controle financeiro completo, com gráficos de fluxo de caixa, relatórios e gestão de resultados, está disponível apenas nos planos pagos (Mensal, Trimestral e Anual). Assine agora para ter visão total sobre o lucro do seu plantel!
             </p>
             <a href="/subscription" className="inline-flex items-center gap-2 bg-[#F59E0B] text-white px-8 py-4 rounded-full font-bold text-sm uppercase tracking-wider shadow-md hover:scale-105 active:scale-95 transition-all">
               <Star size={16} /> Fazer Upgrade

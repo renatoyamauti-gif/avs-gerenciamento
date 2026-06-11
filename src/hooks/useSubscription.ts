@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { dbService } from '../lib/dbService';
 import { supabase } from '../lib/supabaseClient';
 
-export type PlanType = 'free' | 'pro' | 'anual';
+export type PlanType = 'free' | 'pro' | 'trimestral' | 'anual';
 
 export function useSubscription() {
   const [plan, setPlan] = useState<PlanType>('free');
