@@ -222,7 +222,7 @@ export default function App() {
             </AnimatePresence>
 
             <footer className="pt-12 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center text-[10px] sm:text-sm font-semibold text-slate-400 uppercase tracking-[0.1em] mt-20 gap-4 text-center sm:text-left mb-6">
-              <div>® 2026 AVS GERENCIAMENTOS, Criado e desenvolvido por Criatório Sitieiro - Todos os direitos reservados.</div>
+              <div>® 2026 GERENCIAMENTO, Criado e desenvolvido por Criatório Sitieiro - Todos os direitos reservados.</div>
               <div className="flex flex-wrap justify-center gap-4 sm:gap-8">
                 <a href="#" className="hover:text-[#2563EB] transition-colors">Política de Privacidade</a>
                 <a href="#" className="hover:text-[#2563EB] transition-colors">Termos de Uso</a>
