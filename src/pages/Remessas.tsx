@@ -102,8 +102,8 @@ export default function Remessas() {
   const [senderState, setSenderState] = useState('');
 
   // Tab Management State
-  const [activeTab, setActiveTab] = useState<'shipping' | 'orders_clients'>('shipping');
-  const [activeSubTab, setActiveSubTab] = useState<'orders' | 'clients' | 'stock' | 'products'>('orders');
+  const [activeTab, setActiveTab] = useState<'shipping' | 'orders_clients' | 'products'>('shipping');
+  const [activeSubTab, setActiveSubTab] = useState<'orders' | 'clients' | 'stock'>('orders');
 
   // Orders, Clients and Products Data States
   const [clients, setClients] = useState<any[]>([]);
@@ -2141,17 +2141,6 @@ export default function Remessas() {
           >
             <Egg size={16} /> Estoque de Ovos
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveSubTab('products')}
-            className={`pb-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all ${
-              activeSubTab === 'products'
-                ? 'border-[#2563EB] text-[#2563EB]'
-                : 'border-transparent text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Tag size={16} /> Produtos
-          </button>
         </div>
 
         {loadingOrdersClients ? (
@@ -2164,7 +2153,6 @@ export default function Remessas() {
             {activeSubTab === 'clients' && renderClientsTab()}
             {activeSubTab === 'orders' && renderOrdersTab()}
             {activeSubTab === 'stock' && renderStockTab()}
-            {activeSubTab === 'products' && renderProductsTab()}
           </div>
         )}
       </div>
@@ -2576,6 +2564,16 @@ export default function Remessas() {
             }`}
           >
             <Users size={14} /> Pedidos & Clientes
+          </button>
+          <button
+            onClick={() => setActiveTab('products')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 ${
+              activeTab === 'products'
+                ? 'bg-white text-[#2563EB] shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Tag size={14} /> Produtos
           </button>
         </div>
       </header>
@@ -3261,8 +3259,10 @@ export default function Remessas() {
           </AnimatePresence>
         </div>
       </div>
-      ) : (
+      ) : activeTab === 'orders_clients' ? (
         renderOrdersClients()
+      ) : (
+        renderProductsTab()
       )}
     </motion.div>
   );
