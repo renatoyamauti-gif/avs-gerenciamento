@@ -27,7 +27,8 @@ import {
   Clock,
   ArrowLeft,
   Check,
-  ClipboardList
+  ClipboardList,
+  Tag
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { supabase } from '../lib/supabaseClient';
@@ -102,15 +103,16 @@ export default function Remessas() {
 
   // Tab Management State
   const [activeTab, setActiveTab] = useState<'shipping' | 'orders_clients'>('shipping');
-  const [activeSubTab, setActiveSubTab] = useState<'orders' | 'clients' | 'stock'>('orders');
+  const [activeSubTab, setActiveSubTab] = useState<'orders' | 'clients' | 'stock' | 'products'>('orders');
 
-  // Orders and Clients Data States
+  // Orders, Clients and Products Data States
   const [clients, setClients] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [racas, setRacas] = useState<any[]>([]);
   const [eggLogs, setEggLogs] = useState<any[]>([]);
   const [incubators, setIncubators] = useState<any[]>([]);
   const [baias, setBaias] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loadingOrdersClients, setLoadingOrdersClients] = useState(false);
 
   // Client Form State
@@ -128,15 +130,29 @@ export default function Remessas() {
   const [clientState, setClientState] = useState('');
   const [loadingCep, setLoadingCep] = useState(false);
 
+  // Product Form State
+  const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [productName, setProductName] = useState('');
+  const [productSku, setProductSku] = useState('');
+  const [productDescription, setProductDescription] = useState('');
+  const [productPrice, setProductPrice] = useState('');
+  const [productStock, setProductStock] = useState('');
+  const [productWeight, setProductWeight] = useState('0.1');
+  const [productWidth, setProductWidth] = useState('10');
+  const [productHeight, setProductHeight] = useState('10');
+  const [productLength, setProductLength] = useState('10');
+  const [savingProduct, setSavingProduct] = useState(false);
+
   // Order Form State
   const [isAddingOrder, setIsAddingOrder] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any | null>(null);
   const [orderClientId, setOrderClientId] = useState('');
-  const [orderOrigemType, setOrderOrigemType] = useState<'raca' | 'baia'>('raca');
+  const [orderOrigemType, setOrderOrigemType] = useState<'raca' | 'baia' | 'produto'>('raca');
   const [orderRaca, setOrderRaca] = useState('');
   const [orderBaia, setOrderBaia] = useState('');
   const [orderQuantity, setOrderQuantity] = useState('');
-  const [formItems, setFormItems] = useState<{ origem_type: 'raca' | 'baia'; raca: string; baia: string; quantity: string }[]>([{ origem_type: 'raca', raca: '', baia: '', quantity: '' }]);
+  const [formItems, setFormItems] = useState<{ origem_type: 'raca' | 'baia' | 'produto'; raca: string; baia: string; product_id: string; quantity: string }[]>([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '' }]);
   const [orderStatus, setOrderStatus] = useState('Pendente');
   const [savingOrder, setSavingOrder] = useState(false);
   const [savingClient, setSavingClient] = useState(false);
@@ -144,6 +160,7 @@ export default function Remessas() {
   // Searches
   const [clientSearch, setClientSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
+  const [productSearch, setProductSearch] = useState('');
 
   useEffect(() => {
     loadSettings();
@@ -152,13 +169,14 @@ export default function Remessas() {
   async function loadOrdersClientsData() {
     try {
       setLoadingOrdersClients(true);
-      const [clientsData, ordersData, racasData, eggLogsData, incubatorsData, baiasData] = await Promise.all([
+      const [clientsData, ordersData, racasData, eggLogsData, incubatorsData, baiasData, productsData] = await Promise.all([
         dbService.getClients(),
         dbService.getOrders(),
         dbService.getRacas(),
         dbService.getEggLogs(),
         dbService.getIncubators(),
-        dbService.getBaias()
+        dbService.getBaias(),
+        dbService.getProducts()
       ]);
       setClients(clientsData || []);
       setOrders(ordersData || []);
@@ -166,8 +184,9 @@ export default function Remessas() {
       setEggLogs(eggLogsData || []);
       setIncubators(incubatorsData || []);
       setBaias(baiasData || []);
+      setProducts(productsData || []);
     } catch (err) {
-      console.error('Erro ao carregar dados de pedidos/clientes/estoque:', err);
+      console.error('Erro ao carregar dados de pedidos/clientes/estoque/produtos:', err);
     } finally {
       setLoadingOrdersClients(false);
     }
@@ -442,6 +461,79 @@ export default function Remessas() {
     setIsAddingClient(true);
   };
 
+  // Save/Edit Product
+  const handleSaveProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!productName.trim()) {
+      alert('Nome do produto é obrigatório.');
+      return;
+    }
+    setSavingProduct(true);
+    try {
+      const productData = {
+        name: productName,
+        sku: productSku,
+        description: productDescription,
+        price: parseFloat(productPrice) || 0,
+        stock: parseInt(productStock) || 0,
+        weight: parseFloat(productWeight) || 0.1,
+        width: parseFloat(productWidth) || 10,
+        height: parseFloat(productHeight) || 10,
+        length: parseFloat(productLength) || 10
+      };
+      if (editingProduct) {
+        (productData as any).id = editingProduct.id;
+      }
+      await dbService.saveProduct(productData);
+      await loadOrdersClientsData();
+      
+      // Reset Product Form
+      setProductName('');
+      setProductSku('');
+      setProductDescription('');
+      setProductPrice('');
+      setProductStock('');
+      setProductWeight('0.1');
+      setProductWidth('10');
+      setProductHeight('10');
+      setProductLength('10');
+      setEditingProduct(null);
+      setIsAddingProduct(false);
+      alert('Produto salvo com sucesso!');
+    } catch (err: any) {
+      alert('Erro ao salvar produto: ' + err.message);
+    } finally {
+      setSavingProduct(false);
+    }
+  };
+
+  // Delete Product
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm('Deseja realmente excluir este produto?')) return;
+    try {
+      await dbService.deleteProduct(id);
+      await loadOrdersClientsData();
+      alert('Produto excluído com sucesso!');
+    } catch (err: any) {
+      alert('Erro ao excluir produto: ' + err.message);
+    }
+  };
+
+  // Edit Product trigger
+  const handleStartEditProduct = (product: any) => {
+    setEditingProduct(product);
+    setProductName(product.name || '');
+    setProductSku(product.sku || '');
+    setProductDescription(product.description || '');
+    setProductPrice(String(product.price || ''));
+    setProductStock(String(product.stock || ''));
+    setProductWeight(String(product.weight ?? '0.1'));
+    setProductWidth(String(product.width ?? '10'));
+    setProductHeight(String(product.height ?? '10'));
+    setProductLength(String(product.length ?? '10'));
+    setIsAddingProduct(true);
+  };
+
   // Save/Edit Order
   const handleSaveOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -466,6 +558,10 @@ export default function Remessas() {
         alert(`Por favor, selecione a baia no item ${i + 1}.`);
         return;
       }
+      if (item.origem_type === 'produto' && !item.product_id) {
+        alert(`Por favor, selecione o produto no item ${i + 1}.`);
+        return;
+      }
       const qty = parseInt(item.quantity);
       if (isNaN(qty) || qty <= 0) {
         alert(`Por favor, insira uma quantidade válida no item ${i + 1}.`);
@@ -479,6 +575,7 @@ export default function Remessas() {
         origem_type: item.origem_type,
         raca: item.origem_type === 'raca' ? item.raca : '',
         baia: item.origem_type === 'baia' ? item.baia : '',
+        product_id: item.origem_type === 'produto' ? item.product_id : '',
         quantity: parseInt(item.quantity)
       }));
 
@@ -486,11 +583,21 @@ export default function Remessas() {
       const mainItem = parsedItems[0];
       const totalQty = parsedItems.reduce((acc, curr) => acc + curr.quantity, 0);
 
+      let mainRaca = '';
+      if (mainItem.origem_type === 'raca') {
+        mainRaca = mainItem.raca;
+      } else if (mainItem.origem_type === 'baia') {
+        mainRaca = `Baia: ${mainItem.baia}`;
+      } else if (mainItem.origem_type === 'produto') {
+        const prod = products.find(p => p.id === mainItem.product_id);
+        mainRaca = prod ? prod.name : 'Produto';
+      }
+
       const orderData = {
         client_id: orderClientId,
         origem_type: mainItem.origem_type,
-        raca: mainItem.raca,
-        baia: mainItem.baia,
+        raca: mainRaca || 'Produto',
+        baia: mainItem.origem_type === 'baia' ? mainItem.baia : '',
         quantity: totalQty,
         items: parsedItems,
         status: orderStatus
@@ -509,7 +616,7 @@ export default function Remessas() {
       setOrderBaia('');
       setOrderOrigemType('raca');
       setOrderQuantity('');
-      setFormItems([{ origem_type: 'raca', raca: '', baia: '', quantity: '' }]);
+      setFormItems([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '' }]);
       setOrderStatus('Pendente');
       setEditingOrder(null);
       setIsAddingOrder(false);
@@ -544,6 +651,7 @@ export default function Remessas() {
         origem_type: item.origem_type || 'raca',
         raca: item.raca || '',
         baia: item.baia || '',
+        product_id: item.product_id || '',
         quantity: String(item.quantity || '')
       })));
     } else {
@@ -552,6 +660,7 @@ export default function Remessas() {
         origem_type: order.origem_type || 'raca',
         raca: order.raca || '',
         baia: order.baia || '',
+        product_id: order.product_id || '',
         quantity: String(order.quantity || '')
       }]);
     }
@@ -605,8 +714,28 @@ export default function Remessas() {
     setDestPostalCode(client.postal_code || '');
 
     // Estimate weight: 1 egg = 60g (0.06kg) + package box base 500g (0.5kg)
-    const estimatedWeight = (order.quantity * 0.06 + 0.5).toFixed(2);
+    let estimatedWeight = (order.quantity * 0.06 + 0.5).toFixed(2);
+    let estimatedWidth = '20';
+    let estimatedHeight = '15';
+    let estimatedLength = '25';
+
+    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+      const prodItem = order.items.find((item: any) => item.origem_type === 'produto');
+      if (prodItem) {
+        const prod = products.find(p => p.id === prodItem.product_id);
+        if (prod) {
+          estimatedWeight = (Number(prod.weight || 0.1) * Number(prodItem.quantity || 1)).toFixed(2);
+          estimatedWidth = String(prod.width || 10);
+          estimatedHeight = String(prod.height || 10);
+          estimatedLength = String(prod.length || 10);
+        }
+      }
+    }
+
     setWeight(estimatedWeight);
+    setWidth(estimatedWidth);
+    setHeight(estimatedHeight);
+    setLength(estimatedLength);
 
     // Switch tab
     setActiveTab('shipping');
@@ -1307,7 +1436,7 @@ export default function Remessas() {
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Itens do Pedido</span>
                 <button
                   type="button"
-                  onClick={() => setFormItems([...formItems, { origem_type: 'raca', raca: '', baia: '', quantity: '' }])}
+                  onClick={() => setFormItems([...formItems, { origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '' }])}
                   className="flex items-center gap-1 text-xs text-[#2563EB] hover:text-[#1D4ED8] font-bold bg-[#2563EB]/5 px-3 py-1.5 rounded-xl hover:bg-[#2563EB]/10 transition-all"
                 >
                   <Plus size={14} /> Adicionar Item
@@ -1317,10 +1446,22 @@ export default function Remessas() {
               <div className="space-y-4">
                 {formItems.map((item, index) => {
                   const isRacaType = item.origem_type === 'raca';
-                  const selectedName = isRacaType ? item.raca : item.baia;
-                  const stockInfo = selectedName ? (isRacaType ? eggStock.racas[selectedName] : eggStock.baias[selectedName]) : null;
-                  const availableStock = stockInfo ? stockInfo.available : 0;
-                  const dailyCollectionAvg = stockInfo ? stockInfo.dailyAvg : 0;
+                  const isBaiaType = item.origem_type === 'baia';
+                  const isProductType = item.origem_type === 'produto';
+                  
+                  const selectedName = isRacaType ? item.raca : (isBaiaType ? item.baia : '');
+                  let availableStock = 0;
+                  let dailyCollectionAvg = 0;
+
+                  if (isProductType) {
+                    const prod = products.find(p => p.id === item.product_id);
+                    availableStock = prod ? (prod.stock || 0) : 0;
+                  } else if (selectedName) {
+                    const stockInfo = isRacaType ? eggStock.racas[selectedName] : eggStock.baias[selectedName];
+                    availableStock = stockInfo ? stockInfo.available : 0;
+                    dailyCollectionAvg = stockInfo ? stockInfo.dailyAvg : 0;
+                  }
+
                   const qtyRequested = parseInt(item.quantity) || 0;
                   const isStockSufficient = availableStock >= qtyRequested;
                   const eggsNeeded = qtyRequested - availableStock;
@@ -1355,15 +1496,15 @@ export default function Remessas() {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origem</label>
-                          <div className="flex bg-white border border-slate-200 rounded-xl p-1">
+                          <div className="flex bg-white border border-slate-200 rounded-xl p-1 gap-1">
                             <button
                               type="button"
                               onClick={() => {
                                 const newItems = [...formItems];
-                                newItems[index] = { ...newItems[index], origem_type: 'raca', raca: '', baia: '' };
+                                newItems[index] = { ...newItems[index], origem_type: 'raca', raca: '', baia: '', product_id: '' };
                                 setFormItems(newItems);
                               }}
-                              className={`flex-1 py-1 text-xs font-bold rounded-lg transition-all ${
+                              className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${
                                 isRacaType 
                                   ? 'bg-[#2563EB] text-white' 
                                   : 'text-slate-500 hover:text-slate-700'
@@ -1375,23 +1516,38 @@ export default function Remessas() {
                               type="button"
                               onClick={() => {
                                 const newItems = [...formItems];
-                                newItems[index] = { ...newItems[index], origem_type: 'baia', raca: '', baia: '' };
+                                newItems[index] = { ...newItems[index], origem_type: 'baia', raca: '', baia: '', product_id: '' };
                                 setFormItems(newItems);
                               }}
-                              className={`flex-1 py-1 text-xs font-bold rounded-lg transition-all ${
-                                !isRacaType 
+                              className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${
+                                isBaiaType 
                                   ? 'bg-[#2563EB] text-white' 
                                   : 'text-slate-500 hover:text-slate-700'
                               }`}
                             >
                               Baia
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newItems = [...formItems];
+                                newItems[index] = { ...newItems[index], origem_type: 'produto', raca: '', baia: '', product_id: '' };
+                                setFormItems(newItems);
+                              }}
+                              className={`flex-1 py-1 text-[10px] font-bold rounded-lg transition-all ${
+                                isProductType 
+                                  ? 'bg-[#2563EB] text-white' 
+                                  : 'text-slate-500 hover:text-slate-700'
+                              }`}
+                            >
+                              Prod
+                            </button>
                           </div>
                         </div>
 
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                            {isRacaType ? 'Raça do Ovo' : 'Baia de Origem'}
+                            {isRacaType ? 'Raça do Ovo' : isBaiaType ? 'Baia de Origem' : 'Produto'}
                           </label>
                           {isRacaType ? (
                             <select
@@ -1410,7 +1566,7 @@ export default function Remessas() {
                                 return <option key={name} value={name}>{name}</option>;
                               })}
                             </select>
-                          ) : (
+                          ) : isBaiaType ? (
                             <select
                               required
                               value={item.baia}
@@ -1426,6 +1582,22 @@ export default function Remessas() {
                                 const name = typeof b === 'string' ? b : b.name;
                                 return <option key={name} value={name}>{name}</option>;
                               })}
+                            </select>
+                          ) : (
+                            <select
+                              required
+                              value={item.product_id}
+                              onChange={(e) => {
+                                const newItems = [...formItems];
+                                newItems[index] = { ...newItems[index], product_id: e.target.value };
+                                setFormItems(newItems);
+                              }}
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-[#1F2937] focus:border-[#2563EB]/50 transition-all outline-none"
+                            >
+                              <option value="">-- Selecione --</option>
+                              {products.map(p => (
+                                  <option key={p.id} value={p.id}>{p.name} {p.sku ? `(${p.sku})` : ''}</option>
+                              ))}
                             </select>
                           )}
                         </div>
@@ -1579,6 +1751,13 @@ export default function Remessas() {
                                     <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100 uppercase">
                                       Baia: {item.baia} <span className="text-slate-400 font-normal">({item.quantity} ovos)</span>
                                     </span>
+                                  ) : item.origem_type === 'produto' ? (
+                                    <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-100 uppercase">
+                                      Prod: {(() => {
+                                        const prod = products.find(p => p.id === item.product_id);
+                                        return prod ? prod.name : (order.raca || 'Produto');
+                                      })()} <span className="text-slate-400 font-normal">({item.quantity} unid)</span>
+                                    </span>
                                   ) : (
                                     <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100 uppercase">
                                       Raça: {item.raca} <span className="text-slate-400 font-normal">({item.quantity} ovos)</span>
@@ -1591,6 +1770,10 @@ export default function Remessas() {
                                 <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100 uppercase">
                                   Baia: {order.baia} <span className="text-slate-400 font-normal">({order.quantity} ovos)</span>
                                 </span>
+                              ) : (order.origem_type || 'raca') === 'produto' ? (
+                                <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-100 uppercase">
+                                  Prod: {order.raca} <span className="text-slate-400 font-normal">({order.quantity} unid)</span>
+                                </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100 uppercase">
                                   Raça: {order.raca} <span className="text-slate-400 font-normal">({order.quantity} ovos)</span>
@@ -1599,7 +1782,7 @@ export default function Remessas() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-center font-bold text-[#1F2937]">{order.quantity} ovos</td>
+                        <td className="px-6 py-4 text-center font-bold text-[#1F2937]">{order.quantity} {order.origem_type === 'produto' ? 'unid.' : 'ovos'}</td>
                         <td className="px-6 py-4">
                           <select
                             value={order.status}
@@ -1958,6 +2141,17 @@ export default function Remessas() {
           >
             <Egg size={16} /> Estoque de Ovos
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('products')}
+            className={`pb-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all ${
+              activeSubTab === 'products'
+                ? 'border-[#2563EB] text-[#2563EB]'
+                : 'border-transparent text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Tag size={16} /> Produtos
+          </button>
         </div>
 
         {loadingOrdersClients ? (
@@ -1970,7 +2164,348 @@ export default function Remessas() {
             {activeSubTab === 'clients' && renderClientsTab()}
             {activeSubTab === 'orders' && renderOrdersTab()}
             {activeSubTab === 'stock' && renderStockTab()}
+            {activeSubTab === 'products' && renderProductsTab()}
           </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderProductsTab = () => {
+    const filteredProducts = products.filter(p => 
+      p.name?.toLowerCase().includes(productSearch.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(productSearch.toLowerCase())
+    );
+
+    if (isAddingProduct) {
+      return (
+        <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] max-w-3xl">
+          <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
+            <h3 className="font-bold text-lg text-[#1F2937] flex items-center gap-2">
+              <Tag className="text-[#2563EB]" size={20} />
+              {editingProduct ? 'Editar Produto' : 'Cadastrar Novo Produto'}
+            </h3>
+            <button 
+              type="button"
+              onClick={() => {
+                setIsAddingProduct(false);
+                setEditingProduct(null);
+                setProductName('');
+                setProductSku('');
+                setProductDescription('');
+                setProductPrice('');
+                setProductStock('');
+                setProductWeight('0.1');
+                setProductWidth('10');
+                setProductHeight('10');
+                setProductLength('10');
+              }}
+              className="text-slate-400 hover:text-slate-600 font-bold text-xs uppercase tracking-wider cursor-pointer"
+            >
+              Cancelar
+            </button>
+          </div>
+
+          <form onSubmit={handleSaveProduct} className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome do Produto</label>
+                <input
+                  required
+                  type="text"
+                  placeholder="Ex: Galo Índio Gigante ou Dúzia Ovos GSB"
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Código / SKU</label>
+                <input
+                  type="text"
+                  placeholder="Ex: OV-GSB-01"
+                  value={productSku}
+                  onChange={(e) => setProductSku(e.target.value)}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                />
+              </div>
+
+              <div className="sm:col-span-2 space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Descrição</label>
+                <textarea
+                  placeholder="Breve descrição do produto..."
+                  value={productDescription}
+                  onChange={(e) => setProductDescription(e.target.value)}
+                  rows={3}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none resize-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Preço de Venda (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0,00"
+                  value={productPrice}
+                  onChange={(e) => setProductPrice(e.target.value)}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estoque Atual</label>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={productStock}
+                  onChange={(e) => setProductStock(e.target.value)}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-6">
+              <h4 className="font-bold text-sm text-slate-700 mb-4 uppercase tracking-wider">
+                Dimensões Padrão para Embalagem (Melhor Envio)
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Peso (kg)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    placeholder="0.10"
+                    value={productWeight}
+                    onChange={(e) => setProductWeight(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Comprimento (cm)</label>
+                  <input
+                    type="number"
+                    min="2"
+                    placeholder="10"
+                    value={productLength}
+                    onChange={(e) => setProductLength(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Largura (cm)</label>
+                  <input
+                    type="number"
+                    min="11"
+                    placeholder="11"
+                    value={productWidth}
+                    onChange={(e) => setProductWidth(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Altura (cm)</label>
+                  <input
+                    type="number"
+                    min="2"
+                    placeholder="10"
+                    value={productHeight}
+                    onChange={(e) => setProductHeight(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-400 font-semibold mt-2.5 leading-relaxed">
+                Nota: O Melhor Envio possui limites mínimos para dimensões (Ex: largura mínima 11cm).
+              </p>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddingProduct(false);
+                  setEditingProduct(null);
+                  setProductName('');
+                  setProductSku('');
+                  setProductDescription('');
+                  setProductPrice('');
+                  setProductStock('');
+                  setProductWeight('0.1');
+                  setProductWidth('10');
+                  setProductHeight('10');
+                  setProductLength('10');
+                }}
+                className="px-6 py-3 bg-[#F1F5F9] text-slate-600 hover:bg-slate-200 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all cursor-pointer"
+              >
+                Voltar
+              </button>
+              <button
+                disabled={savingProduct}
+                type="submit"
+                className="px-6 py-3 bg-[#2563EB] text-white hover:bg-[#1D4ED8] rounded-2xl text-xs font-bold uppercase tracking-widest shadow-md transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {savingProduct ? 'Salvando...' : 'Salvar Produto'}
+              </button>
+            </div>
+          </form>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h3 className="text-xl font-bold text-[#1F2937] tracking-tight">Produtos Cadastrados</h3>
+            <p className="text-xs text-slate-400 font-semibold mt-0.5">
+              Gerencie seus produtos e defina peso/dimensões para envios.
+            </p>
+          </div>
+          <button
+            onClick={() => setIsAddingProduct(true)}
+            className="flex items-center gap-2 bg-[#2563EB] text-white px-5 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-[#1D4ED8] transition-all shadow-md cursor-pointer"
+          >
+            <Plus size={16} /> Cadastrar Produto
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="bg-white border border-slate-100 p-4 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] max-w-md">
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input
+              type="text"
+              placeholder="Buscar por nome ou SKU..."
+              value={productSearch}
+              onChange={(e) => setProductSearch(e.target.value)}
+              className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-11 pr-4 py-3 text-sm text-[#1F2937] placeholder-slate-400 focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+            />
+          </div>
+        </div>
+
+        {/* List of Products */}
+        {filteredProducts.length === 0 ? (
+          <div className="bg-white border border-slate-100 rounded-3xl p-16 text-center text-slate-400 text-sm font-semibold">
+            {productSearch ? 'Nenhum produto atende aos critérios de busca.' : 'Nenhum produto cadastrado.'}
+          </div>
+        ) : (
+          <>
+            {/* Desktop List */}
+            <div className="hidden md:block bg-white border border-slate-100 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-sm text-slate-500">
+                  <thead className="bg-[#F8FAFC] text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                    <tr>
+                      <th scope="col" className="px-6 py-4">Produto</th>
+                      <th scope="col" className="px-6 py-4">SKU / Código</th>
+                      <th scope="col" className="px-6 py-4 text-center">Preço</th>
+                      <th scope="col" className="px-6 py-4 text-center">Estoque</th>
+                      <th scope="col" className="px-6 py-4 text-center">Peso</th>
+                      <th scope="col" className="px-6 py-4 text-center">Dimensões (CxLxA)</th>
+                      <th scope="col" className="px-6 py-4 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                    {filteredProducts.map((product) => (
+                      <tr key={product.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-[#1F2937] block">{product.name}</span>
+                          {product.description && (
+                            <span className="text-xs text-slate-400 font-semibold block mt-0.5 max-w-xs truncate">{product.description}</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-slate-500 font-semibold uppercase">{product.sku || '-'}</td>
+                        <td className="px-6 py-4 text-center font-bold text-slate-900">
+                          {product.price ? `R$ ${Number(product.price).toFixed(2).replace('.', ',')}` : 'R$ 0,00'}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                            (product.stock || 0) > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
+                          }`}>
+                            {product.stock || 0} unid
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-center text-slate-500">{product.weight || 0.1} kg</td>
+                        <td className="px-6 py-4 text-center text-slate-500">
+                          {product.length || 10} x {product.width || 10} x {product.height || 10} cm
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex justify-end gap-1.5">
+                            <button
+                              onClick={() => handleStartEditProduct(product)}
+                              className="p-2 text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] rounded-xl transition-all cursor-pointer"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="p-2 text-slate-400 hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded-xl transition-all cursor-pointer"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+              {filteredProducts.map((product) => (
+                <div key={product.id} className="bg-white border border-slate-100 p-5 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-bold text-[#1F2937]">{product.name}</h4>
+                      {product.sku && <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">SKU: {product.sku}</p>}
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => handleStartEditProduct(product)}
+                        className="p-2 text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] rounded-xl transition-all cursor-pointer"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProduct(product.id)}
+                        className="p-2 text-slate-400 hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded-xl transition-all cursor-pointer"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {product.description && <p className="text-xs text-slate-500 leading-relaxed font-semibold">{product.description}</p>}
+
+                  <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100 text-xs font-semibold">
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Preço</p>
+                      <p className="text-slate-900 font-black">{product.price ? `R$ ${Number(product.price).toFixed(2).replace('.', ',')}` : 'R$ 0,00'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Estoque</p>
+                      <p className={`${(product.stock || 0) > 0 ? 'text-emerald-600' : 'text-red-500'} font-bold`}>{product.stock || 0} unid</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Peso</p>
+                      <p className="text-slate-600">{product.weight || 0.1} kg</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Dimensões</p>
+                      <p className="text-slate-600">{product.length || 10}x{product.width || 10}x{product.height || 10} cm</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     );

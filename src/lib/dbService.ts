@@ -1027,6 +1027,49 @@ export const dbService = {
       .delete()
       .eq('id', id);
     if (error) handleSupabaseError(error, 'delete', 'orders');
+  },
+
+  // Products
+  async getProducts() {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('name');
+    if (error) handleSupabaseError(error, 'list', 'products');
+    return data;
+  },
+
+  async saveProduct(product: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
+
+    const productData = { ...product, user_id: await this.getOwnerId() };
+
+    if (product.id && product.id.length > 15) {
+      const { data, error } = await supabase
+        .from('products')
+        .update(productData)
+        .eq('id', product.id)
+        .select();
+      if (error) handleSupabaseError(error, 'update', 'products');
+      return data[0];
+    } else {
+      const { id, ...cleanData } = productData;
+      const { data, error } = await supabase
+        .from('products')
+        .insert([cleanData])
+        .select();
+      if (error) handleSupabaseError(error, 'create', 'products');
+      return data[0];
+    }
+  },
+
+  async deleteProduct(id: string) {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id);
+    if (error) handleSupabaseError(error, 'delete', 'products');
   }
 };
 
