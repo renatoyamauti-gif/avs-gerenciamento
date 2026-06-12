@@ -30,6 +30,7 @@ const plans = [
     id: 'pro',
     name: 'Completo Mensal',
     description: 'Para criadores experientes que precisam de ferramentas avançadas.',
+    originalPrice: 'R$ 59,99',
     price: 'R$ 39,99',
     period: '/mês',
     features: [
@@ -52,8 +53,8 @@ const plans = [
   {
     id: 'trimestral',
     name: 'Completo Trimestral',
-    description: 'Plano Trimestral com 16% de desconto.',
-    originalPrice: 'R$ 119,97',
+    description: 'Plano Trimestral com 44% de desconto.',
+    originalPrice: 'R$ 179,97',
     price: 'R$ 99,99',
     period: '/trimestre',
     features: [
@@ -76,8 +77,8 @@ const plans = [
   {
     id: 'anual',
     name: 'Completo Anual',
-    description: 'Plano Anual com 16% de desconto.',
-    originalPrice: 'R$ 479,88',
+    description: 'Plano Anual com 44% de desconto.',
+    originalPrice: 'R$ 719,88',
     price: 'R$ 399,99',
     period: '/ano',
     features: [
