@@ -142,6 +142,10 @@ export default function Remessas() {
   const [productWidth, setProductWidth] = useState('10');
   const [productHeight, setProductHeight] = useState('10');
   const [productLength, setProductLength] = useState('10');
+  const [productEggRaca, setProductEggRaca] = useState('');
+  const [productEggBaia, setProductEggBaia] = useState('');
+  const [productEggsPerUnit, setProductEggsPerUnit] = useState('0');
+  const [productIsEggLinked, setProductIsEggLinked] = useState(false);
   const [savingProduct, setSavingProduct] = useState(false);
 
   // Order Form State
@@ -337,6 +341,28 @@ export default function Remessas() {
                 baiaMap[bName] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
               }
               baiaMap[bName].sold += qty;
+            } else if (item.origem_type === 'produto' && item.product_id) {
+              // Look up product to see if it is linked to egg_raca or egg_baia
+              const prod = (products || []).find((p: any) => p.id === item.product_id);
+              if (prod) {
+                const eggsPerUnit = Number(prod.eggs_per_unit) || 0;
+                const totalEggsSold = qty * eggsPerUnit;
+                if (totalEggsSold > 0) {
+                  if (prod.egg_raca) {
+                    const breed = prod.egg_raca;
+                    if (!racaMap[breed]) {
+                      racaMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+                    }
+                    racaMap[breed].sold += totalEggsSold;
+                  } else if (prod.egg_baia) {
+                    const bName = prod.egg_baia;
+                    if (!baiaMap[bName]) {
+                      baiaMap[bName] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+                    }
+                    baiaMap[bName].sold += totalEggsSold;
+                  }
+                }
+              }
             }
           }
         });
@@ -479,7 +505,10 @@ export default function Remessas() {
         weight: parseFloat(productWeight) || 0.1,
         width: parseFloat(productWidth) || 10,
         height: parseFloat(productHeight) || 10,
-        length: parseFloat(productLength) || 10
+        length: parseFloat(productLength) || 10,
+        egg_raca: productIsEggLinked ? productEggRaca || null : null,
+        egg_baia: productIsEggLinked ? productEggBaia || null : null,
+        eggs_per_unit: productIsEggLinked ? parseInt(productEggsPerUnit) || 0 : 0
       };
       if (editingProduct) {
         (productData as any).id = editingProduct.id;
@@ -497,6 +526,10 @@ export default function Remessas() {
       setProductWidth('10');
       setProductHeight('10');
       setProductLength('10');
+      setProductEggRaca('');
+      setProductEggBaia('');
+      setProductEggsPerUnit('0');
+      setProductIsEggLinked(false);
       setEditingProduct(null);
       setIsAddingProduct(false);
       alert('Produto salvo com sucesso!');
@@ -531,6 +564,10 @@ export default function Remessas() {
     setProductWidth(String(product.width ?? '10'));
     setProductHeight(String(product.height ?? '10'));
     setProductLength(String(product.length ?? '10'));
+    setProductEggRaca(product.egg_raca || '');
+    setProductEggBaia(product.egg_baia || '');
+    setProductEggsPerUnit(String(product.eggs_per_unit || '0'));
+    setProductIsEggLinked(Boolean(product.egg_raca || product.egg_baia));
     setIsAddingProduct(true);
   };
 
@@ -2187,6 +2224,10 @@ export default function Remessas() {
                 setProductWidth('10');
                 setProductHeight('10');
                 setProductLength('10');
+                setProductEggRaca('');
+                setProductEggBaia('');
+                setProductEggsPerUnit('0');
+                setProductIsEggLinked(false);
               }}
               className="text-slate-400 hover:text-slate-600 font-bold text-xs uppercase tracking-wider cursor-pointer"
             >
@@ -2312,6 +2353,77 @@ export default function Remessas() {
               </p>
             </div>
 
+            {/* Egg Stock Linkage */}
+            <div className="bg-[#F8FAFC] border border-slate-100 rounded-3xl p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-[#1F2937] text-sm">Vincular ao Estoque de Ovos</h4>
+                  <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                    Se este produto representa ovos (ex: dúzia de ovos), associe-o abaixo para descontar do estoque ao vender.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={productIsEggLinked} 
+                    onChange={(e) => setProductIsEggLinked(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
+                </label>
+              </div>
+
+              {productIsEggLinked && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vincular a Raça</label>
+                    <select
+                      value={productEggRaca}
+                      onChange={(e) => {
+                        setProductEggRaca(e.target.value);
+                        if (e.target.value) setProductEggBaia('');
+                      }}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:border-[#2563EB]/50 transition-all outline-none"
+                    >
+                      <option value="">Nenhuma raça</option>
+                      {racas.map((r: any) => (
+                        <option key={r.id} value={r.name}>{r.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ou Vincular a Baia</label>
+                    <select
+                      value={productEggBaia}
+                      onChange={(e) => {
+                        setProductEggBaia(e.target.value);
+                        if (e.target.value) setProductEggRaca('');
+                      }}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:border-[#2563EB]/50 transition-all outline-none"
+                    >
+                      <option value="">Nenhuma baia</option>
+                      {baias.map((b: any) => (
+                        <option key={b.id} value={b.name}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ovos por Unidade</label>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Ex: 12 para dúzia"
+                      value={productEggsPerUnit}
+                      onChange={(e) => setProductEggsPerUnit(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:border-[#2563EB]/50 transition-all outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
               <button
                 type="button"
@@ -2327,6 +2439,10 @@ export default function Remessas() {
                   setProductWidth('10');
                   setProductHeight('10');
                   setProductLength('10');
+                  setProductEggRaca('');
+                  setProductEggBaia('');
+                  setProductEggsPerUnit('0');
+                  setProductIsEggLinked(false);
                 }}
                 className="px-6 py-3 bg-[#F1F5F9] text-slate-600 hover:bg-slate-200 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all cursor-pointer"
               >

@@ -26,13 +26,14 @@ export default function Dashboard() {
     try {
       setLoading(true);
       // Load all data in parallel
-      const [birds, eggLogs, maternityRecords, incubators, transactions, orders] = await Promise.all([
+      const [birds, eggLogs, maternityRecords, incubators, transactions, orders, products] = await Promise.all([
         dbService.getBirds(),
         dbService.getEggLogs(),
         dbService.getMaternityRecords(),
         dbService.getIncubators(),
         dbService.getTransactions(),
-        dbService.getOrders()
+        dbService.getOrders(),
+        dbService.getProducts()
       ]);
 
       const activeBirds = (birds || []).filter(b => b.status !== 'Vendida' && b.status !== 'Óbito' && b.status !== 'Reservada');
@@ -105,6 +106,29 @@ export default function Dashboard() {
                 } else {
                   baiaMap[bName] = -qty;
                 }
+              } else if (item.origem_type === 'produto' && item.product_id) {
+                const prod = (products || []).find((p: any) => p.id === item.product_id);
+                if (prod) {
+                  const eggsPerUnit = Number(prod.eggs_per_unit) || 0;
+                  const totalEggsSold = qty * eggsPerUnit;
+                  if (totalEggsSold > 0) {
+                    if (prod.egg_raca) {
+                      const breed = prod.egg_raca;
+                      if (racaMap[breed] !== undefined) {
+                        racaMap[breed] -= totalEggsSold;
+                      } else {
+                        racaMap[breed] = -totalEggsSold;
+                      }
+                    } else if (prod.egg_baia) {
+                      const bName = prod.egg_baia;
+                      if (baiaMap[bName] !== undefined) {
+                        baiaMap[bName] -= totalEggsSold;
+                      } else {
+                        baiaMap[bName] = -totalEggsSold;
+                      }
+                    }
+                  }
+                }
               }
             }
           });
@@ -126,7 +150,24 @@ export default function Dashboard() {
       let totalSold = 0;
       (orders || []).forEach(ord => {
         if (ord.status !== 'Cancelado') {
-          totalSold += Number(ord.quantity) || 0;
+          const orderItems = ord.items && Array.isArray(ord.items) && ord.items.length > 0
+            ? ord.items
+            : [{ origem_type: ord.origem_type || 'raca', raca: ord.raca || '', baia: ord.baia || '', quantity: ord.quantity || 0 }];
+
+          orderItems.forEach((item: any) => {
+            const qty = Number(item.quantity) || 0;
+            if (qty > 0) {
+              if (item.origem_type === 'produto' && item.product_id) {
+                const prod = (products || []).find((p: any) => p.id === item.product_id);
+                if (prod) {
+                  const eggsPerUnit = Number(prod.eggs_per_unit) || 0;
+                  totalSold += qty * eggsPerUnit;
+                }
+              } else {
+                totalSold += qty;
+              }
+            }
+          });
         }
       });
       const totalAvailable = Math.max(0, totalCollected - totalIncubated - totalSold);

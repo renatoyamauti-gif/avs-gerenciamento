@@ -28,6 +28,7 @@ export default function EggCollection() {
   const [originType, setOriginType] = useState<'baia' | 'raca'>('baia');
   const [incubators, setIncubators] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [prefilledBaia, setPrefilledBaia] = useState('');
@@ -122,6 +123,29 @@ export default function EggCollection() {
               } else {
                 baiaMap[bName] = -qty;
               }
+            } else if (item.origem_type === 'produto' && item.product_id) {
+              const prod = (products || []).find((p: any) => p.id === item.product_id);
+              if (prod) {
+                const eggsPerUnit = Number(prod.eggs_per_unit) || 0;
+                const totalEggsSold = qty * eggsPerUnit;
+                if (totalEggsSold > 0) {
+                  if (prod.egg_raca) {
+                    const breed = prod.egg_raca;
+                    if (racaMap[breed] !== undefined) {
+                      racaMap[breed] -= totalEggsSold;
+                    } else {
+                      racaMap[breed] = -totalEggsSold;
+                    }
+                  } else if (prod.egg_baia) {
+                    const bName = prod.egg_baia;
+                    if (baiaMap[bName] !== undefined) {
+                      baiaMap[bName] -= totalEggsSold;
+                    } else {
+                      baiaMap[bName] = -totalEggsSold;
+                    }
+                  }
+                }
+              }
             }
           }
         });
@@ -151,7 +175,7 @@ export default function EggCollection() {
       baiaEstimates: bEst,
       racaEstimates: rEst
     };
-  }, [logs, incubators, orders]);
+  }, [logs, incubators, orders, products]);
 
   const handleQRScan = (scannedText: string) => {
     if (!scannedText) return;
@@ -240,14 +264,16 @@ export default function EggCollection() {
 
   async function loadLogs() {
     try {
-      const [logsData, incubatorsData, ordersData] = await Promise.all([
+      const [logsData, incubatorsData, ordersData, productsData] = await Promise.all([
         dbService.getEggLogs(),
         dbService.getIncubators(),
-        dbService.getOrders()
+        dbService.getOrders(),
+        dbService.getProducts()
       ]);
       setLogs(logsData || []);
       setIncubators(incubatorsData || []);
       setOrders(ordersData || []);
+      setProducts(productsData || []);
     } catch (error) {
       console.error('Erro ao carregar logs e estoque de ovos:', error);
     } finally {
