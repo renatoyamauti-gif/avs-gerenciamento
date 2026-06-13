@@ -16,7 +16,8 @@ import {
   CreditCard,
   Baby,
   MessageSquare,
-  Truck
+  Truck,
+  Tag
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -34,6 +35,7 @@ const Sidebar = ({ isOpen, onClose, profile }: SidebarProps) => {
     { path: '/maternity', label: 'Maternidade', icon: <Baby size={18} /> },
     { path: '/eggs', label: 'Ovos', icon: <Plus size={18} /> },
     { path: '/shipping', label: 'Remessas', icon: <Truck size={18} /> },
+    { path: '/products', label: 'Produtos', icon: <Tag size={18} /> },
     { path: '/ration', label: 'Ração', icon: <ArrowRight size={18} /> },
     { path: '/finance', label: 'Financeiro', icon: <Wallet size={18} /> },
     { path: '/settings', label: 'CONFIGURAÇÕES', icon: <Settings size={18} /> },
@@ -55,6 +57,7 @@ const Sidebar = ({ isOpen, onClose, profile }: SidebarProps) => {
       '/maternity': 'maternity',
       '/eggs': 'eggs',
       '/shipping': 'shipping',
+      '/products': 'shipping',
       '/ration': 'ration',
       '/finance': 'finance',
       '/chat': 'chat'

@@ -15,6 +15,7 @@ import EggCollection from './pages/EggCollection';
 import Chocadeira from './pages/Chocadeira';
 import Maternity from './pages/Maternity';
 import Remessas from './pages/Remessas';
+import Products from './pages/Products';
 import Finance from './pages/Finance';
 import Ration from './pages/Ration';
 import SettingsPage from './pages/Settings';
@@ -211,6 +212,7 @@ export default function App() {
                   <Route path="/maternity" element={hasPermission('maternity') ? <Maternity /> : <Navigate to="/" />} />
                   <Route path="/eggs" element={hasPermission('eggs') ? <EggCollection /> : <Navigate to="/" />} />
                   <Route path="/shipping" element={hasPermission('shipping') ? <Remessas /> : <Navigate to="/" />} />
+                  <Route path="/products" element={hasPermission('shipping') ? <Products /> : <Navigate to="/" />} />
                   <Route path="/ration" element={hasPermission('ration') ? <Ration /> : <Navigate to="/" />} />
                   <Route path="/finance" element={hasPermission('finance') ? <Finance /> : <Navigate to="/" />} />
                   <Route path="/settings" element={<SettingsPage />} />
