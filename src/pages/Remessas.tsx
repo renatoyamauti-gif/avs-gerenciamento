@@ -31,6 +31,7 @@ import {
   Tag
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
+import { calculateEggStock, normalizeBreed } from '../lib/stockHelper';
 import { supabase } from '../lib/supabaseClient';
 
 interface ShippingOption {
@@ -113,6 +114,7 @@ export default function Remessas() {
   const [incubators, setIncubators] = useState<any[]>([]);
   const [baias, setBaias] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [birds, setBirds] = useState<any[]>([]);
   const [loadingOrdersClients, setLoadingOrdersClients] = useState(false);
 
   // Client Form State
@@ -155,14 +157,15 @@ export default function Remessas() {
   async function loadOrdersClientsData() {
     try {
       setLoadingOrdersClients(true);
-      const [clientsData, ordersData, racasData, eggLogsData, incubatorsData, baiasData, productsData] = await Promise.all([
+      const [clientsData, ordersData, racasData, eggLogsData, incubatorsData, baiasData, productsData, birdsData] = await Promise.all([
         dbService.getClients(),
         dbService.getOrders(),
         dbService.getRacas(),
         dbService.getEggLogs(),
         dbService.getIncubators(),
         dbService.getBaias(),
-        dbService.getProducts()
+        dbService.getProducts(),
+        dbService.getBirds()
       ]);
       setClients(clientsData || []);
       setOrders(ordersData || []);
@@ -171,6 +174,7 @@ export default function Remessas() {
       setIncubators(incubatorsData || []);
       setBaias(baiasData || []);
       setProducts(productsData || []);
+      setBirds(birdsData || []);
     } catch (err) {
       console.error('Erro ao carregar dados de pedidos/clientes/estoque/produtos:', err);
     } finally {
@@ -216,161 +220,16 @@ export default function Remessas() {
 
   // Egg Stock and Daily Collection Averages Calculation (both Breed and Baia)
   const eggStock = useMemo(() => {
-    const racaMap: Record<string, { collected: number; incubated: number; sold: number; available: number; dailyAvg: number; daysCollected: number }> = {};
-    const baiaMap: Record<string, { collected: number; incubated: number; sold: number; available: number; dailyAvg: number; daysCollected: number }> = {};
-
-    // Initialize all breeds from racas table
-    (racas || []).forEach(r => {
-      const name = typeof r === 'string' ? r : r.name;
-      if (name) {
-        racaMap[name] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
-      }
+    return calculateEggStock({
+      eggLogs,
+      incubators,
+      orders,
+      products,
+      birds,
+      racas,
+      baias
     });
-
-    // Initialize all baias from baias table
-    (baias || []).forEach(b => {
-      const name = typeof b === 'string' ? b : b.name;
-      if (name) {
-        baiaMap[name] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
-      }
-    });
-
-    const racaDays: Record<string, Set<string>> = {};
-    const baiaDays: Record<string, Set<string>> = {};
-
-    // 1. Process Egg Logs (Collected)
-    (eggLogs || []).forEach(log => {
-      const dateKey = `${log.year}-${log.month}-${log.day}`;
-      
-      // If collection is by breed (raca)
-      if (log.raca && log.count) {
-        log.raca.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((breed: string) => {
-          if (!racaMap[breed]) {
-            racaMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
-          }
-          racaMap[breed].collected += log.count;
-
-          if (!racaDays[breed]) {
-            racaDays[breed] = new Set();
-          }
-          racaDays[breed].add(dateKey);
-        });
-      }
-
-      // If collection is by baia
-      if (log.baia && log.count) {
-        log.baia.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((bName: string) => {
-          if (!baiaMap[bName]) {
-            baiaMap[bName] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
-          }
-          baiaMap[bName].collected += log.count;
-
-          if (!baiaDays[bName]) {
-            baiaDays[bName] = new Set();
-          }
-          baiaDays[bName].add(dateKey);
-        });
-      }
-    });
-
-    // 2. Process Incubator Batches (Incubated)
-    (incubators || []).forEach(inc => {
-      (inc.incubator_batches || []).forEach((batch: any) => {
-        // Breed details
-        if (batch.raca_details) {
-          Object.entries(batch.raca_details).forEach(([breed, qty]) => {
-            const quantity = Number(qty) || 0;
-            if (!racaMap[breed]) {
-              racaMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
-            }
-            racaMap[breed].incubated += quantity;
-          });
-        }
-
-        // Baia details
-        if (batch.baia_details) {
-          Object.entries(batch.baia_details).forEach(([bName, qty]) => {
-            const quantity = Number(qty) || 0;
-            if (!baiaMap[bName]) {
-              baiaMap[bName] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
-            }
-            baiaMap[bName].incubated += quantity;
-          });
-        }
-      });
-    });
-
-    // 3. Process Orders (Sold/Reserved)
-    (orders || []).forEach(ord => {
-      if (ord.status !== 'Cancelado') {
-        const orderItems = ord.items && Array.isArray(ord.items) && ord.items.length > 0
-          ? ord.items
-          : [{ origem_type: ord.origem_type || 'raca', raca: ord.raca || '', baia: ord.baia || '', quantity: ord.quantity || 0 }];
-
-        orderItems.forEach((item: any) => {
-          const qty = Number(item.quantity) || 0;
-          if (qty > 0) {
-            const isRaca = (item.origem_type || 'raca') === 'raca';
-            if (isRaca && item.raca) {
-              const breed = item.raca;
-              if (!racaMap[breed]) {
-                racaMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
-              }
-              racaMap[breed].sold += qty;
-            } else if (!isRaca && item.baia) {
-              const bName = item.baia;
-              if (!baiaMap[bName]) {
-                baiaMap[bName] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
-              }
-              baiaMap[bName].sold += qty;
-            } else if (item.origem_type === 'produto' && item.product_id) {
-              // Look up product to see if it is linked to egg_raca or egg_baia
-              const prod = (products || []).find((p: any) => p.id === item.product_id);
-              if (prod) {
-                const eggsPerUnit = Number(prod.eggs_per_unit) || 0;
-                const totalEggsSold = qty * eggsPerUnit;
-                if (totalEggsSold > 0) {
-                  if (prod.egg_raca) {
-                    const breed = prod.egg_raca;
-                    if (!racaMap[breed]) {
-                      racaMap[breed] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
-                    }
-                    racaMap[breed].sold += totalEggsSold;
-                  } else if (prod.egg_baia) {
-                    const bName = prod.egg_baia;
-                    if (!baiaMap[bName]) {
-                      baiaMap[bName] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
-                    }
-                    baiaMap[bName].sold += totalEggsSold;
-                  }
-                }
-              }
-            }
-          }
-        });
-      }
-    });
-
-    // 4. Calculate Available Stock and Daily Collection Average for Breeds
-    Object.keys(racaMap).forEach(breed => {
-      const item = racaMap[breed];
-      item.available = item.collected - item.incubated - item.sold;
-      const days = racaDays[breed]?.size || 1;
-      item.daysCollected = days;
-      item.dailyAvg = item.collected / days;
-    });
-
-    // 5. Calculate Available Stock and Daily Collection Average for Baias
-    Object.keys(baiaMap).forEach(bName => {
-      const item = baiaMap[bName];
-      item.available = item.collected - item.incubated - item.sold;
-      const days = baiaDays[bName]?.size || 1;
-      item.daysCollected = days;
-      item.dailyAvg = item.collected / days;
-    });
-
-    return { racas: racaMap, baias: baiaMap };
-  }, [eggLogs, incubators, orders, racas, baias]);
+  }, [eggLogs, incubators, orders, products, birds, racas, baias]);
 
   // CEP Lookup for Client form
   const handleCepLookup = async (cep: string) => {
@@ -1280,7 +1139,7 @@ export default function Remessas() {
     orderItems.forEach((item: any) => {
       const isRaca = (item.origem_type || 'raca') === 'raca';
       const selectedName = isRaca ? item.raca : item.baia;
-      const stockInfo = selectedName ? (isRaca ? eggStock.racas[selectedName] : eggStock.baias[selectedName]) : null;
+      const stockInfo = selectedName ? (isRaca ? eggStock.racas[normalizeBreed(selectedName)] : eggStock.baias[selectedName]) : null;
 
       const availableStock = stockInfo ? stockInfo.available : 0;
       const dailyCollectionAvg = stockInfo ? stockInfo.dailyAvg : 0;
@@ -1394,7 +1253,7 @@ export default function Remessas() {
                     const prod = products.find(p => p.id === item.product_id);
                     availableStock = prod ? (prod.stock || 0) : 0;
                   } else if (selectedName) {
-                    const stockInfo = isRacaType ? eggStock.racas[selectedName] : eggStock.baias[selectedName];
+                    const stockInfo = isRacaType ? eggStock.racas[normalizeBreed(selectedName)] : eggStock.baias[selectedName];
                     availableStock = stockInfo ? stockInfo.available : 0;
                     dailyCollectionAvg = stockInfo ? stockInfo.dailyAvg : 0;
                   }

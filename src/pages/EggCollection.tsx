@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Egg, Trash2, X, Loader2, Edit2, QrCode, Printer, Camera } from 'lucide-react';
 import { dbService } from '../lib/dbService';
+import { calculateEggStock } from '../lib/stockHelper';
 import QRScannerModal from '../components/QRScannerModal';
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { useSearchParams } from 'react-router-dom';
@@ -29,6 +30,7 @@ export default function EggCollection() {
   const [incubators, setIncubators] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [birds, setBirds] = useState<any[]>([]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [prefilledBaia, setPrefilledBaia] = useState('');
@@ -44,128 +46,24 @@ export default function EggCollection() {
   const [viewDate, setViewDate] = useState(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
 
   const { eggsByBaia, eggsByRaca, baiaEstimates, racaEstimates } = useMemo(() => {
-    const baiaMap: { [key: string]: number } = {};
-    const racaMap: { [key: string]: number } = {};
-
-    const baiaTotalMap: { [key: string]: number } = {};
-    const baiaDaysMap: { [key: string]: Set<string> } = {};
-    const racaTotalMap: { [key: string]: number } = {};
-    const racaDaysMap: { [key: string]: Set<string> } = {};
-
-    (logs || []).forEach(log => {
-      const dateKey = `${log.year}-${log.month}-${log.day}`;
-      if (log.baia && log.count) {
-        log.baia.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((name: string) => {
-          baiaMap[name] = (baiaMap[name] || 0) + log.count;
-          baiaTotalMap[name] = (baiaTotalMap[name] || 0) + log.count;
-          if (!baiaDaysMap[name]) baiaDaysMap[name] = new Set();
-          baiaDaysMap[name].add(dateKey);
-        });
-      }
-      if (log.raca && log.count) {
-        log.raca.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((name: string) => {
-          racaMap[name] = (racaMap[name] || 0) + log.count;
-          racaTotalMap[name] = (racaTotalMap[name] || 0) + log.count;
-          if (!racaDaysMap[name]) racaDaysMap[name] = new Set();
-          racaDaysMap[name].add(dateKey);
-        });
-      }
+    const computedStock = calculateEggStock({
+      eggLogs: logs,
+      incubators,
+      orders,
+      products,
+      birds
     });
 
-    // Subtract incubated eggs from breed/baia maps
-    (incubators || []).forEach(inc => {
-      (inc.incubator_batches || []).forEach((batch: any) => {
-        if (batch.baia_details) {
-          Object.entries(batch.baia_details).forEach(([bName, qty]) => {
-            const q = Number(qty) || 0;
-            if (baiaMap[bName] !== undefined) {
-              baiaMap[bName] -= q;
-            } else {
-              baiaMap[bName] = -q;
-            }
-          });
-        }
-        if (batch.raca_details) {
-          Object.entries(batch.raca_details).forEach(([breed, qty]) => {
-            const q = Number(qty) || 0;
-            if (racaMap[breed] !== undefined) {
-              racaMap[breed] -= q;
-            } else {
-              racaMap[breed] = -q;
-            }
-          });
-        }
-      });
-    });
+    const ebBaia = Object.entries(computedStock.baias).map(([name, item]) => ({ name, count: Math.max(0, item.available) })).sort((a, b) => b.count - a.count);
+    const ebRaca = Object.entries(computedStock.racas).map(([name, item]) => ({ name, count: Math.max(0, item.available) })).sort((a, b) => b.count - a.count);
 
-    // Subtract sold eggs from orders (status !== 'Cancelado')
-    (orders || []).forEach(ord => {
-      if (ord.status !== 'Cancelado') {
-        const orderItems = ord.items && Array.isArray(ord.items) && ord.items.length > 0
-          ? ord.items
-          : [{ origem_type: ord.origem_type || 'raca', raca: ord.raca || '', baia: ord.baia || '', quantity: ord.quantity || 0 }];
-
-        orderItems.forEach((item: any) => {
-          const qty = Number(item.quantity) || 0;
-          if (qty > 0) {
-            const isRaca = (item.origem_type || 'raca') === 'raca';
-            if (isRaca && item.raca) {
-              const breed = item.raca;
-              if (racaMap[breed] !== undefined) {
-                racaMap[breed] -= qty;
-              } else {
-                racaMap[breed] = -qty;
-              }
-            } else if (!isRaca && item.baia) {
-              const bName = item.baia;
-              if (baiaMap[bName] !== undefined) {
-                baiaMap[bName] -= qty;
-              } else {
-                baiaMap[bName] = -qty;
-              }
-            } else if (item.origem_type === 'produto' && item.product_id) {
-              const prod = (products || []).find((p: any) => p.id === item.product_id);
-              if (prod) {
-                const eggsPerUnit = Number(prod.eggs_per_unit) || 0;
-                const totalEggsSold = qty * eggsPerUnit;
-                if (totalEggsSold > 0) {
-                  if (prod.egg_raca) {
-                    const breed = prod.egg_raca;
-                    if (racaMap[breed] !== undefined) {
-                      racaMap[breed] -= totalEggsSold;
-                    } else {
-                      racaMap[breed] = -totalEggsSold;
-                    }
-                  } else if (prod.egg_baia) {
-                    const bName = prod.egg_baia;
-                    if (baiaMap[bName] !== undefined) {
-                      baiaMap[bName] -= totalEggsSold;
-                    } else {
-                      baiaMap[bName] = -totalEggsSold;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        });
-      }
-    });
-
-    const ebBaia = Object.entries(baiaMap).map(([name, count]) => ({ name, count: Math.max(0, count) })).sort((a, b) => b.count - a.count);
-    const ebRaca = Object.entries(racaMap).map(([name, count]) => ({ name, count: Math.max(0, count) })).sort((a, b) => b.count - a.count);
-
-    const bEst = Object.entries(baiaTotalMap).map(([name, total]) => {
-      const days = baiaDaysMap[name].size || 1;
-      const dailyAvg = total / days;
-      const monthlyEst = Math.round(dailyAvg * 30);
+    const bEst = Object.entries(computedStock.baias).map(([name, item]) => {
+      const monthlyEst = Math.round(item.dailyAvg * 30);
       return { name, estimativa: monthlyEst };
     }).sort((a, b) => b.estimativa - a.estimativa);
 
-    const rEst = Object.entries(racaTotalMap).map(([name, total]) => {
-      const days = racaDaysMap[name].size || 1;
-      const dailyAvg = total / days;
-      const monthlyEst = Math.round(dailyAvg * 30);
+    const rEst = Object.entries(computedStock.racas).map(([name, item]) => {
+      const monthlyEst = Math.round(item.dailyAvg * 30);
       return { name, estimativa: monthlyEst };
     }).sort((a, b) => b.estimativa - a.estimativa);
 
@@ -175,7 +73,7 @@ export default function EggCollection() {
       baiaEstimates: bEst,
       racaEstimates: rEst
     };
-  }, [logs, incubators, orders, products]);
+  }, [logs, incubators, orders, products, birds]);
 
   const handleQRScan = (scannedText: string) => {
     if (!scannedText) return;
@@ -264,16 +162,18 @@ export default function EggCollection() {
 
   async function loadLogs() {
     try {
-      const [logsData, incubatorsData, ordersData, productsData] = await Promise.all([
+      const [logsData, incubatorsData, ordersData, productsData, birdsData] = await Promise.all([
         dbService.getEggLogs(),
         dbService.getIncubators(),
         dbService.getOrders(),
-        dbService.getProducts()
+        dbService.getProducts(),
+        dbService.getBirds()
       ]);
       setLogs(logsData || []);
       setIncubators(incubatorsData || []);
       setOrders(ordersData || []);
       setProducts(productsData || []);
+      setBirds(birdsData || []);
     } catch (error) {
       console.error('Erro ao carregar logs e estoque de ovos:', error);
     } finally {

@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Bird, Egg, Wallet, Hash, Thermometer, TrendingUp, TrendingDown, Activity, Loader2, CheckCircle2, Baby } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, LabelList } from 'recharts';
 import { dbService } from '../lib/dbService';
+import { calculateEggStock } from '../lib/stockHelper';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -39,105 +40,17 @@ export default function Dashboard() {
       const activeBirds = (birds || []).filter(b => b.status !== 'Vendida' && b.status !== 'Óbito' && b.status !== 'Reservada');
       setBirdCount(activeBirds.length);
 
-      // Process eggs by Baia and by Raça
-      const baiaMap: { [key: string]: number } = {};
-      const racaMap: { [key: string]: number } = {};
-      (eggLogs || []).forEach(log => {
-        if (log.baia && log.count) {
-          log.baia.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((name: string) => {
-            baiaMap[name] = (baiaMap[name] || 0) + log.count;
-          });
-        }
-        if (log.raca && log.count) {
-          log.raca.split(',').map((s: string) => s.trim()).filter(Boolean).forEach((name: string) => {
-            racaMap[name] = (racaMap[name] || 0) + log.count;
-          });
-        }
-      });
-
-      // Subtract incubated eggs from breed/baia maps
-      (incubators || []).forEach(inc => {
-        (inc.incubator_batches || []).forEach((batch: any) => {
-          if (batch.baia_details) {
-            Object.entries(batch.baia_details).forEach(([bName, qty]) => {
-              const q = Number(qty) || 0;
-              if (baiaMap[bName] !== undefined) {
-                baiaMap[bName] -= q;
-              } else {
-                baiaMap[bName] = -q;
-              }
-            });
-          }
-          if (batch.raca_details) {
-            Object.entries(batch.raca_details).forEach(([breed, qty]) => {
-              const q = Number(qty) || 0;
-              if (racaMap[breed] !== undefined) {
-                racaMap[breed] -= q;
-              } else {
-                racaMap[breed] = -q;
-              }
-            });
-          }
-        });
-      });
-
-      // Subtract sold eggs from orders (status !== 'Cancelado')
-      (orders || []).forEach(ord => {
-        if (ord.status !== 'Cancelado') {
-          const orderItems = ord.items && Array.isArray(ord.items) && ord.items.length > 0
-            ? ord.items
-            : [{ origem_type: ord.origem_type || 'raca', raca: ord.raca || '', baia: ord.baia || '', quantity: ord.quantity || 0 }];
-
-          orderItems.forEach((item: any) => {
-            const qty = Number(item.quantity) || 0;
-            if (qty > 0) {
-              const isRaca = (item.origem_type || 'raca') === 'raca';
-              if (isRaca && item.raca) {
-                const breed = item.raca;
-                if (racaMap[breed] !== undefined) {
-                  racaMap[breed] -= qty;
-                } else {
-                  racaMap[breed] = -qty;
-                }
-              } else if (!isRaca && item.baia) {
-                const bName = item.baia;
-                if (baiaMap[bName] !== undefined) {
-                  baiaMap[bName] -= qty;
-                } else {
-                  baiaMap[bName] = -qty;
-                }
-              } else if (item.origem_type === 'produto' && item.product_id) {
-                const prod = (products || []).find((p: any) => p.id === item.product_id);
-                if (prod) {
-                  const eggsPerUnit = Number(prod.eggs_per_unit) || 0;
-                  const totalEggsSold = qty * eggsPerUnit;
-                  if (totalEggsSold > 0) {
-                    if (prod.egg_raca) {
-                      const breed = prod.egg_raca;
-                      if (racaMap[breed] !== undefined) {
-                        racaMap[breed] -= totalEggsSold;
-                      } else {
-                        racaMap[breed] = -totalEggsSold;
-                      }
-                    } else if (prod.egg_baia) {
-                      const bName = prod.egg_baia;
-                      if (baiaMap[bName] !== undefined) {
-                        baiaMap[bName] -= totalEggsSold;
-                      } else {
-                        baiaMap[bName] = -totalEggsSold;
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          });
-        }
+      const computedStock = calculateEggStock({
+        eggLogs,
+        incubators,
+        orders,
+        products,
+        birds
       });
 
       // Set eggs by Baia and by Raça (using available stock, minimum 0)
-      setEggsByBaia(Object.entries(baiaMap).map(([name, count]) => ({ name, count: Math.max(0, count) })).sort((a, b) => b.count - a.count));
-      setEggsByRaca(Object.entries(racaMap).map(([name, count]) => ({ name, count: Math.max(0, count) })).sort((a, b) => b.count - a.count));
+      setEggsByBaia(Object.entries(computedStock.baias).map(([name, item]) => ({ name, count: Math.max(0, item.available) })).sort((a, b) => b.count - a.count));
+      setEggsByRaca(Object.entries(computedStock.racas).map(([name, item]) => ({ name, count: Math.max(0, item.available) })).sort((a, b) => b.count - a.count));
 
       // Calculate total available egg stock
       const totalCollected = (eggLogs || []).reduce((acc, curr) => acc + curr.count, 0);
