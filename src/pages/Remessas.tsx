@@ -1444,13 +1444,15 @@ export default function Remessas() {
                           )}
                         </div>
 
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quantidade</label>
+                         <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            {isProductType ? 'Quantidade (Unidades)' : 'Quantidade (Ovos)'}
+                          </label>
                           <input
                             required
                             type="number"
                             min="1"
-                            placeholder="Ex: 12"
+                            placeholder={isProductType ? 'Ex: 1 (unidade)' : 'Ex: 15 (ovos)'}
                             value={item.quantity}
                             onChange={(e) => {
                               const newItems = [...formItems];
@@ -1459,6 +1461,11 @@ export default function Remessas() {
                             }}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:border-[#2563EB]/50 transition-all outline-none"
                           />
+                          {isProductType && prod && (
+                            <span className="text-[10px] text-slate-400 font-semibold block mt-0.5 ml-1">
+                              {isEggLinked ? `1 un. = ${eggsPerUnit} ovos` : 'Produto físico'}
+                            </span>
+                          )}
                         </div>
                       </div>
 
