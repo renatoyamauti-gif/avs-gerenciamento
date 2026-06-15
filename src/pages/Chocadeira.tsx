@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Egg, Plus, Trash2, Clock, AlertCircle, CheckCircle2, Thermometer, Droplets, Loader2, X, Lock } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { useSubscription } from '../hooks/useSubscription';
-import { useTranslation } from '../contexts/LanguageContext';
 
 interface Batch {
   id: string;
@@ -28,7 +27,6 @@ interface Incubator {
 const INCUBATION_DAYS = 21;
 
 export default function Chocadeira() {
-  const { t } = useTranslation();
   const [incubators, setIncubators] = useState<Incubator[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddingIncubator, setIsAddingIncubator] = useState(false);
@@ -613,14 +611,14 @@ export default function Chocadeira() {
                 {calculatedTotal > 0 && totalCount !== calculatedTotal && (
                   <div className="bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/40 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-amber-800 dark:text-amber-300 text-xs font-medium">
                     <span>
-                      ⚠️ {t('breeding.mismatch_warning').replace('{totalCount}', String(totalCount)).replace('{calculatedTotal}', String(calculatedTotal))}
+                      ⚠️ A quantidade total inserida ({totalCount}) é diferente da soma dos itens por baia/raça ({calculatedTotal}).
                     </span>
                     <button
                       type="button"
                       onClick={() => setTotalCount(calculatedTotal)}
                       className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold uppercase tracking-wider text-[10px] whitespace-nowrap transition-all cursor-pointer"
                     >
-                      {t('breeding.adjust_button').replace('{calculatedTotal}', String(calculatedTotal))}
+                      Ajustar para {calculatedTotal}
                     </button>
                   </div>
                 )}
@@ -778,14 +776,14 @@ export default function Chocadeira() {
                 {calculatedTotal > 0 && totalCount !== calculatedTotal && (
                   <div className="bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/40 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-amber-800 dark:text-amber-300 text-xs font-medium">
                     <span>
-                      ⚠️ {t('breeding.mismatch_warning').replace('{totalCount}', String(totalCount)).replace('{calculatedTotal}', String(calculatedTotal))}
+                      ⚠️ A quantidade total inserida ({totalCount}) é diferente da soma dos itens por baia/raça ({calculatedTotal}).
                     </span>
                     <button
                       type="button"
                       onClick={() => setTotalCount(calculatedTotal)}
                       className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold uppercase tracking-wider text-[10px] whitespace-nowrap transition-all cursor-pointer"
                     >
-                      {t('breeding.adjust_button').replace('{calculatedTotal}', String(calculatedTotal))}
+                      Ajustar para {calculatedTotal}
                     </button>
                   </div>
                 )}

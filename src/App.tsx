@@ -28,7 +28,6 @@ import { supabase } from './lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { dbService } from './lib/dbService';
 import { useSubscription } from './hooks/useSubscription';
-import { useTranslation } from './contexts/LanguageContext';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -36,7 +35,6 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { plan, loading: subLoading, isFreePlan, isTrialExpired, trialDaysLeft, isTrialActive } = useSubscription();
-  const { t } = useTranslation();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -98,7 +96,7 @@ export default function App() {
           transition={{ duration: 2, repeat: Infinity }}
           className="text-[#2563EB] font-bold text-xl font-headline tracking-widest italic uppercase"
         >
-          {t('header.loading')}
+          Carregando Sistema...
         </motion.div>
       </div>
     );
@@ -183,10 +181,10 @@ export default function App() {
                 </div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-bold text-[#1F2937] dark:text-slate-100 font-headline tracking-tight uppercase">
-                    {t('header.welcome')}, {getFirstName()}
+                    BEM-VINDO, {getFirstName()}
                   </h2>
                   <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-widest">
-                    {t('header.criatorio')}: {getCriatorioName()}
+                    CRIATÓRIO: {getCriatorioName()}
                   </p>
                 </div>
               </div>
@@ -194,7 +192,7 @@ export default function App() {
                 onClick={handleSignOut}
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-white dark:bg-slate-900 text-[#EF4444] border-2 border-[#FCA5A5] dark:border-red-900/40 rounded-full text-sm font-bold uppercase tracking-widest hover:bg-[#FEF2F2] dark:hover:bg-red-950/20 transition-all cursor-pointer"
               >
-                <LogOut size={16} /> {t('header.logout')}
+                <LogOut size={16} /> Sair da conta
               </button>
             </motion.div>
             )}

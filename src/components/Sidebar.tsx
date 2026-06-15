@@ -19,8 +19,6 @@ import {
   Truck,
   Tag
 } from 'lucide-react';
-import { useTranslation } from '../contexts/LanguageContext';
-
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -29,21 +27,20 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, onClose, profile }: SidebarProps) => {
   const location = useLocation();
-  const { t } = useTranslation();
   
   const menuItems = [
-    { path: '/', label: t('menu.dashboard'), icon: <LayoutDashboard size={18} /> },
-    { path: '/birds', label: t('menu.birds'), icon: <Bird size={18} /> },
-    { path: '/breeding', label: t('menu.breeding'), icon: <Egg size={18} /> },
-    { path: '/maternity', label: t('menu.maternity'), icon: <Baby size={18} /> },
-    { path: '/eggs', label: t('menu.eggs'), icon: <Plus size={18} /> },
-    { path: '/shipping', label: t('menu.shipping'), icon: <Truck size={18} /> },
-    { path: '/products', label: t('menu.products'), icon: <Tag size={18} /> },
-    { path: '/ration', label: t('menu.ration'), icon: <ArrowRight size={18} /> },
-    { path: '/finance', label: t('menu.finance'), icon: <Wallet size={18} /> },
-    { path: '/settings', label: t('menu.settings'), icon: <Settings size={18} /> },
-    { path: '/chat', label: t('menu.chat'), icon: <MessageSquare size={18} /> },
-    { path: '/subscription', label: t('menu.subscription'), icon: <CreditCard size={18} /> },
+    { path: '/', label: "PAINEL DE CONTROLE", icon: <LayoutDashboard size={18} /> },
+    { path: '/birds', label: "Gestão de Aves", icon: <Bird size={18} /> },
+    { path: '/breeding', label: "Chocadeira", icon: <Egg size={18} /> },
+    { path: '/maternity', label: "Maternidade", icon: <Baby size={18} /> },
+    { path: '/eggs', label: "Ovos", icon: <Plus size={18} /> },
+    { path: '/shipping', label: "Remessas", icon: <Truck size={18} /> },
+    { path: '/products', label: "Produtos", icon: <Tag size={18} /> },
+    { path: '/ration', label: "Ração", icon: <ArrowRight size={18} /> },
+    { path: '/finance', label: "Financeiro", icon: <Wallet size={18} /> },
+    { path: '/settings', label: "CONFIGURAÇÕES", icon: <Settings size={18} /> },
+    { path: '/chat', label: "Chat Exclusivo", icon: <MessageSquare size={18} /> },
+    { path: '/subscription', label: "Assinatura", icon: <CreditCard size={18} /> },
   ];
 
   const hasPermission = (path: string) => {
