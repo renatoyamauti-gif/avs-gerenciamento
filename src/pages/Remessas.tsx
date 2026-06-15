@@ -31,7 +31,7 @@ import {
   Tag
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
-import { calculateEggStock, normalizeBreed } from '../lib/stockHelper';
+import { calculateEggStock, normalizeBreed, normalizeBaia } from '../lib/stockHelper';
 import { supabase } from '../lib/supabaseClient';
 
 interface ShippingOption {
@@ -1130,23 +1130,39 @@ export default function Remessas() {
 
     const orderItems = order.items && Array.isArray(order.items) && order.items.length > 0
       ? order.items
-      : [{ origem_type: order.origem_type || 'raca', raca: order.raca || '', baia: order.baia || '', quantity: order.quantity || 0 }];
+      : [{ origem_type: order.origem_type || 'raca', raca: order.raca || '', baia: order.baia || '', quantity: order.quantity || 0, product_id: order.product_id || '' }];
 
     let maxDays = 0;
     let hasInsufficientStock = false;
     let missingCollectionsData = false;
 
     orderItems.forEach((item: any) => {
-      const isRaca = (item.origem_type || 'raca') === 'raca';
-      const selectedName = isRaca ? item.raca : item.baia;
-      const stockInfo = selectedName ? (isRaca ? eggStock.racas[normalizeBreed(selectedName)] : eggStock.baias[selectedName]) : null;
+      let availableStock = 0;
+      let dailyCollectionAvg = 0;
+      const isProduct = (item.origem_type || 'raca') === 'produto';
 
-      const availableStock = stockInfo ? stockInfo.available : 0;
-      const dailyCollectionAvg = stockInfo ? stockInfo.dailyAvg : 0;
+      if (isProduct) {
+        const prod = products.find(p => p.id === item.product_id);
+        if (prod) {
+          if (prod.egg_raca || prod.egg_baia) {
+            const isRaca = !!prod.egg_raca;
+            const selectedName = isRaca ? prod.egg_raca : prod.egg_baia;
+            const stockInfo = selectedName ? (isRaca ? eggStock.racas[normalizeBreed(selectedName)] : eggStock.baias[normalizeBaia(selectedName)]) : null;
+            availableStock = stockInfo ? stockInfo.available : 0;
+            dailyCollectionAvg = stockInfo ? stockInfo.dailyAvg : 0;
+          } else {
+            availableStock = prod.stock || 0;
+            dailyCollectionAvg = 0;
+          }
+        }
+      } else {
+        const isRaca = (item.origem_type || 'raca') === 'raca';
+        const selectedName = isRaca ? item.raca : item.baia;
+        const stockInfo = selectedName ? (isRaca ? eggStock.racas[normalizeBreed(selectedName)] : eggStock.baias[normalizeBaia(selectedName)]) : null;
+        availableStock = stockInfo ? stockInfo.available : 0;
+        dailyCollectionAvg = stockInfo ? stockInfo.dailyAvg : 0;
+      }
 
-      // In eggStock calculation, available = collected - incubated - sold
-      // where 'sold' includes all active orders (including this one).
-      // So if available < 0, it means we have a deficit of Math.abs(available) eggs.
       if (availableStock < 0) {
         hasInsufficientStock = true;
         const deficit = Math.abs(availableStock);
@@ -1248,19 +1264,47 @@ export default function Remessas() {
                   const selectedName = isRacaType ? item.raca : (isBaiaType ? item.baia : '');
                   let availableStock = 0;
                   let dailyCollectionAvg = 0;
+                  let isEggLinked = false;
+                  let eggsPerUnit = 1;
+                  let totalEggsRequested = 0;
+                  let eggsNeeded = 0;
+                  let isStockSufficient = false;
+                  let prod: any = null;
 
                   if (isProductType) {
-                    const prod = products.find(p => p.id === item.product_id);
-                    availableStock = prod ? (prod.stock || 0) : 0;
+                    prod = products.find(p => p.id === item.product_id);
+                    if (prod) {
+                      isEggLinked = Boolean(prod.egg_raca || prod.egg_baia);
+                      eggsPerUnit = Number(prod.eggs_per_unit) || 1;
+                      
+                      if (isEggLinked) {
+                        const breedOrBayName = prod.egg_raca || prod.egg_baia;
+                        const isRaca = !!prod.egg_raca;
+                        const stockInfo = isRaca 
+                          ? eggStock.racas[normalizeBreed(breedOrBayName)] 
+                          : eggStock.baias[normalizeBaia(breedOrBayName)];
+                        availableStock = stockInfo ? stockInfo.available : 0;
+                        dailyCollectionAvg = stockInfo ? stockInfo.dailyAvg : 0;
+                      } else {
+                        availableStock = prod.stock || 0;
+                      }
+                    }
                   } else if (selectedName) {
-                    const stockInfo = isRacaType ? eggStock.racas[normalizeBreed(selectedName)] : eggStock.baias[selectedName];
+                    const stockInfo = isRacaType ? eggStock.racas[normalizeBreed(selectedName)] : eggStock.baias[normalizeBaia(selectedName)];
                     availableStock = stockInfo ? stockInfo.available : 0;
                     dailyCollectionAvg = stockInfo ? stockInfo.dailyAvg : 0;
                   }
 
                   const qtyRequested = parseInt(item.quantity) || 0;
-                  const isStockSufficient = availableStock >= qtyRequested;
-                  const eggsNeeded = qtyRequested - availableStock;
+                  
+                  if (isProductType && prod && isEggLinked) {
+                    totalEggsRequested = qtyRequested * eggsPerUnit;
+                    isStockSufficient = availableStock >= totalEggsRequested;
+                    eggsNeeded = totalEggsRequested - availableStock;
+                  } else {
+                    isStockSufficient = availableStock >= qtyRequested;
+                    eggsNeeded = qtyRequested - availableStock;
+                  }
 
                   let daysToCollect = 0;
                   let predictedShipDateStr = '';
@@ -1272,6 +1316,8 @@ export default function Remessas() {
                       predictedShipDateStr = shipDate.toLocaleDateString('pt-BR');
                     }
                   }
+
+                  const hasValidSelection = isProductType ? !!item.product_id : !!selectedName;
 
                   return (
                     <div key={index} className="p-4 bg-slate-50/50 border border-slate-200/50 rounded-2xl space-y-3 relative">
@@ -1417,12 +1463,16 @@ export default function Remessas() {
                       </div>
 
                       {/* Item Stock Warning */}
-                      {selectedName && qtyRequested > 0 && (
+                      {hasValidSelection && qtyRequested > 0 && (
                         <div className="text-[11px] mt-2">
                           {isStockSufficient ? (
                             <div className="text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl flex items-center gap-1.5 font-medium">
                               <Check className="text-emerald-600 shrink-0" size={14} />
-                              <span>Estoque suficiente! Disponível: <strong>{availableStock}</strong> ovos.</span>
+                              {isProductType && prod && !isEggLinked ? (
+                                <span>Estoque suficiente! Disponível: <strong>{availableStock}</strong> unidades.</span>
+                              ) : (
+                                <span>Estoque suficiente! Disponível: <strong>{availableStock}</strong> ovos.</span>
+                              )}
                             </div>
                           ) : (
                             <div className="text-amber-800 bg-amber-50 border border-amber-100 p-3 rounded-xl space-y-1">
@@ -1430,9 +1480,15 @@ export default function Remessas() {
                                 <AlertCircle className="text-amber-600 shrink-0" size={14} />
                                 <span>Estoque Insuficiente!</span>
                               </div>
-                              <p className="leading-relaxed">
-                                Disponível: <strong>{availableStock}</strong>. Faltam <strong>{eggsNeeded}</strong> para este item de {qtyRequested} ovos.
-                              </p>
+                              {isProductType && prod && !isEggLinked ? (
+                                <p className="leading-relaxed">
+                                  Disponível: <strong>{availableStock}</strong>. Faltam <strong>{eggsNeeded}</strong> para este item de {qtyRequested} unidades.
+                                </p>
+                              ) : (
+                                <p className="leading-relaxed">
+                                  Disponível: <strong>{availableStock}</strong> ovos. Faltam <strong>{eggsNeeded}</strong> para este item de {isProductType ? totalEggsRequested : qtyRequested} ovos.
+                                </p>
+                              )}
                               {dailyCollectionAvg > 0 ? (
                                 <p className="bg-amber-100/30 p-2 rounded-lg border border-amber-200/40 font-semibold text-[10px]">
                                   Média: {dailyCollectionAvg.toFixed(1)}/dia. <br />

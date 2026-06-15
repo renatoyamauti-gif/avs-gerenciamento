@@ -469,11 +469,17 @@ export default function EggCollection() {
                 onClick={() => {
                   setViewDate(new Date(log.year, log.month - 1, 1));
                   setEditingDay(log.day);
+                  setEditingLogId(log.id);
                 }}
-                className="bg-[#F8FAFC] p-4 rounded-2xl border border-slate-100 group hover:border-[#2563EB]/50 transition-all cursor-pointer"
+                className="bg-[#F8FAFC] p-4 rounded-2xl border border-slate-100 group hover:border-[#2563EB]/50 transition-all cursor-pointer relative overflow-hidden"
               >
                 <div className="flex justify-between items-start mb-2 gap-2">
-                  <div className="text-xs font-bold text-slate-500 uppercase tracking-widest">{log.day}/{log.month}/{log.year}</div>
+                  <div className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                    {log.day}/{log.month}/{log.year}
+                    <span className="text-[10px] font-bold text-[#2563EB] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-[#EFF6FF] px-1.5 py-0.5 rounded-md border border-[#2563EB]/10">
+                      <Edit2 size={10} /> Editar
+                    </span>
+                  </div>
                   <div className="flex items-center gap-2">
                     {log.baia && (
                       <div className="bg-[#F3F4F6] text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border border-slate-200">
@@ -682,41 +688,60 @@ export default function EggCollection() {
 
               {currentDayLogs.length > 0 && (
                 <div className="mb-6 space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                  {currentDayLogs.map(log => (
-                    <div key={log.id} className="flex justify-between items-center bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          {log.baia && (
-                            <span className="text-[10px] font-bold bg-[#E0E7FF] text-[#2563EB] px-2 py-0.5 rounded-md uppercase border border-[#DBEAFE]">Baia: {log.baia}</span>
-                          )}
-                          {log.raca && (
-                            <span className="text-[10px] font-bold bg-[#F3E8FF] text-[#8B5CF6] px-2 py-0.5 rounded-md uppercase border border-[#E9D5FF]">Raça: {log.raca}</span>
-                          )}
-                          <span className="text-sm font-black text-[#1F2937]">{log.count} Ovos</span>
-                          {log.condition && log.condition !== 'Normal' && (
-                            <span className="text-[10px] font-bold bg-[#FEF2F2] text-[#EF4444] px-2 py-0.5 rounded-md border border-[#FECACA] uppercase">{log.condition}</span>
+                  {currentDayLogs.map(log => {
+                    const isEditingThis = editingLogId === log.id;
+                    return (
+                      <div 
+                        key={log.id} 
+                        className={`flex justify-between items-center p-3 rounded-2xl border transition-all ${
+                          isEditingThis 
+                            ? 'bg-[#EFF6FF] border-[#2563EB]/40 shadow-sm ring-1 ring-[#2563EB]/20' 
+                            : 'bg-[#F8FAFC] border-slate-100'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            {log.baia && (
+                              <span className="text-[10px] font-bold bg-[#E0E7FF] text-[#2563EB] px-2 py-0.5 rounded-md uppercase border border-[#DBEAFE]">Baia: {log.baia}</span>
+                            )}
+                            {log.raca && (
+                              <span className="text-[10px] font-bold bg-[#F3E8FF] text-[#8B5CF6] px-2 py-0.5 rounded-md uppercase border border-[#E9D5FF]">Raça: {log.raca}</span>
+                            )}
+                            <span className="text-sm font-black text-[#1F2937]">{log.count} Ovos</span>
+                            {log.condition && log.condition !== 'Normal' && (
+                              <span className="text-[10px] font-bold bg-[#FEF2F2] text-[#EF4444] px-2 py-0.5 rounded-md border border-[#FECACA] uppercase">{log.condition}</span>
+                            )}
+                            {isEditingThis && (
+                              <span className="text-[9px] font-extrabold bg-[#2563EB] text-white px-2 py-0.5 rounded-md uppercase tracking-wider animate-pulse">Editando</span>
+                            )}
+                          </div>
+                          {log.pairs && log.pairs.length > 0 && (
+                            <div className="text-[10px] font-bold text-slate-500 uppercase">Casais: {log.pairs.join(', ')}</div>
                           )}
                         </div>
-                        {log.pairs && log.pairs.length > 0 && (
-                          <div className="text-[10px] font-bold text-slate-500 uppercase">Casais: {log.pairs.join(', ')}</div>
-                        )}
+                        <div className="flex gap-1">
+                          <button 
+                            onClick={() => setEditingLogId(log.id)}
+                            className={`p-2 rounded-xl transition-all ${
+                              isEditingThis 
+                                ? 'text-[#2563EB] bg-white border border-[#2563EB]/25 shadow-sm' 
+                                : 'text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF]'
+                            }`}
+                            title="Editar"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button 
+                            onClick={() => removeEntry(log.id)}
+                            className="p-2 text-slate-400 hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded-xl transition-colors"
+                            title="Excluir"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        <button 
-                          onClick={() => setEditingLogId(log.id)}
-                          className="p-2 text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF] rounded-xl transition-colors"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button 
-                          onClick={() => removeEntry(log.id)}
-                          className="p-2 text-slate-400 hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded-xl transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 

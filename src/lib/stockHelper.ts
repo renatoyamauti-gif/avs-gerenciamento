@@ -7,7 +7,22 @@ export function normalizeBreed(name: string): string {
   if (n.includes('fenix') || n.includes('fênix')) return 'Fênix';
   if (n.includes('polonesa')) return 'Polonesa';
   if (n.includes('sedosa')) return 'Sedosa';
-  return name.trim();
+  
+  // Custom breeds: trim and Title Case
+  return name.trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+export function normalizeBaia(name: string): string {
+  if (!name) return '';
+  return name.trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 export function getRacaBaiaMapping(birds: any[]) {
@@ -16,7 +31,7 @@ export function getRacaBaiaMapping(birds: any[]) {
 
   (birds || []).forEach(bird => {
     if (bird.baia && bird.raca) {
-      const bName = bird.baia.trim();
+      const bName = normalizeBaia(bird.baia);
       const normalizedR = normalizeBreed(bird.raca);
 
       if (!baiaToRacas[bName]) {
@@ -77,7 +92,7 @@ export function calculateEggStock({
   };
 
   const initBaia = (bName: string) => {
-    const b = bName.trim();
+    const b = normalizeBaia(bName);
     if (!baiaMap[b]) {
       baiaMap[b] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
     }
@@ -102,7 +117,7 @@ export function calculateEggStock({
 
   const getRacasForBaia = (bName: string): string[] => {
     if (!bName) return [];
-    const b = bName.trim();
+    const b = normalizeBaia(bName);
     return baiaToRacas[b] ? Array.from(baiaToRacas[b]) : [];
   };
 

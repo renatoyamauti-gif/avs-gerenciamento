@@ -14,7 +14,7 @@ import {
   Inbox
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
-import { calculateEggStock, normalizeBreed } from '../lib/stockHelper';
+import { calculateEggStock, normalizeBreed, normalizeBaia } from '../lib/stockHelper';
 
 export default function Products() {
   const [products, setProducts] = useState<any[]>([]);
@@ -182,9 +182,11 @@ export default function Products() {
       incubators,
       orders,
       products,
-      birds
+      birds,
+      racas: racas.map(r => r.name),
+      baias: baias.map(b => b.name)
     });
-  }, [eggLogs, incubators, orders, products, birds]);
+  }, [eggLogs, incubators, orders, products, birds, racas, baias]);
 
   if (loading) {
     return (
@@ -534,7 +536,7 @@ export default function Products() {
                                     const normR = p.egg_raca ? normalizeBreed(p.egg_raca) : null;
                                     const availableEggs = normR 
                                       ? (eggStockMap.racas[normR]?.available || 0) 
-                                      : (eggStockMap.baias[p.egg_baia]?.available || 0);
+                                      : (eggStockMap.baias[normalizeBaia(p.egg_baia)]?.available || 0);
                                     const eggsPerUnit = Number(p.eggs_per_unit) || 1;
                                     const availableUnits = availableEggs >= 0 
                                       ? Math.floor(availableEggs / eggsPerUnit)
