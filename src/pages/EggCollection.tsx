@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Egg, Trash2, X, Loader2, Edit2, QrCode, Printer, Camera } from 'lucide-react';
 import { dbService } from '../lib/dbService';
-import { calculateEggStock } from '../lib/stockHelper';
+import { calculateEggStock, normalizeBaia, normalizeBreed } from '../lib/stockHelper';
 import QRScannerModal from '../components/QRScannerModal';
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { useSearchParams } from 'react-router-dom';
@@ -39,6 +39,7 @@ export default function EggCollection() {
   const [qrTab, setQrTab] = useState<'baia' | 'raca'>('baia');
   const [printSingleItem, setPrintSingleItem] = useState<{type: 'baia' | 'raca', name: string} | null>(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<{ type: 'baia' | 'raca'; name: string } | null>(null);
 
   const countInputRef = useRef<HTMLInputElement>(null);
   
@@ -74,6 +75,20 @@ export default function EggCollection() {
       racaEstimates: rEst
     };
   }, [logs, incubators, orders, products, birds]);
+
+  const filteredLogs = useMemo(() => {
+    if (!selectedFilter) return [];
+    const { type, name } = selectedFilter;
+    const normName = type === 'baia' ? normalizeBaia(name) : normalizeBreed(name);
+    
+    return logs.filter(log => {
+      if (type === 'baia') {
+        return log.baia && log.baia.split(',').some(b => normalizeBaia(b) === normName);
+      } else {
+        return log.raca && log.raca.split(',').some(r => normalizeBreed(r) === normName);
+      }
+    });
+  }, [logs, selectedFilter]);
 
   const handleQRScan = (scannedText: string) => {
     if (!scannedText) return;
@@ -518,29 +533,39 @@ export default function EggCollection() {
       {/* Eggs by Baia and Raça Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Ovos por Baia */}
-        <div className="bg-white border border-slate-100 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-          <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] mb-6 flex items-center gap-3">
-            <div className="bg-[#EFF6FF] p-2 rounded-2xl">
-              <Egg size={24} className="text-[#2563EB]" />
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100 mb-6 flex items-center gap-3">
+            <div className="bg-[#EFF6FF] dark:bg-blue-950/40 p-2 rounded-2xl">
+              <Egg size={24} className="text-[#2563EB] dark:text-blue-400" />
             </div>
             Ovos por Baia
           </h3>
           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
             {eggsByBaia.map((item, index) => (
-              <div key={item.name} className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] border border-slate-50">
+              <div 
+                key={item.name} 
+                onClick={() => setSelectedFilter({ type: 'baia', name: item.name })}
+                className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-800/50 border border-slate-50 dark:border-slate-800/80 hover:bg-[#EFF6FF] dark:hover:bg-blue-950/20 hover:border-[#2563EB]/30 dark:hover:border-blue-900/50 cursor-pointer transition-all group"
+                title="Clique para editar/ver coletas desta baia"
+              >
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#EFF6FF] text-[#2563EB] font-bold text-sm">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#EFF6FF] dark:bg-blue-950/50 text-[#2563EB] dark:text-blue-400 font-bold text-sm">
                     {index + 1}
                   </span>
-                  <span className="font-bold text-[#1F2937]">{item.name}</span>
+                  <span className="font-bold text-[#1F2937] dark:text-slate-200">{item.name}</span>
                 </div>
-                <span className="bg-[#2563EB] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                  {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="bg-[#2563EB] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                    {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
+                  </span>
+                  <span className="text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Edit2 size={14} />
+                  </span>
+                </div>
               </div>
             ))}
             {eggsByBaia.length === 0 && (
-              <div className="text-center py-10 opacity-50 text-slate-400 font-medium">
+              <div className="text-center py-10 opacity-50 text-slate-400 dark:text-slate-500 font-medium">
                 Nenhum registro de ovos por baia
               </div>
             )}
@@ -548,29 +573,39 @@ export default function EggCollection() {
         </div>
 
         {/* Ovos por Raça */}
-        <div className="bg-white border border-slate-100 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-          <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] mb-6 flex items-center gap-3">
-            <div className="bg-[#FAF5FF] p-2 rounded-2xl">
-              <Egg size={24} className="text-[#8B5CF6]" />
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100 mb-6 flex items-center gap-3">
+            <div className="bg-[#FAF5FF] dark:bg-purple-950/40 p-2 rounded-2xl">
+              <Egg size={24} className="text-[#8B5CF6] dark:text-purple-400" />
             </div>
             Ovos por Raça
           </h3>
           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
             {eggsByRaca.map((item, index) => (
-              <div key={item.name} className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] border border-slate-50">
+              <div 
+                key={item.name} 
+                onClick={() => setSelectedFilter({ type: 'raca', name: item.name })}
+                className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-800/50 border border-slate-50 dark:border-slate-800/80 hover:bg-[#FAF5FF] dark:hover:bg-purple-950/20 hover:border-[#8B5CF6]/30 dark:hover:border-purple-900/50 cursor-pointer transition-all group"
+                title="Clique para editar/ver coletas desta raça"
+              >
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FAF5FF] text-[#8B5CF6] font-bold text-sm">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FAF5FF] dark:bg-purple-950/50 text-[#8B5CF6] dark:text-purple-400 font-bold text-sm">
                     {index + 1}
                   </span>
-                  <span className="font-bold text-[#1F2937]">{item.name}</span>
+                  <span className="font-bold text-[#1F2937] dark:text-slate-200">{item.name}</span>
                 </div>
-                <span className="bg-[#8B5CF6] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                  {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="bg-[#8B5CF6] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                    {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
+                  </span>
+                  <span className="text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Edit2 size={14} />
+                  </span>
+                </div>
               </div>
             ))}
             {eggsByRaca.length === 0 && (
-              <div className="text-center py-10 opacity-50 text-slate-400 font-medium">
+              <div className="text-center py-10 opacity-50 text-slate-400 dark:text-slate-500 font-medium">
                 Nenhum registro de ovos por raça
               </div>
             )}
@@ -868,6 +903,101 @@ export default function EggCollection() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Detalhamento por Baia/Raça */}
+      <AnimatePresence>
+        {selectedFilter !== null && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedFilter(null)}
+              className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm"
+            ></motion.div>
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 p-8 rounded-[32px] shadow-2xl z-10 flex flex-col max-h-[80vh]"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-2xl font-bold text-[#1F2937] dark:text-slate-100">Coletas</h3>
+                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">
+                    {selectedFilter.type === 'baia' ? 'Baia' : 'Raça'}: {selectedFilter.name}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setSelectedFilter(null)}
+                  className="bg-[#F8FAFC] dark:bg-slate-800 p-2 text-slate-400 dark:text-slate-500 hover:text-[#EF4444] rounded-xl transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
+                {filteredLogs.map(log => (
+                  <div 
+                    key={log.id} 
+                    className="flex justify-between items-center p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-[#F8FAFC] dark:bg-slate-800/30"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                          {log.day}/{log.month}/{log.year}
+                        </span>
+                        <span className="text-sm font-black text-[#1F2937] dark:text-slate-100">
+                          {log.count} {log.count === 1 ? 'Ovo' : 'Ovos'}
+                        </span>
+                        {log.condition && log.condition !== 'Normal' && (
+                          <span className="text-[10px] font-bold bg-[#FEF2F2] dark:bg-red-955/20 text-[#EF4444] dark:text-red-400 px-2 py-0.5 rounded-md border border-[#FECACA] dark:border-red-900/40 uppercase">
+                            {log.condition}
+                          </span>
+                        )}
+                      </div>
+                      {log.pairs && log.pairs.length > 0 && (
+                        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                          Casais: {log.pairs.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => {
+                          setViewDate(new Date(log.year, log.month - 1, 1));
+                          setEditingDay(log.day);
+                          setEditingLogId(log.id);
+                          setSelectedFilter(null);
+                        }}
+                        className="p-2 text-slate-400 dark:text-slate-500 hover:text-[#2563EB] dark:hover:text-blue-400 hover:bg-[#EFF6FF] dark:hover:bg-blue-950/30 rounded-xl transition-all"
+                        title="Editar"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          await removeEntry(log.id);
+                        }}
+                        className="p-2 text-slate-400 dark:text-slate-500 hover:text-[#EF4444] hover:bg-[#FEF2F2] dark:hover:bg-red-955/20 rounded-xl transition-all"
+                        title="Excluir"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {filteredLogs.length === 0 && (
+                  <div className="text-center py-10 opacity-50 text-slate-400 dark:text-slate-500 font-medium">
+                    Nenhuma coleta para este item.
+                  </div>
+                )}
+              </div>
             </motion.div>
           </div>
         )}
