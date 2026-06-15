@@ -28,11 +28,13 @@ import {
   ArrowLeft,
   Check,
   ClipboardList,
-  Tag
+  Tag,
+  Download
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { calculateEggStock, normalizeBreed, normalizeBaia } from '../lib/stockHelper';
 import { supabase } from '../lib/supabaseClient';
+import { exportToCSV } from '../lib/csvHelper';
 
 interface ShippingOption {
   id: number;
@@ -1554,22 +1556,31 @@ export default function Remessas() {
               className="w-full max-w-md bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-sm text-[#1F2937] outline-none focus:border-[#2563EB]/50 focus:bg-white focus:ring-4 focus:ring-[#2563EB]/5 transition-all"
             />
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setOrderClientId('');
-              setOrderRaca('');
-              setOrderBaia('');
-              setOrderOrigemType('raca');
-              setOrderQuantity('');
-              setOrderStatus('Pendente');
-              setEditingOrder(null);
-              setIsAddingOrder(true);
-            }}
-            className="bg-[#2563EB] text-white py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-sm hover:bg-[#1D4ED8] active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            <Plus size={14} /> Novo Pedido
-          </button>
+          <div className="flex gap-3 items-center">
+            <button
+              type="button"
+              onClick={() => exportToCSV(orders, `pedidos_${new Date().toISOString().split('T')[0]}`)}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[#6B7280] dark:text-slate-400 py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-sm hover:border-[#2563EB] dark:hover:border-blue-500 hover:text-[#2563EB] dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Download size={14} /> Exportar CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOrderClientId('');
+                setOrderRaca('');
+                setOrderBaia('');
+                setOrderOrigemType('raca');
+                setOrderQuantity('');
+                setOrderStatus('Pendente');
+                setEditingOrder(null);
+                setIsAddingOrder(true);
+              }}
+              className="bg-[#2563EB] text-white py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-sm hover:bg-[#1D4ED8] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Plus size={14} /> Novo Pedido
+            </button>
+          </div>
         </div>
 
         {filteredOrders.length === 0 ? (

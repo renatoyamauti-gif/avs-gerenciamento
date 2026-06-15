@@ -1,0 +1,63 @@
+export const pt = {
+  menu: {
+    dashboard: "PAINEL DE CONTROLE",
+    birds: "Gestão de Aves",
+    breeding: "Chocadeira",
+    maternity: "Maternidade",
+    eggs: "Ovos",
+    shipping: "Remessas",
+    products: "Produtos",
+    ration: "Ração",
+    finance: "Financeiro",
+    settings: "CONFIGURAÇÕES",
+    chat: "Chat Exclusivo",
+    subscription: "Assinatura"
+  },
+  header: {
+    welcome: "BEM-VINDO",
+    criatorio: "CRIATÓRIO",
+    logout: "Sair da conta",
+    loading: "Carregando Sistema...",
+    online: "Conectado",
+    offline: "Sem internet"
+  },
+  dashboard: {
+    title: "PAINEL DE CONTROLE",
+    subtitle: "Resumo operacional do sistema de gerenciamento.",
+    egg_stock: "Estoque de Ovos",
+    available: "Disponível",
+    incubating: "Em Incubação",
+    units: "Unidades",
+    balance: "Saldo Atual",
+    maternity: "Maternidade",
+    chicks: "Filhotes",
+    flock: "Plantel Total",
+    birds: "Aves",
+    finance_perf: "Performance Financeira",
+    cash_flow: "Evolução do Fluxo de Caixa",
+    next_events: "Próximos Eventos",
+    hatch: "Eclosão",
+    lot_ready: "Lote Pronto!",
+    remaining: "Restantes",
+    no_events: "Sem eventos próximos",
+    operational_status: "Status Geral",
+    operational: "Operacional",
+    eggs_by_baia: "Ovos por Baia",
+    eggs_by_raca: "Ovos por Raça",
+    no_baia_record: "Nenhum registro de ovos por baia",
+    no_raca_record: "Nenhum registro de ovos por raça",
+    monthly_projection: "Estimativa Mensal de Produção",
+    projection_desc: "Projeção de produção de ovos para os próximos 30 dias com base na média das coletas diárias registradas.",
+    projection_formula: "Estimativa: Média Diária × 30 dias",
+    projection_baia: "Projeção por Baia (Ovos / Mês)",
+    projection_raca: "Projeção por Raça (Ovos / Mês)",
+    projection_note_title: "Observação Importante:",
+    projection_note_desc: "Este gráfico apresenta uma estimativa projetada para 30 dias com base no histórico das coletas diárias inseridas no sistema. Os valores reais podem variar de acordo com fatores climáticos, alimentação, ciclo reprodutivo e manejo das aves.",
+    eggs_unit: "Ovo",
+    eggs_units: "Ovos"
+  },
+  breeding: {
+    mismatch_warning: "A quantidade total inserida ({totalCount}) é diferente da soma dos itens por baia/raça ({calculatedTotal}).",
+    adjust_button: "Ajustar para {calculatedTotal}"
+  }
+};

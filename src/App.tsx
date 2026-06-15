@@ -28,6 +28,7 @@ import { supabase } from './lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { dbService } from './lib/dbService';
 import { useSubscription } from './hooks/useSubscription';
+import { useTranslation } from './contexts/LanguageContext';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -35,6 +36,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { plan, loading: subLoading, isFreePlan, isTrialExpired, trialDaysLeft, isTrialActive } = useSubscription();
+  const { t } = useTranslation();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -90,13 +92,13 @@ export default function App() {
 
   if (loading || subLoading) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex items-center justify-center transition-colors">
         <motion.div 
           animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }} 
           transition={{ duration: 2, repeat: Infinity }}
           className="text-[#2563EB] font-bold text-xl font-headline tracking-widest italic uppercase"
         >
-          Carregando Sistema...
+          {t('header.loading')}
         </motion.div>
       </div>
     );
@@ -104,7 +106,7 @@ export default function App() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex items-center justify-center p-4 transition-colors">
         <Auth />
       </div>
     );
@@ -118,7 +120,7 @@ export default function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-[#F8FAFC] flex flex-col lg:flex-row pb-16 lg:pb-0">
+      <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex flex-col lg:flex-row pb-16 lg:pb-0 transition-colors duration-200">
         {!isLocked && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} profile={profile} />}
         
         <main className={`flex-1 min-h-screen relative transition-all ${!isLocked ? 'lg:ml-64' : ''}`}>
@@ -173,26 +175,26 @@ export default function App() {
             <motion.div 
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-8 p-6 bg-white rounded-3xl flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm border border-slate-100"
+              className="mb-8 p-6 bg-white dark:bg-slate-900 rounded-3xl flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm border border-slate-100 dark:border-slate-800 transition-colors duration-200"
             >
               <div className="flex items-center gap-4">
-                <div className="bg-[#E0E7FF] p-4 rounded-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#3B82F6]"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <div className="bg-[#E0E7FF] dark:bg-blue-900/30 p-4 rounded-full">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#3B82F6] dark:text-blue-400"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 </div>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-[#1F2937] font-headline tracking-tight uppercase">
-                    BEM-VINDO, {getFirstName()}
+                  <h2 className="text-lg sm:text-xl font-bold text-[#1F2937] dark:text-slate-100 font-headline tracking-tight uppercase">
+                    {t('header.welcome')}, {getFirstName()}
                   </h2>
-                  <p className="text-sm font-bold text-slate-500 mt-1 uppercase tracking-widest">
-                    CRIATÓRIO: {getCriatorioName()}
+                  <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-widest">
+                    {t('header.criatorio')}: {getCriatorioName()}
                   </p>
                 </div>
               </div>
               <button 
                 onClick={handleSignOut}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-white text-[#EF4444] border-2 border-[#FCA5A5] rounded-full text-sm font-bold uppercase tracking-widest hover:bg-[#FEF2F2] transition-colors"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-white dark:bg-slate-900 text-[#EF4444] border-2 border-[#FCA5A5] dark:border-red-900/40 rounded-full text-sm font-bold uppercase tracking-widest hover:bg-[#FEF2F2] dark:hover:bg-red-950/20 transition-all cursor-pointer"
               >
-                <LogOut size={16} /> Sair da conta
+                <LogOut size={16} /> {t('header.logout')}
               </button>
             </motion.div>
             )}
@@ -223,7 +225,7 @@ export default function App() {
               )}
             </AnimatePresence>
 
-            <footer className="pt-12 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center text-[10px] sm:text-sm font-semibold text-slate-400 uppercase tracking-[0.1em] mt-20 gap-4 text-center sm:text-left mb-6">
+            <footer className="pt-12 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center text-[10px] sm:text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-[0.1em] mt-20 gap-4 text-center sm:text-left mb-6 transition-colors duration-200">
               <div>2026  AVS GERENCIAMENTO, CRIADO E DESENVOLVIDO POR CRIATÓRIO SITIEIRO - TODOS OS DIREITOS RESERVADOS.</div>
               <div className="flex flex-wrap justify-center gap-4 sm:gap-8">
                 <a href="#" className="hover:text-[#2563EB] transition-colors">Política de Privacidade</a>
@@ -233,7 +235,6 @@ export default function App() {
             </footer>
           </div>
         </main>
-        
         
         {/* Bottom Navigation for Mobile */}
         {!isLocked && <BottomNav onOpenMenu={() => setIsSidebarOpen(true)} profile={profile} />}

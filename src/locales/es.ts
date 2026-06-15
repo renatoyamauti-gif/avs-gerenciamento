@@ -1,0 +1,63 @@
+export const es = {
+  menu: {
+    dashboard: "PANEL DE CONTROL",
+    birds: "Gestión de Aves",
+    breeding: "Incubadora",
+    maternity: "Maternidad",
+    eggs: "Huevos",
+    shipping: "Envíos",
+    products: "Productos",
+    ration: "Ración",
+    finance: "Financiero",
+    settings: "CONFIGURACIONES",
+    chat: "Chat Exclusivo",
+    subscription: "Suscripción"
+  },
+  header: {
+    welcome: "BIENVENIDO",
+    criatorio: "CRIADERO",
+    logout: "Cerrar sesión",
+    loading: "Cargando Sistema...",
+    online: "En línea",
+    offline: "Sin conexión"
+  },
+  dashboard: {
+    title: "PANEL DE CONTROL",
+    subtitle: "Resumen operativo del sistema de gestión.",
+    egg_stock: "Inventario de Huevos",
+    available: "Disponible",
+    incubating: "En Incubación",
+    units: "Unidades",
+    balance: "Saldo Actual",
+    maternity: "Maternidad",
+    chicks: "Polluelos",
+    flock: "Plantel Total",
+    birds: "Aves",
+    finance_perf: "Rendimiento Financiero",
+    cash_flow: "Evolución del Flujo de Caja",
+    next_events: "Próximos Eventos",
+    hatch: "Eclosión",
+    lot_ready: "¡Lote Listo!",
+    remaining: "Restantes",
+    no_events: "No hay eventos próximos",
+    operational_status: "Estado General",
+    operational: "Operativo",
+    eggs_by_baia: "Huevos por Corral",
+    eggs_by_raca: "Huevos por Raza",
+    no_baia_record: "Sin registro de huevos por corral",
+    no_raca_record: "Sin registro de huevos por raza",
+    monthly_projection: "Estimación Mensual de Producción",
+    projection_desc: "Proyección de producción de huevos para los próximos 30 días en base al promedio de recolecciones diarias registradas.",
+    projection_formula: "Estimación: Promedio Diario × 30 días",
+    projection_baia: "Proyección por Corral (Huevos / Mes)",
+    projection_raca: "Proyección por Raza (Huevos / Mes)",
+    projection_note_title: "Nota importante:",
+    projection_note_desc: "Este gráfico presenta una estimación proyectada para 30 días basada en el historial de recolecciones diarias ingresadas en el sistema. Los valores reales pueden variar según factores climáticos, alimentación, ciclo reproductivo y manejo de las aves.",
+    eggs_unit: "Huevo",
+    eggs_units: "Huevos"
+  },
+  breeding: {
+    mismatch_warning: "La cantidad total ingresada ({totalCount}) es diferente de la suma de los elementos por corral/raza ({calculatedTotal}).",
+    adjust_button: "Ajustar a {calculatedTotal}"
+  }
+};

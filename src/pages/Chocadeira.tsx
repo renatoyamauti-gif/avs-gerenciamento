@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Egg, Plus, Trash2, Clock, AlertCircle, CheckCircle2, Thermometer, Droplets, Loader2, X, Lock } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { useSubscription } from '../hooks/useSubscription';
+import { useTranslation } from '../contexts/LanguageContext';
 
 interface Batch {
   id: string;
@@ -27,6 +28,7 @@ interface Incubator {
 const INCUBATION_DAYS = 21;
 
 export default function Chocadeira() {
+  const { t } = useTranslation();
   const [incubators, setIncubators] = useState<Incubator[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddingIncubator, setIsAddingIncubator] = useState(false);
@@ -73,10 +75,10 @@ export default function Chocadeira() {
   }, [modalBaias, modalRacas]);
 
   useEffect(() => {
-    if (calculatedTotal > 0) {
+    if (calculatedTotal > 0 && totalCount === 0) {
       setTotalCount(calculatedTotal);
     }
-  }, [calculatedTotal]);
+  }, [calculatedTotal, totalCount]);
 
   const openAddBatch = (incubatorId: string) => {
     setModalBaias([]);
@@ -607,6 +609,21 @@ export default function Chocadeira() {
                     className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
                   />
                 </div>
+
+                {calculatedTotal > 0 && totalCount !== calculatedTotal && (
+                  <div className="bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/40 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-amber-800 dark:text-amber-300 text-xs font-medium">
+                    <span>
+                      ⚠️ {t('breeding.mismatch_warning').replace('{totalCount}', String(totalCount)).replace('{calculatedTotal}', String(calculatedTotal))}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setTotalCount(calculatedTotal)}
+                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold uppercase tracking-wider text-[10px] whitespace-nowrap transition-all cursor-pointer"
+                    >
+                      {t('breeding.adjust_button').replace('{calculatedTotal}', String(calculatedTotal))}
+                    </button>
+                  </div>
+                )}
                 <button type="submit" className="w-full py-4 bg-[#F59E0B] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#D97706] hover:scale-[1.02] active:scale-95 transition-all">Iniciar Incubação</button>
               </form>
             </motion.div>
@@ -757,6 +774,21 @@ export default function Chocadeira() {
                     className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
                   />
                 </div>
+
+                {calculatedTotal > 0 && totalCount !== calculatedTotal && (
+                  <div className="bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/40 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-amber-800 dark:text-amber-300 text-xs font-medium">
+                    <span>
+                      ⚠️ {t('breeding.mismatch_warning').replace('{totalCount}', String(totalCount)).replace('{calculatedTotal}', String(calculatedTotal))}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setTotalCount(calculatedTotal)}
+                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold uppercase tracking-wider text-[10px] whitespace-nowrap transition-all cursor-pointer"
+                    >
+                      {t('breeding.adjust_button').replace('{calculatedTotal}', String(calculatedTotal))}
+                    </button>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-100">
                   <div className="space-y-2">
