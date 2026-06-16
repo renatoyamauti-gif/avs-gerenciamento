@@ -25,6 +25,86 @@ interface SidebarProps {
   profile?: any;
 }
 
+const colorThemes: Record<string, {
+  activeLink: string;
+  activeIcon: string;
+  inactiveIcon: string;
+  hoverLink: string;
+}> = {
+  '/': {
+    activeLink: 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-450',
+    activeIcon: 'bg-blue-600 text-white shadow-md shadow-blue-500/20',
+    inactiveIcon: 'bg-[#F1F5F9] dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 group-hover:bg-blue-600 group-hover:text-white group-hover:scale-105 group-hover:shadow-sm',
+    hoverLink: 'hover:bg-blue-50/50 dark:hover:bg-blue-950/15 hover:text-blue-650 dark:hover:text-blue-450'
+  },
+  '/birds': {
+    activeLink: 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-450',
+    activeIcon: 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20',
+    inactiveIcon: 'bg-[#F1F5F9] dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 group-hover:bg-indigo-600 group-hover:text-white group-hover:scale-105 group-hover:shadow-sm',
+    hoverLink: 'hover:bg-indigo-50/50 dark:hover:bg-indigo-950/15 hover:text-indigo-650 dark:hover:text-indigo-455'
+  },
+  '/breeding': {
+    activeLink: 'bg-amber-50 dark:bg-amber-955/15 text-amber-600 dark:text-amber-450',
+    activeIcon: 'bg-amber-500 text-white shadow-md shadow-amber-500/20',
+    inactiveIcon: 'bg-[#F1F5F9] dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 group-hover:bg-amber-500 group-hover:text-white group-hover:scale-105 group-hover:shadow-sm',
+    hoverLink: 'hover:bg-amber-50/50 dark:hover:bg-amber-955/10 hover:text-amber-650 dark:hover:text-amber-450'
+  },
+  '/maternity': {
+    activeLink: 'bg-rose-50 dark:bg-rose-955/15 text-rose-600 dark:text-rose-450',
+    activeIcon: 'bg-rose-500 text-white shadow-md shadow-rose-500/20',
+    inactiveIcon: 'bg-[#F1F5F9] dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 group-hover:bg-rose-500 group-hover:text-white group-hover:scale-105 group-hover:shadow-sm',
+    hoverLink: 'hover:bg-rose-50/50 dark:hover:bg-rose-955/10 hover:text-rose-650 dark:hover:text-rose-450'
+  },
+  '/eggs': {
+    activeLink: 'bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-450',
+    activeIcon: 'bg-sky-500 text-white shadow-md shadow-sky-500/20',
+    inactiveIcon: 'bg-[#F1F5F9] dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 group-hover:bg-sky-500 group-hover:text-white group-hover:scale-105 group-hover:shadow-sm',
+    hoverLink: 'hover:bg-sky-50/50 dark:hover:bg-sky-950/15 hover:text-sky-650 dark:hover:text-sky-455'
+  },
+  '/shipping': {
+    activeLink: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-450',
+    activeIcon: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20',
+    inactiveIcon: 'bg-[#F1F5F9] dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 group-hover:bg-emerald-500 group-hover:text-white group-hover:scale-105 group-hover:shadow-sm',
+    hoverLink: 'hover:bg-emerald-50/50 dark:hover:bg-emerald-950/15 hover:text-emerald-650 dark:hover:text-emerald-450'
+  },
+  '/products': {
+    activeLink: 'bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-450',
+    activeIcon: 'bg-purple-500 text-white shadow-md shadow-purple-500/20',
+    inactiveIcon: 'bg-[#F1F5F9] dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 group-hover:bg-purple-500 group-hover:text-white group-hover:scale-105 group-hover:shadow-sm',
+    hoverLink: 'hover:bg-purple-50/50 dark:hover:bg-purple-950/15 hover:text-purple-650 dark:hover:text-purple-450'
+  },
+  '/ration': {
+    activeLink: 'bg-teal-50 dark:bg-teal-955/15 text-teal-600 dark:text-teal-455',
+    activeIcon: 'bg-teal-500 text-white shadow-md shadow-teal-500/20',
+    inactiveIcon: 'bg-[#F1F5F9] dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 group-hover:bg-teal-500 group-hover:text-white group-hover:scale-105 group-hover:shadow-sm',
+    hoverLink: 'hover:bg-teal-50/50 dark:hover:bg-teal-955/10 hover:text-teal-650 dark:hover:text-teal-450'
+  },
+  '/finance': {
+    activeLink: 'bg-green-50 dark:bg-green-955/15 text-green-600 dark:text-green-455',
+    activeIcon: 'bg-green-600 text-white shadow-md shadow-green-500/20',
+    inactiveIcon: 'bg-[#F1F5F9] dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 group-hover:bg-green-600 group-hover:text-white group-hover:scale-105 group-hover:shadow-sm',
+    hoverLink: 'hover:bg-green-50/50 dark:hover:bg-green-955/10 hover:text-green-650 dark:hover:text-green-450'
+  },
+  '/settings': {
+    activeLink: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200',
+    activeIcon: 'bg-slate-600 text-white shadow-md shadow-slate-500/20',
+    inactiveIcon: 'bg-[#F1F5F9] dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 group-hover:bg-slate-600 group-hover:text-white group-hover:scale-105 group-hover:shadow-sm',
+    hoverLink: 'hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-slate-700 dark:hover:text-slate-200'
+  },
+  '/chat': {
+    activeLink: 'bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-455',
+    activeIcon: 'bg-violet-500 text-white shadow-md shadow-violet-500/20',
+    inactiveIcon: 'bg-[#F1F5F9] dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 group-hover:bg-violet-500 group-hover:text-white group-hover:scale-105 group-hover:shadow-sm',
+    hoverLink: 'hover:bg-violet-50/50 dark:hover:bg-violet-950/15 hover:text-violet-650 dark:hover:text-violet-455'
+  },
+  '/subscription': {
+    activeLink: 'bg-pink-50 dark:bg-pink-955/15 text-pink-600 dark:text-pink-455',
+    activeIcon: 'bg-pink-500 text-white shadow-md shadow-pink-500/20',
+    inactiveIcon: 'bg-[#F1F5F9] dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 group-hover:bg-pink-500 group-hover:text-white group-hover:scale-105 group-hover:shadow-sm',
+    hoverLink: 'hover:bg-pink-50/50 dark:hover:bg-pink-955/10 hover:text-pink-650 dark:hover:text-pink-455'
+  }
+};
+
 const Sidebar = ({ isOpen, onClose, profile }: SidebarProps) => {
   const location = useLocation();
   
@@ -98,25 +178,34 @@ const Sidebar = ({ isOpen, onClose, profile }: SidebarProps) => {
         </div>
         
         <nav className="flex-1 space-y-1">
-          {visibleMenuItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={() => {
-                if (window.innerWidth < 1024) onClose();
-              }}
-              className={`
-                flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out font-headline font-semibold uppercase tracking-widest text-sm
-                ${location.pathname === item.path 
-                  ? 'bg-[#E0E7FF] dark:bg-blue-950/40 text-[#2563EB] dark:text-blue-400' 
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-[#3B82F6]'
-                }
-              `}
-            >
-              {item.icon}
-              {item.label}
-            </Link>
-          ))}
+          {visibleMenuItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            const theme = colorThemes[item.path] || colorThemes['/'];
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => {
+                  if (window.innerWidth < 1024) onClose();
+                }}
+                className={`
+                  flex items-center gap-3.5 px-3 py-2.5 rounded-2xl transition-all duration-300 ease-in-out font-headline font-bold uppercase tracking-wider text-xs group
+                  ${isActive 
+                    ? theme.activeLink + ' shadow-[0_4px_20px_rgba(0,0,0,0.02)]' 
+                    : `text-slate-500 dark:text-slate-400 ${theme.hoverLink}`
+                  }
+                `}
+              >
+                <div className={`
+                  w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ease-in-out shrink-0
+                  ${isActive ? theme.activeIcon : theme.inactiveIcon}
+                `}>
+                  {item.icon}
+                </div>
+                <span className="font-semibold">{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
         <div className="mt-auto pt-6 border-t border-slate-200 dark:border-slate-800 opacity-80 flex items-center justify-center">
           <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">AVS OS v1.0.5</p>
