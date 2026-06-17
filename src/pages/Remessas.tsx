@@ -216,6 +216,7 @@ export default function Remessas() {
   const [orderQuantity, setOrderQuantity] = useState('');
   const [formItems, setFormItems] = useState<{ origem_type: 'raca' | 'baia' | 'produto'; raca: string; baia: string; product_id: string; quantity: string }[]>([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '' }]);
   const [orderStatus, setOrderStatus] = useState('Pendente');
+  const [orderTrackingCode, setOrderTrackingCode] = useState('');
   const [savingOrder, setSavingOrder] = useState(false);
   const [savingClient, setSavingClient] = useState(false);
 
@@ -470,7 +471,8 @@ export default function Remessas() {
         baia: mainItem.origem_type === 'baia' ? mainItem.baia : '',
         quantity: totalQty,
         items: parsedItems,
-        status: orderStatus
+        status: orderStatus,
+        tracking_code: orderTrackingCode
       };
 
       if (editingOrder) {
@@ -488,6 +490,7 @@ export default function Remessas() {
       setOrderQuantity('');
       setFormItems([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '' }]);
       setOrderStatus('Pendente');
+      setOrderTrackingCode('');
       setEditingOrder(null);
       setIsAddingOrder(false);
       alert('Pedido salvo com sucesso!');
@@ -540,6 +543,7 @@ export default function Remessas() {
     setOrderBaia(order.baia || '');
     setOrderQuantity(String(order.quantity || ''));
     setOrderStatus(order.status || 'Pendente');
+    setOrderTrackingCode(order.tracking_code || '');
     setIsAddingOrder(true);
   };
 
@@ -554,7 +558,8 @@ export default function Remessas() {
         baia: order.baia || '',
         quantity: order.quantity,
         items: order.items || [],
-        status: newStatus
+        status: newStatus,
+        tracking_code: order.tracking_code
       };
       await dbService.saveOrder(orderData);
       await loadOrdersClientsData();
@@ -1200,6 +1205,7 @@ export default function Remessas() {
 
   const getOrderShippingForecast = (order: any) => {
     if (order.status === 'Enviado') return { text: 'Enviado', type: 'sent' };
+    if (order.status === 'Entregue') return { text: 'Entregue', type: 'delivered' };
     if (order.status === 'Cancelado') return { text: 'Cancelado', type: 'canceled' };
 
     const orderItems = order.items && Array.isArray(order.items) && order.items.length > 0
@@ -1591,6 +1597,17 @@ export default function Remessas() {
             </div>
 
             <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Código de Rastreio</label>
+              <input
+                type="text"
+                placeholder="Ex: BR123456789BR"
+                value={orderTrackingCode}
+                onChange={(e) => setOrderTrackingCode(e.target.value)}
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+              />
+            </div>
+
+            <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status do Pedido</label>
               <select
                 value={orderStatus}
@@ -1599,6 +1616,7 @@ export default function Remessas() {
               >
                 <option value="Pendente">Pendente (Aguardando envio)</option>
                 <option value="Enviado">Enviado (Etiqueta emitida / postado)</option>
+                <option value="Entregue">Entregue (Concluído)</option>
                 <option value="Cancelado">Cancelado</option>
               </select>
             </div>
@@ -1732,6 +1750,8 @@ export default function Remessas() {
                             className={`text-xs font-bold px-3 py-1.5 rounded-full border outline-none cursor-pointer ${
                               order.status === 'Enviado' 
                                 ? 'bg-green-50 text-green-800 border-green-200' 
+                                : order.status === 'Entregue'
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                                 : order.status === 'Cancelado'
                                 ? 'bg-slate-50 text-slate-600 border-slate-200'
                                 : 'bg-amber-50 text-amber-800 border-amber-200'
@@ -1739,6 +1759,7 @@ export default function Remessas() {
                           >
                             <option value="Pendente">Pendente</option>
                             <option value="Enviado">Enviado</option>
+                            <option value="Entregue">Entregue</option>
                             <option value="Cancelado">Cancelado</option>
                           </select>
                         </td>

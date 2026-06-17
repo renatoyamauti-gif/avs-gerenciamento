@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [eggsByRaca, setEggsByRaca] = useState<{ name: string; count: number }[]>([]);
   const [baiaEstimates, setBaiaEstimates] = useState<{ name: string; estimativa: number }[]>([]);
   const [racaEstimates, setRacaEstimates] = useState<{ name: string; estimativa: number }[]>([]);
+  const [deliveredOrders, setDeliveredOrders] = useState<any[]>([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -42,6 +43,9 @@ export default function Dashboard() {
 
       const activeBirds = (birds || []).filter(b => b.status !== 'Vendida' && b.status !== 'Óbito' && b.status !== 'Reservada');
       setBirdCount(activeBirds.length);
+
+      const delivered = (orders || []).filter((o: any) => o.status === 'Entregue');
+      setDeliveredOrders(delivered);
 
       const computedStock = calculateEggStock({
         eggLogs,
@@ -380,9 +384,36 @@ export default function Dashboard() {
                     <div className="flex-1">
                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Status Geral</p>
                        <p className="text-sm font-bold text-[#1F2937] dark:text-slate-100">Operacional: 100%</p>
-                    </div>
+                     </div>
                  </div>
               </div>
+
+              {/* Delivery Alerts */}
+              {deliveredOrders.length > 0 && (
+                <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <p className="text-xs font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Entregas Concluídas</p>
+                  <div className="space-y-3">
+                    {deliveredOrders.slice(0, 3).map((order) => (
+                      <div key={order.id} className="flex items-start gap-3 p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-955/10 border border-emerald-100/30 dark:border-emerald-900/20 shadow-sm transition-colors">
+                        <CheckCircle2 className="text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" size={16} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-850 dark:text-slate-200">
+                            Pedido de {order.clients?.name || 'Cliente'} entregue
+                          </p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate font-medium">
+                            {order.quantity} {order.quantity === 1 ? 'ovo' : 'ovos'} • {order.raca}
+                          </p>
+                          {order.tracking_code && (
+                            <span className="inline-block text-[9px] font-mono font-bold text-[#2563EB] dark:text-blue-400 bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-900/30 mt-1.5 shadow-sm">
+                              {order.tracking_code}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
            </div>
         </div>
       </div>
