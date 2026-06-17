@@ -491,7 +491,7 @@ export default function EggCollection() {
                 <div className="flex justify-between items-start mb-2 gap-2">
                   <div className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                     {log.day}/{log.month}/{log.year}
-                    <span className="text-[10px] font-bold text-[#2563EB] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-[#EFF6FF] px-1.5 py-0.5 rounded-md border border-[#2563EB]/10">
+                    <span className="text-[10px] font-bold text-[#2563EB] flex items-center gap-0.5 bg-[#EFF6FF] px-1.5 py-0.5 rounded-md border border-[#2563EB]/10">
                       <Edit2 size={10} /> Editar
                     </span>
                   </div>
@@ -558,7 +558,7 @@ export default function EggCollection() {
                   <span className="bg-[#2563EB] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
                     {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
                   </span>
-                  <span className="text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-slate-400 dark:text-slate-500">
                     <Edit2 size={14} />
                   </span>
                 </div>
@@ -598,7 +598,7 @@ export default function EggCollection() {
                   <span className="bg-[#8B5CF6] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
                     {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
                   </span>
-                  <span className="text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-slate-400 dark:text-slate-500">
                     <Edit2 size={14} />
                   </span>
                 </div>
