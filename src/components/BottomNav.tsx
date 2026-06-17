@@ -35,7 +35,7 @@ const BottomNav = ({ onOpenMenu, profile }: BottomNavProps) => {
   const visibleNavItems = navItems.filter((item) => hasPermission(item.path));
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 z-50 pb-safe">
+    <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 pb-safe transition-colors duration-200">
       <div className="flex justify-around items-center h-16">
         {visibleNavItems.map((item) => {
           const isActive = location.pathname === item.path;
@@ -44,7 +44,9 @@ const BottomNav = ({ onOpenMenu, profile }: BottomNavProps) => {
               key={item.path}
               to={item.path}
               className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${
-                isActive ? 'text-[#2563EB]' : 'text-slate-400 hover:text-slate-600'
+                isActive 
+                  ? 'text-[#2563EB] dark:text-blue-500' 
+                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
               }`}
             >
               {item.icon}
@@ -56,7 +58,7 @@ const BottomNav = ({ onOpenMenu, profile }: BottomNavProps) => {
         {/* "Mais" button to open the Sidebar on mobile */}
         <button
           onClick={onOpenMenu}
-          className="flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-400 hover:text-slate-600 transition-colors"
+          className="flex flex-col items-center justify-center w-full h-full space-y-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
         >
           <MoreHorizontal size={20} />
           <span className="text-[10px] font-semibold">Mais</span>

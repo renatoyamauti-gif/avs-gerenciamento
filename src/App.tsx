@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Plus, LogOut, Heart, Menu } from 'lucide-react';
+import { Plus, LogOut, Heart, Menu, Sun, Moon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -28,6 +28,7 @@ import { supabase } from './lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { dbService } from './lib/dbService';
 import { useSubscription } from './hooks/useSubscription';
+import { useTheme } from './contexts/ThemeContext';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -35,6 +36,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { plan, loading: subLoading, isFreePlan, isTrialExpired, trialDaysLeft, isTrialActive } = useSubscription();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -128,12 +130,21 @@ export default function App() {
               <div className="text-2xl font-black text-white font-headline tracking-tighter italic">
                 AVS <span className="text-[8px] text-[#DBEAFE] tracking-[0.2em] uppercase">GERENCIAMENTO</span>
               </div>
-              <button 
-                onClick={() => setIsSidebarOpen(true)}
-                className="text-white hover:text-white/80 transition-colors"
-              >
-                <Menu size={24} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 rounded-full text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  aria-label="Alternar tema"
+                >
+                  {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+                </button>
+                <button 
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="text-white hover:text-white/80 p-2 transition-colors"
+                >
+                  <Menu size={24} />
+                </button>
+              </div>
             </div>
           )}
 
