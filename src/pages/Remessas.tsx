@@ -214,7 +214,7 @@ export default function Remessas() {
   const [orderRaca, setOrderRaca] = useState('');
   const [orderBaia, setOrderBaia] = useState('');
   const [orderQuantity, setOrderQuantity] = useState('');
-  const [formItems, setFormItems] = useState<{ origem_type: 'raca' | 'baia' | 'produto'; raca: string; baia: string; product_id: string; quantity: string }[]>([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '' }]);
+  const [formItems, setFormItems] = useState<{ origem_type: 'raca' | 'baia' | 'produto'; raca: string; baia: string; product_id: string; quantity: string; price?: string }[]>([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '', price: '' }]);
   const [orderStatus, setOrderStatus] = useState('Pendente');
   const [orderTrackingCode, setOrderTrackingCode] = useState('');
   const [savingOrder, setSavingOrder] = useState(false);
@@ -447,7 +447,8 @@ export default function Remessas() {
         raca: item.origem_type === 'raca' ? item.raca : '',
         baia: item.origem_type === 'baia' ? item.baia : '',
         product_id: item.origem_type === 'produto' ? item.product_id : '',
-        quantity: parseInt(item.quantity)
+        quantity: parseInt(item.quantity),
+        price: item.price ? parseFloat(item.price) : 0
       }));
 
       // Set top-level values based on first item for compatibility
@@ -488,7 +489,7 @@ export default function Remessas() {
       setOrderBaia('');
       setOrderOrigemType('raca');
       setOrderQuantity('');
-      setFormItems([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '' }]);
+      setFormItems([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '', price: '' }]);
       setOrderStatus('Pendente');
       setOrderTrackingCode('');
       setEditingOrder(null);
@@ -525,7 +526,8 @@ export default function Remessas() {
         raca: item.raca || '',
         baia: item.baia || '',
         product_id: item.product_id || '',
-        quantity: String(item.quantity || '')
+        quantity: String(item.quantity || ''),
+        price: item.price !== undefined ? String(item.price) : ''
       })));
     } else {
       // Fallback
@@ -534,7 +536,8 @@ export default function Remessas() {
         raca: order.raca || '',
         baia: order.baia || '',
         product_id: order.product_id || '',
-        quantity: String(order.quantity || '')
+        quantity: String(order.quantity || ''),
+        price: order.price !== undefined ? String(order.price) : ''
       }]);
     }
     
@@ -1328,7 +1331,7 @@ export default function Remessas() {
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Itens do Pedido</span>
                 <button
                   type="button"
-                  onClick={() => setFormItems([...formItems, { origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '' }])}
+                  onClick={() => setFormItems([...formItems, { origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '', price: '' }])}
                   className="flex items-center gap-1 text-xs text-[#2563EB] hover:text-[#1D4ED8] font-bold bg-[#2563EB]/5 px-3 py-1.5 rounded-xl hover:bg-[#2563EB]/10 transition-all"
                 >
                   <Plus size={14} /> Adicionar Item
@@ -1415,7 +1418,7 @@ export default function Remessas() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className={`grid grid-cols-1 ${isProductType ? 'sm:grid-cols-3' : 'sm:grid-cols-4'} gap-3`}>
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origem</label>
                           <div className="flex bg-white border border-slate-200 rounded-xl p-1 gap-1">
@@ -1547,6 +1550,26 @@ export default function Remessas() {
                             </span>
                           )}
                         </div>
+
+                        {!isProductType && (
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valor Unitário (R$)</label>
+                            <input
+                              required
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="Ex: 5.00"
+                              value={item.price || ''}
+                              onChange={(e) => {
+                                const newItems = [...formItems];
+                                newItems[index] = { ...newItems[index], price: e.target.value };
+                                setFormItems(newItems);
+                              }}
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:border-[#2563EB]/50 transition-all outline-none"
+                            />
+                          </div>
+                        )}
                       </div>
 
                       {/* Item Stock Warning */}
@@ -1663,6 +1686,8 @@ export default function Remessas() {
                 setOrderOrigemType('raca');
                 setOrderQuantity('');
                 setOrderStatus('Pendente');
+                setOrderTrackingCode('');
+                setFormItems([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '', price: '' }]);
                 setEditingOrder(null);
                 setIsAddingOrder(true);
               }}
@@ -1709,7 +1734,7 @@ export default function Remessas() {
                                 <div key={idx} className="flex items-center gap-1">
                                   {item.origem_type === 'baia' ? (
                                     <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100 uppercase">
-                                      Baia: {item.baia} <span className="text-slate-400 font-normal">({item.quantity} ovos)</span>
+                                      Baia: {item.baia} <span className="text-slate-400 font-normal">({item.quantity} ovos {item.price ? ` - R$ ${parseFloat(item.price).toFixed(2)}/un` : ''})</span>
                                     </span>
                                   ) : item.origem_type === 'produto' ? (
                                     <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-100 uppercase">
@@ -1720,7 +1745,7 @@ export default function Remessas() {
                                     </span>
                                   ) : (
                                     <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100 uppercase">
-                                      Raça: {item.raca} <span className="text-slate-400 font-normal">({item.quantity} ovos)</span>
+                                      Raça: {item.raca} <span className="text-slate-400 font-normal">({item.quantity} ovos {item.price ? ` - R$ ${parseFloat(item.price).toFixed(2)}/un` : ''})</span>
                                     </span>
                                   )}
                                 </div>
@@ -1728,7 +1753,7 @@ export default function Remessas() {
                             ) : (
                               (order.origem_type || 'raca') === 'baia' ? (
                                 <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100 uppercase">
-                                  Baia: {order.baia} <span className="text-slate-400 font-normal">({order.quantity} ovos)</span>
+                                  Baia: {order.baia} <span className="text-slate-400 font-normal">({order.quantity} ovos {order.price ? ` - R$ ${parseFloat(order.price).toFixed(2)}/un` : ''})</span>
                                 </span>
                               ) : (order.origem_type || 'raca') === 'produto' ? (
                                 <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-100 uppercase">
@@ -1736,7 +1761,7 @@ export default function Remessas() {
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100 uppercase">
-                                  Raça: {order.raca} <span className="text-slate-400 font-normal">({order.quantity} ovos)</span>
+                                  Raça: {order.raca} <span className="text-slate-400 font-normal">({order.quantity} ovos {order.price ? ` - R$ ${parseFloat(order.price).toFixed(2)}/un` : ''})</span>
                                 </span>
                               )
                             )}
