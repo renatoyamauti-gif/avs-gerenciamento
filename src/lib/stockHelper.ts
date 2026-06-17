@@ -210,20 +210,22 @@ export function calculateEggStock({
 
         if (item.origem_type === 'raca' && item.raca) {
           const normR = initRaca(item.raca);
-          racaMap[normR].sold += qty;
+          const totalEggsSold = (qty * 12) + (Number(item.gift_eggs) || 0);
+          racaMap[normR].sold += totalEggsSold;
 
           getBaiasForRaca(normR).forEach(b => {
             const activeB = initBaia(b);
-            baiaMap[activeB].sold += qty;
+            baiaMap[activeB].sold += totalEggsSold;
           });
         } else if (item.origem_type === 'baia' && item.baia) {
           const bName = item.baia;
           const activeB = initBaia(bName);
-          baiaMap[activeB].sold += qty;
+          const totalEggsSold = (qty * 12) + (Number(item.gift_eggs) || 0);
+          baiaMap[activeB].sold += totalEggsSold;
 
           getRacasForBaia(bName).forEach(r => {
             const normR = initRaca(r);
-            racaMap[normR].sold += qty;
+            racaMap[normR].sold += totalEggsSold;
           });
         } else if (item.origem_type === 'produto' && item.product_id) {
           const prod = (products || []).find((p: any) => p.id === item.product_id);

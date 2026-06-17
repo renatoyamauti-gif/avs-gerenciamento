@@ -84,7 +84,7 @@ export default function Dashboard() {
                   totalSold += qty * eggsPerUnit;
                 }
               } else {
-                totalSold += qty;
+                totalSold += (qty * 12) + (Number(item.gift_eggs) || 0);
               }
             }
           });

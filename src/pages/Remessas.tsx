@@ -214,7 +214,7 @@ export default function Remessas() {
   const [orderRaca, setOrderRaca] = useState('');
   const [orderBaia, setOrderBaia] = useState('');
   const [orderQuantity, setOrderQuantity] = useState('');
-  const [formItems, setFormItems] = useState<{ origem_type: 'raca' | 'baia' | 'produto'; raca: string; baia: string; product_id: string; quantity: string; price?: string }[]>([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '', price: '' }]);
+  const [formItems, setFormItems] = useState<{ origem_type: 'raca' | 'baia' | 'produto'; raca: string; baia: string; product_id: string; quantity: string; price?: string; gift_eggs?: string }[]>([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '', price: '', gift_eggs: '' }]);
   const [orderStatus, setOrderStatus] = useState('Pendente');
   const [orderTrackingCode, setOrderTrackingCode] = useState('');
   const [savingOrder, setSavingOrder] = useState(false);
@@ -448,7 +448,8 @@ export default function Remessas() {
         baia: item.origem_type === 'baia' ? item.baia : '',
         product_id: item.origem_type === 'produto' ? item.product_id : '',
         quantity: parseInt(item.quantity),
-        price: item.price ? parseFloat(item.price) : 0
+        price: item.price ? parseFloat(item.price) : 0,
+        gift_eggs: item.origem_type !== 'produto' && item.gift_eggs ? parseInt(item.gift_eggs) : 0
       }));
 
       // Set top-level values based on first item for compatibility
@@ -489,7 +490,7 @@ export default function Remessas() {
       setOrderBaia('');
       setOrderOrigemType('raca');
       setOrderQuantity('');
-      setFormItems([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '', price: '' }]);
+      setFormItems([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '', price: '', gift_eggs: '' }]);
       setOrderStatus('Pendente');
       setOrderTrackingCode('');
       setEditingOrder(null);
@@ -527,7 +528,8 @@ export default function Remessas() {
         baia: item.baia || '',
         product_id: item.product_id || '',
         quantity: String(item.quantity || ''),
-        price: item.price !== undefined ? String(item.price) : ''
+        price: item.price !== undefined ? String(item.price) : '',
+        gift_eggs: item.gift_eggs !== undefined ? String(item.gift_eggs) : ''
       })));
     } else {
       // Fallback
@@ -537,7 +539,8 @@ export default function Remessas() {
         baia: order.baia || '',
         product_id: order.product_id || '',
         quantity: String(order.quantity || ''),
-        price: order.price !== undefined ? String(order.price) : ''
+        price: order.price !== undefined ? String(order.price) : '',
+        gift_eggs: order.gift_eggs !== undefined ? String(order.gift_eggs) : ''
       }]);
     }
     
@@ -592,7 +595,28 @@ export default function Remessas() {
     setDestPostalCode(client.postal_code || '');
 
     // Estimate weight: 1 egg = 60g (0.06kg) + package box base 500g (0.5kg)
-    let estimatedWeight = (order.quantity * 0.06 + 0.5).toFixed(2);
+    let totalEggs = 0;
+    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
+      order.items.forEach((item: any) => {
+        const qty = Number(item.quantity) || 0;
+        if (item.origem_type === 'produto') {
+          const prod = products.find(p => p.id === item.product_id);
+          const eggsPerUnit = prod ? (Number(prod.eggs_per_unit) || 0) : 0;
+          totalEggs += qty * eggsPerUnit;
+        } else {
+          totalEggs += (qty * 12) + (Number(item.gift_eggs) || 0);
+        }
+      });
+    } else {
+      // Fallback
+      if (order.origem_type === 'produto') {
+        totalEggs += order.quantity;
+      } else {
+        totalEggs += (order.quantity * 12) + (Number(order.gift_eggs) || 0);
+      }
+    }
+
+    let estimatedWeight = (totalEggs * 0.06 + 0.5).toFixed(2);
     let estimatedWidth = '20';
     let estimatedHeight = '15';
     let estimatedLength = '25';
@@ -1331,7 +1355,7 @@ export default function Remessas() {
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Itens do Pedido</span>
                 <button
                   type="button"
-                  onClick={() => setFormItems([...formItems, { origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '', price: '' }])}
+                  onClick={() => setFormItems([...formItems, { origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '', price: '', gift_eggs: '' }])}
                   className="flex items-center gap-1 text-xs text-[#2563EB] hover:text-[#1D4ED8] font-bold bg-[#2563EB]/5 px-3 py-1.5 rounded-xl hover:bg-[#2563EB]/10 transition-all"
                 >
                   <Plus size={14} /> Adicionar Item
@@ -1379,14 +1403,21 @@ export default function Remessas() {
                   }
 
                   const qtyRequested = parseInt(item.quantity) || 0;
+                  const giftEggs = parseInt(item.gift_eggs || '0') || 0;
                   
-                  if (isProductType && prod && isEggLinked) {
-                    totalEggsRequested = qtyRequested * eggsPerUnit;
+                  if (isProductType) {
+                    if (prod && isEggLinked) {
+                      totalEggsRequested = qtyRequested * eggsPerUnit;
+                      isStockSufficient = availableStock >= totalEggsRequested;
+                      eggsNeeded = totalEggsRequested - availableStock;
+                    } else {
+                      isStockSufficient = availableStock >= qtyRequested;
+                      eggsNeeded = qtyRequested - availableStock;
+                    }
+                  } else {
+                    totalEggsRequested = qtyRequested * 12 + giftEggs;
                     isStockSufficient = availableStock >= totalEggsRequested;
                     eggsNeeded = totalEggsRequested - availableStock;
-                  } else {
-                    isStockSufficient = availableStock >= qtyRequested;
-                    eggsNeeded = qtyRequested - availableStock;
                   }
 
                   let daysToCollect = 0;
@@ -1418,7 +1449,7 @@ export default function Remessas() {
                         )}
                       </div>
 
-                      <div className={`grid grid-cols-1 ${isProductType ? 'sm:grid-cols-3' : 'sm:grid-cols-4'} gap-3`}>
+                      <div className={`grid grid-cols-1 ${isProductType ? 'sm:grid-cols-3' : 'sm:grid-cols-5'} gap-3`}>
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Origem</label>
                           <div className="flex bg-white border border-slate-200 rounded-xl p-1 gap-1">
@@ -1529,13 +1560,13 @@ export default function Remessas() {
 
                          <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                            {isProductType ? 'Quantidade (Unidades)' : 'Quantidade (Ovos)'}
+                            {isProductType ? 'Quantidade (Unidades)' : 'Quantidade (Dúzias)'}
                           </label>
                           <input
                             required
                             type="number"
                             min="1"
-                            placeholder={isProductType ? 'Ex: 1 (unidade)' : 'Ex: 15 (ovos)'}
+                            placeholder={isProductType ? 'Ex: 1 (unidade)' : 'Ex: 2 (dúzias)'}
                             value={item.quantity}
                             onChange={(e) => {
                               const newItems = [...formItems];
@@ -1553,17 +1584,35 @@ export default function Remessas() {
 
                         {!isProductType && (
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valor Unitário (R$)</label>
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valor da Dúzia (R$)</label>
                             <input
                               required
                               type="number"
                               step="0.01"
                               min="0"
-                              placeholder="Ex: 5.00"
+                              placeholder="Ex: 60.00"
                               value={item.price || ''}
                               onChange={(e) => {
                                 const newItems = [...formItems];
                                 newItems[index] = { ...newItems[index], price: e.target.value };
+                                setFormItems(newItems);
+                              }}
+                              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:border-[#2563EB]/50 transition-all outline-none"
+                            />
+                          </div>
+                        )}
+
+                        {!isProductType && (
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ovos de Brinde</label>
+                            <input
+                              type="number"
+                              min="0"
+                              placeholder="Ex: 4"
+                              value={item.gift_eggs || ''}
+                              onChange={(e) => {
+                                const newItems = [...formItems];
+                                newItems[index] = { ...newItems[index], gift_eggs: e.target.value };
                                 setFormItems(newItems);
                               }}
                               className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:border-[#2563EB]/50 transition-all outline-none"
@@ -1596,7 +1645,7 @@ export default function Remessas() {
                                 </p>
                               ) : (
                                 <p className="leading-relaxed">
-                                  Disponível: <strong>{availableStock}</strong> ovos. Faltam <strong>{eggsNeeded}</strong> para este item de {isProductType ? totalEggsRequested : qtyRequested} ovos.
+                                  Disponível: <strong>{availableStock}</strong> ovos. Faltam <strong>{eggsNeeded}</strong> para este item de {totalEggsRequested} ovos.
                                 </p>
                               )}
                               {dailyCollectionAvg > 0 ? (
@@ -1734,7 +1783,7 @@ export default function Remessas() {
                                 <div key={idx} className="flex items-center gap-1">
                                   {item.origem_type === 'baia' ? (
                                     <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100 uppercase">
-                                      Baia: {item.baia} <span className="text-slate-400 font-normal">({item.quantity} ovos {item.price ? ` - R$ ${parseFloat(item.price).toFixed(2)}/un` : ''})</span>
+                                      Baia: {item.baia} <span className="text-slate-400 font-normal">({item.quantity} {Number(item.quantity) === 1 ? 'dúzia' : 'dúzias'}{item.gift_eggs ? ` + ${item.gift_eggs} brinde(s)` : ''}{item.price ? ` - R$ ${parseFloat(item.price).toFixed(2)}/dúz` : ''})</span>
                                     </span>
                                   ) : item.origem_type === 'produto' ? (
                                     <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-100 uppercase">
@@ -1745,7 +1794,7 @@ export default function Remessas() {
                                     </span>
                                   ) : (
                                     <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100 uppercase">
-                                      Raça: {item.raca} <span className="text-slate-400 font-normal">({item.quantity} ovos {item.price ? ` - R$ ${parseFloat(item.price).toFixed(2)}/un` : ''})</span>
+                                      Raça: {item.raca} <span className="text-slate-400 font-normal">({item.quantity} {Number(item.quantity) === 1 ? 'dúzia' : 'dúzias'}{item.gift_eggs ? ` + ${item.gift_eggs} brinde(s)` : ''}{item.price ? ` - R$ ${parseFloat(item.price).toFixed(2)}/dúz` : ''})</span>
                                     </span>
                                   )}
                                 </div>
@@ -1753,7 +1802,7 @@ export default function Remessas() {
                             ) : (
                               (order.origem_type || 'raca') === 'baia' ? (
                                 <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100 uppercase">
-                                  Baia: {order.baia} <span className="text-slate-400 font-normal">({order.quantity} ovos {order.price ? ` - R$ ${parseFloat(order.price).toFixed(2)}/un` : ''})</span>
+                                  Baia: {order.baia} <span className="text-slate-400 font-normal">({order.quantity} {Number(order.quantity) === 1 ? 'dúzia' : 'dúzias'}{order.gift_eggs ? ` + ${order.gift_eggs} brinde(s)` : ''}{order.price ? ` - R$ ${parseFloat(order.price).toFixed(2)}/dúz` : ''})</span>
                                 </span>
                               ) : (order.origem_type || 'raca') === 'produto' ? (
                                 <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-100 uppercase">
@@ -1761,13 +1810,38 @@ export default function Remessas() {
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-100 uppercase">
-                                  Raça: {order.raca} <span className="text-slate-400 font-normal">({order.quantity} ovos {order.price ? ` - R$ ${parseFloat(order.price).toFixed(2)}/un` : ''})</span>
+                                  Raça: {order.raca} <span className="text-slate-400 font-normal">({order.quantity} {Number(order.quantity) === 1 ? 'dúzia' : 'dúzias'}{order.gift_eggs ? ` + ${order.gift_eggs} brinde(s)` : ''}{order.price ? ` - R$ ${parseFloat(order.price).toFixed(2)}/dúz` : ''})</span>
                                 </span>
                               )
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-center font-bold text-[#1F2937]">{order.quantity} {order.origem_type === 'produto' ? 'unid.' : 'ovos'}</td>
+                        <td className="px-6 py-4 text-center">
+                          {(() => {
+                            const items = order.items && Array.isArray(order.items) && order.items.length > 0
+                              ? order.items
+                              : [{ origem_type: order.origem_type || 'raca', quantity: order.quantity, gift_eggs: order.gift_eggs }];
+                            
+                            const prodQty = items.filter((i: any) => i.origem_type === 'produto').reduce((acc: number, curr: any) => acc + (Number(curr.quantity) || 0), 0);
+                            const eggQty = items.filter((i: any) => i.origem_type !== 'produto').reduce((acc: number, curr: any) => acc + (Number(curr.quantity) || 0), 0);
+                            const totalGifts = items.filter((i: any) => i.origem_type !== 'produto').reduce((acc: number, curr: any) => acc + (Number(curr.gift_eggs) || 0), 0);
+                            
+                            return (
+                              <div className="flex flex-col items-center">
+                                <span className="font-bold text-[#1F2937]">
+                                  {prodQty > 0 && `${prodQty} unid.`}
+                                  {prodQty > 0 && eggQty > 0 && ' + '}
+                                  {eggQty > 0 && `${eggQty} dúz.`}
+                                </span>
+                                {totalGifts > 0 && (
+                                  <span className="text-[10px] text-emerald-600 font-bold mt-0.5">
+                                    (+{totalGifts} brindes)
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </td>
                         <td className="px-6 py-4">
                           <select
                             value={order.status}
