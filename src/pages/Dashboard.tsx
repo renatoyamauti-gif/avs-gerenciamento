@@ -75,6 +75,7 @@ export default function Dashboard() {
             : [{ origem_type: ord.origem_type || 'raca', raca: ord.raca || '', baia: ord.baia || '', quantity: ord.quantity || 0 }];
 
           orderItems.forEach((item: any) => {
+            if (item.origem_type === 'embalagem') return;
             const qty = Number(item.quantity) || 0;
             if (qty > 0) {
               if (item.origem_type === 'produto' && item.product_id) {

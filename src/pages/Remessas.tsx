@@ -218,6 +218,7 @@ export default function Remessas() {
   const [orderStatus, setOrderStatus] = useState('Pendente');
   const [orderTrackingCode, setOrderTrackingCode] = useState('');
   const [orderShippingCost, setOrderShippingCost] = useState('');
+  const [orderPackagingCost, setOrderPackagingCost] = useState('');
   const [savingOrder, setSavingOrder] = useState(false);
   const [savingClient, setSavingClient] = useState(false);
 
@@ -407,19 +408,23 @@ export default function Remessas() {
   const syncOrderWithFinance = async (order: any, clientName: string) => {
     if (!order || !order.id) return;
 
-    // 1. Calculate items subtotal
-    const items = order.items && Array.isArray(order.items) && order.items.length > 0
+    // 1. Filter out embalagem item for calculation
+    const allItems = order.items && Array.isArray(order.items) && order.items.length > 0
       ? order.items
       : [{ origem_type: order.origem_type || 'raca', quantity: order.quantity, price: order.price }];
       
+    const nonEmbalagemItems = allItems.filter((i: any) => i.origem_type !== 'embalagem');
+    const embalagemItem = allItems.find((i: any) => i.origem_type === 'embalagem');
+
     let totalItemsPrice = 0;
-    items.forEach((item: any) => {
+    nonEmbalagemItems.forEach((item: any) => {
       const qty = Number(item.quantity) || 0;
       const price = Number(item.price) || 0;
       totalItemsPrice += qty * price;
     });
 
     const shippingPrice = Number(order.shipping_cost) || 0;
+    const packagingPrice = embalagemItem ? Number(embalagemItem.price) || 0 : 0;
     const orderDate = order.created_at ? order.created_at.split('T')[0] : new Date().toISOString().split('T')[0];
     const orderShortId = order.id.substring(0, 8);
 
@@ -427,7 +432,8 @@ export default function Remessas() {
       // Fetch existing transactions
       const existingTransactions = await dbService.getTransactions().catch(() => []);
       const orderIncomeTx = existingTransactions?.find((t: any) => t.reason.startsWith(`[Pedido #${orderShortId}]`) && t.type === 'Entrada');
-      const orderExpenseTx = existingTransactions?.find((t: any) => t.reason.startsWith(`[Pedido #${orderShortId}]`) && t.type === 'Saída');
+      const orderExpenseTx = existingTransactions?.find((t: any) => t.reason.startsWith(`[Pedido #${orderShortId}]`) && t.reason.includes('Envio / Frete') && t.type === 'Saída');
+      const orderPackagingTx = existingTransactions?.find((t: any) => t.reason.startsWith(`[Pedido #${orderShortId}]`) && t.reason.includes('Embalagem / Pacote') && t.type === 'Saída');
 
       // Sync income (egg sale)
       if (order.status !== 'Cancelado' && totalItemsPrice > 0) {
@@ -441,7 +447,6 @@ export default function Remessas() {
         };
         await dbService.saveTransaction(incomeData);
       } else if (orderIncomeTx) {
-        // If order canceled or price became 0, remove transaction
         await dbService.deleteTransaction(orderIncomeTx.id);
       }
 
@@ -457,8 +462,22 @@ export default function Remessas() {
         };
         await dbService.saveTransaction(expenseData);
       } else if (orderExpenseTx) {
-        // If order canceled or shipping price became 0, remove transaction
         await dbService.deleteTransaction(orderExpenseTx.id);
+      }
+
+      // Sync packaging expense (package)
+      if (order.status !== 'Cancelado' && packagingPrice > 0) {
+        const packagingData = {
+          id: orderPackagingTx?.id,
+          type: 'Saída' as const,
+          category: 'Outros',
+          reason: `[Pedido #${orderShortId}] Embalagem / Pacote - ${clientName}`,
+          amount: packagingPrice,
+          date: orderDate
+        };
+        await dbService.saveTransaction(packagingData);
+      } else if (orderPackagingTx) {
+        await dbService.deleteTransaction(orderPackagingTx.id);
       }
     } catch (err) {
       console.error('Erro ao sincronizar pedido com o financeiro:', err);
@@ -512,9 +531,21 @@ export default function Remessas() {
         gift_eggs: item.origem_type !== 'produto' && item.gift_eggs ? parseInt(item.gift_eggs) : 0
       }));
 
+      if (orderPackagingCost && parseFloat(orderPackagingCost) > 0) {
+        parsedItems.push({
+          origem_type: 'embalagem' as any,
+          raca: '',
+          baia: '',
+          product_id: '',
+          quantity: 1,
+          price: parseFloat(orderPackagingCost),
+          gift_eggs: 0
+        });
+      }
+
       // Set top-level values based on first item for compatibility
       const mainItem = parsedItems[0];
-      const totalQty = parsedItems.reduce((acc, curr) => acc + curr.quantity, 0);
+      const totalQty = parsedItems.reduce((acc, curr) => acc + (curr.origem_type !== 'embalagem' ? curr.quantity : 0), 0);
 
       let mainRaca = '';
       if (mainItem.origem_type === 'raca') {
@@ -561,6 +592,7 @@ export default function Remessas() {
       setOrderStatus('Pendente');
       setOrderTrackingCode('');
       setOrderShippingCost('');
+      setOrderPackagingCost('');
       setEditingOrder(null);
       setIsAddingOrder(false);
       alert('Pedido salvo com sucesso!');
@@ -601,8 +633,12 @@ export default function Remessas() {
     setOrderClientId(order.client_id || '');
     
     // Set formItems list
-    if (order.items && Array.isArray(order.items) && order.items.length > 0) {
-      setFormItems(order.items.map((item: any) => ({
+    const orderItems = order.items && Array.isArray(order.items) ? order.items : [];
+    const nonEmbalagemItems = orderItems.filter((item: any) => item.origem_type !== 'embalagem');
+    const embalagemItem = orderItems.find((item: any) => item.origem_type === 'embalagem');
+
+    if (nonEmbalagemItems.length > 0) {
+      setFormItems(nonEmbalagemItems.map((item: any) => ({
         origem_type: item.origem_type || 'raca',
         raca: item.raca || '',
         baia: item.baia || '',
@@ -631,6 +667,7 @@ export default function Remessas() {
     setOrderStatus(order.status || 'Pendente');
     setOrderTrackingCode(order.tracking_code || '');
     setOrderShippingCost(order.shipping_cost !== undefined ? String(order.shipping_cost) : '');
+    setOrderPackagingCost(embalagemItem ? String(embalagemItem.price || '') : '');
     setIsAddingOrder(true);
   };
 
@@ -684,6 +721,7 @@ export default function Remessas() {
     let totalEggs = 0;
     if (order.items && Array.isArray(order.items) && order.items.length > 0) {
       order.items.forEach((item: any) => {
+        if (item.origem_type === 'embalagem') return;
         const qty = Number(item.quantity) || 0;
         if (item.origem_type === 'produto') {
           const prod = products.find(p => p.id === item.product_id);
@@ -1321,9 +1359,10 @@ export default function Remessas() {
     if (order.status === 'Entregue') return { text: 'Entregue', type: 'delivered' };
     if (order.status === 'Cancelado') return { text: 'Cancelado', type: 'canceled' };
 
-    const orderItems = order.items && Array.isArray(order.items) && order.items.length > 0
+    const orderItems = (order.items && Array.isArray(order.items) && order.items.length > 0
       ? order.items
-      : [{ origem_type: order.origem_type || 'raca', raca: order.raca || '', baia: order.baia || '', quantity: order.quantity || 0, product_id: order.product_id || '' }];
+      : [{ origem_type: order.origem_type || 'raca', raca: order.raca || '', baia: order.baia || '', quantity: order.quantity || 0, product_id: order.product_id || '' }])
+      .filter((item: any) => item.origem_type !== 'embalagem');
 
     let maxDays = 0;
     let hasInsufficientStock = false;
@@ -1779,6 +1818,19 @@ export default function Remessas() {
             </div>
 
             <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valor da Embalagem / Pacote (R$)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Ex: 15.00"
+                value={orderPackagingCost}
+                onChange={(e) => setOrderPackagingCost(e.target.value)}
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+              />
+            </div>
+
+            <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status do Pedido</label>
               <select
                 value={orderStatus}
@@ -1835,7 +1887,9 @@ export default function Remessas() {
                 setOrderQuantity('');
                 setOrderStatus('Pendente');
                 setOrderTrackingCode('');
-                setFormItems([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '', price: '' }]);
+                setOrderShippingCost('');
+                setOrderPackagingCost('');
+                setFormItems([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '', price: '', gift_eggs: '' }]);
                 setEditingOrder(null);
                 setIsAddingOrder(true);
               }}
@@ -1878,7 +1932,7 @@ export default function Remessas() {
                         <td className="px-6 py-4 font-semibold text-slate-700">
                           <div className="flex flex-col gap-1.5">
                             {order.items && Array.isArray(order.items) && order.items.length > 0 ? (
-                              order.items.map((item: any, idx: number) => (
+                              order.items.filter((item: any) => item.origem_type !== 'embalagem').map((item: any, idx: number) => (
                                 <div key={idx} className="flex items-center gap-1">
                                   {item.origem_type === 'baia' ? (
                                     <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-100 uppercase">
@@ -1920,10 +1974,15 @@ export default function Remessas() {
                                 ? order.items
                                 : [{ origem_type: order.origem_type || 'raca', quantity: order.quantity, price: order.price }];
                               
-                              const totalVal = items.reduce((acc: number, curr: any) => acc + ((Number(curr.quantity) || 0) * (Number(curr.price) || 0)), 0);
-                              const shipCost = Number(order.shipping_cost) || 0;
+                              const nonEmbalagemItems = items.filter((i: any) => i.origem_type !== 'embalagem');
+                              const embalagemItem = items.find((i: any) => i.origem_type === 'embalagem');
+                              const embalagemCost = embalagemItem ? Number(embalagemItem.price) || 0 : 0;
 
-                              if (totalVal > 0 || shipCost > 0) {
+                              const totalVal = nonEmbalagemItems.reduce((acc: number, curr: any) => acc + ((Number(curr.quantity) || 0) * (Number(curr.price) || 0)), 0);
+                              const shipCost = Number(order.shipping_cost) || 0;
+                              const grandTotal = totalVal + shipCost;
+
+                              if (totalVal > 0 || shipCost > 0 || embalagemCost > 0) {
                                 return (
                                   <div className="mt-2 text-[10px] font-bold text-slate-500 flex flex-wrap gap-x-2.5 gap-y-0.5 border-t border-slate-100 pt-1.5 leading-none">
                                     {totalVal > 0 && (
@@ -1936,9 +1995,14 @@ export default function Remessas() {
                                         FRETE: <span className="text-[#EF4444]">R$ {shipCost.toFixed(2)}</span>
                                       </span>
                                     )}
+                                    {embalagemCost > 0 && (
+                                      <span>
+                                        EMBALAGEM: <span className="text-[#EF4444]">R$ {embalagemCost.toFixed(2)}</span>
+                                      </span>
+                                    )}
                                     {totalVal > 0 && (
                                       <span className="text-emerald-700">
-                                        TOTAL: <span className="font-extrabold text-[#16A34A]">R$ {(totalVal + shipCost).toFixed(2)}</span>
+                                        TOTAL: <span className="font-extrabold text-[#16A34A]">R$ {grandTotal.toFixed(2)}</span>
                                       </span>
                                     )}
                                   </div>
@@ -1950,9 +2014,10 @@ export default function Remessas() {
                         </td>
                         <td className="px-6 py-4 text-center">
                           {(() => {
-                            const items = order.items && Array.isArray(order.items) && order.items.length > 0
+                            const items = (order.items && Array.isArray(order.items) && order.items.length > 0
                               ? order.items
-                              : [{ origem_type: order.origem_type || 'raca', quantity: order.quantity, gift_eggs: order.gift_eggs }];
+                              : [{ origem_type: order.origem_type || 'raca', quantity: order.quantity, gift_eggs: order.gift_eggs }])
+                              .filter((i: any) => i.origem_type !== 'embalagem');
                             
                             const prodQty = items.filter((i: any) => i.origem_type === 'produto').reduce((acc: number, curr: any) => acc + (Number(curr.quantity) || 0), 0);
                             const eggQty = items.filter((i: any) => i.origem_type !== 'produto').reduce((acc: number, curr: any) => acc + (Number(curr.quantity) || 0), 0);
