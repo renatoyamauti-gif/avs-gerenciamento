@@ -217,6 +217,7 @@ export default function Remessas() {
   const [formItems, setFormItems] = useState<{ origem_type: 'raca' | 'baia' | 'produto'; raca: string; baia: string; product_id: string; quantity: string; price?: string; gift_eggs?: string }[]>([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '', price: '', gift_eggs: '' }]);
   const [orderStatus, setOrderStatus] = useState('Pendente');
   const [orderTrackingCode, setOrderTrackingCode] = useState('');
+  const [orderShippingCost, setOrderShippingCost] = useState('');
   const [savingOrder, setSavingOrder] = useState(false);
   const [savingClient, setSavingClient] = useState(false);
 
@@ -403,7 +404,66 @@ export default function Remessas() {
     setIsAddingClient(true);
   };
 
+  const syncOrderWithFinance = async (order: any, clientName: string) => {
+    if (!order || !order.id) return;
 
+    // 1. Calculate items subtotal
+    const items = order.items && Array.isArray(order.items) && order.items.length > 0
+      ? order.items
+      : [{ origem_type: order.origem_type || 'raca', quantity: order.quantity, price: order.price }];
+      
+    let totalItemsPrice = 0;
+    items.forEach((item: any) => {
+      const qty = Number(item.quantity) || 0;
+      const price = Number(item.price) || 0;
+      totalItemsPrice += qty * price;
+    });
+
+    const shippingPrice = Number(order.shipping_cost) || 0;
+    const orderDate = order.created_at ? order.created_at.split('T')[0] : new Date().toISOString().split('T')[0];
+    const orderShortId = order.id.substring(0, 8);
+
+    try {
+      // Fetch existing transactions
+      const existingTransactions = await dbService.getTransactions().catch(() => []);
+      const orderIncomeTx = existingTransactions?.find((t: any) => t.reason.startsWith(`[Pedido #${orderShortId}]`) && t.type === 'Entrada');
+      const orderExpenseTx = existingTransactions?.find((t: any) => t.reason.startsWith(`[Pedido #${orderShortId}]`) && t.type === 'Saída');
+
+      // Sync income (egg sale)
+      if (order.status !== 'Cancelado' && totalItemsPrice > 0) {
+        const incomeData = {
+          id: orderIncomeTx?.id,
+          type: 'Entrada' as const,
+          category: 'Venda de Ovos',
+          reason: `[Pedido #${orderShortId}] Venda de Ovos - ${clientName}`,
+          amount: totalItemsPrice,
+          date: orderDate
+        };
+        await dbService.saveTransaction(incomeData);
+      } else if (orderIncomeTx) {
+        // If order canceled or price became 0, remove transaction
+        await dbService.deleteTransaction(orderIncomeTx.id);
+      }
+
+      // Sync shipping expense (freight)
+      if (order.status !== 'Cancelado' && shippingPrice > 0) {
+        const expenseData = {
+          id: orderExpenseTx?.id,
+          type: 'Saída' as const,
+          category: 'Envio / Frete',
+          reason: `[Pedido #${orderShortId}] Envio / Frete - ${clientName}`,
+          amount: shippingPrice,
+          date: orderDate
+        };
+        await dbService.saveTransaction(expenseData);
+      } else if (orderExpenseTx) {
+        // If order canceled or shipping price became 0, remove transaction
+        await dbService.deleteTransaction(orderExpenseTx.id);
+      }
+    } catch (err) {
+      console.error('Erro ao sincronizar pedido com o financeiro:', err);
+    }
+  };
 
   // Save/Edit Order
   const handleSaveOrder = async (e: React.FormEvent) => {
@@ -474,14 +534,21 @@ export default function Remessas() {
         quantity: totalQty,
         items: parsedItems,
         status: orderStatus,
-        tracking_code: orderTrackingCode
+        tracking_code: orderTrackingCode,
+        shipping_cost: orderShippingCost ? parseFloat(orderShippingCost) : 0
       };
 
       if (editingOrder) {
         (orderData as any).id = editingOrder.id;
       }
       
-      await dbService.saveOrder(orderData);
+      const saved = await dbService.saveOrder(orderData);
+      
+      // Sincronizar com financeiro
+      const clientObj = clients.find(c => c.id === orderClientId);
+      const clientName = clientObj ? clientObj.name : 'Cliente';
+      await syncOrderWithFinance(saved, clientName);
+
       await loadOrdersClientsData();
 
       // Reset Order Form
@@ -493,6 +560,7 @@ export default function Remessas() {
       setFormItems([{ origem_type: 'raca', raca: '', baia: '', product_id: '', quantity: '', price: '', gift_eggs: '' }]);
       setOrderStatus('Pendente');
       setOrderTrackingCode('');
+      setOrderShippingCost('');
       setEditingOrder(null);
       setIsAddingOrder(false);
       alert('Pedido salvo com sucesso!');
@@ -507,6 +575,18 @@ export default function Remessas() {
   const handleDeleteOrder = async (id: string) => {
     if (!confirm('Deseja realmente excluir este pedido?')) return;
     try {
+      // Deletar transações financeiras vinculadas
+      try {
+        const existingTransactions = await dbService.getTransactions().catch(() => []);
+        const orderShortId = id.substring(0, 8);
+        const matchTxs = existingTransactions?.filter((t: any) => t.reason.startsWith(`[Pedido #${orderShortId}]`)) || [];
+        for (const tx of matchTxs) {
+          await dbService.deleteTransaction(tx.id);
+        }
+      } catch (txErr) {
+        console.error('Erro ao deletar transações vinculadas ao pedido:', txErr);
+      }
+
       await dbService.deleteOrder(id);
       await loadOrdersClientsData();
       alert('Pedido excluído com sucesso!');
@@ -550,6 +630,7 @@ export default function Remessas() {
     setOrderQuantity(String(order.quantity || ''));
     setOrderStatus(order.status || 'Pendente');
     setOrderTrackingCode(order.tracking_code || '');
+    setOrderShippingCost(order.shipping_cost !== undefined ? String(order.shipping_cost) : '');
     setIsAddingOrder(true);
   };
 
@@ -565,9 +646,14 @@ export default function Remessas() {
         quantity: order.quantity,
         items: order.items || [],
         status: newStatus,
-        tracking_code: order.tracking_code
+        tracking_code: order.tracking_code,
+        shipping_cost: order.shipping_cost || 0
       };
-      await dbService.saveOrder(orderData);
+      const saved = await dbService.saveOrder(orderData);
+      
+      const clientName = order.clients?.name || 'Cliente';
+      await syncOrderWithFinance(saved, clientName);
+
       await loadOrdersClientsData();
     } catch (err: any) {
       alert('Erro ao atualizar status: ' + err.message);
@@ -1680,6 +1766,19 @@ export default function Remessas() {
             </div>
 
             <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Valor do Frete (R$)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Ex: 25.00"
+                value={orderShippingCost}
+                onChange={(e) => setOrderShippingCost(e.target.value)}
+                className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+              />
+            </div>
+
+            <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status do Pedido</label>
               <select
                 value={orderStatus}
@@ -1814,6 +1913,39 @@ export default function Remessas() {
                                 </span>
                               )
                             )}
+
+                            {/* Order Value Summary */}
+                            {(() => {
+                              const items = order.items && Array.isArray(order.items) && order.items.length > 0
+                                ? order.items
+                                : [{ origem_type: order.origem_type || 'raca', quantity: order.quantity, price: order.price }];
+                              
+                              const totalVal = items.reduce((acc: number, curr: any) => acc + ((Number(curr.quantity) || 0) * (Number(curr.price) || 0)), 0);
+                              const shipCost = Number(order.shipping_cost) || 0;
+
+                              if (totalVal > 0 || shipCost > 0) {
+                                return (
+                                  <div className="mt-2 text-[10px] font-bold text-slate-500 flex flex-wrap gap-x-2.5 gap-y-0.5 border-t border-slate-100 pt-1.5 leading-none">
+                                    {totalVal > 0 && (
+                                      <span>
+                                        SUBTOTAL: <span className="text-[#1F2937]">R$ {totalVal.toFixed(2)}</span>
+                                      </span>
+                                    )}
+                                    {shipCost > 0 && (
+                                      <span>
+                                        FRETE: <span className="text-[#EF4444]">R$ {shipCost.toFixed(2)}</span>
+                                      </span>
+                                    )}
+                                    {totalVal > 0 && (
+                                      <span className="text-emerald-700">
+                                        TOTAL: <span className="font-extrabold text-[#16A34A]">R$ {(totalVal + shipCost).toFixed(2)}</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-center">

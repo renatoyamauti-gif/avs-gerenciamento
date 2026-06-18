@@ -70,6 +70,7 @@ export default function Finance() {
           { name: 'Ração/Alimentação', type: 'Saída' },
           { name: 'Medicamentos', type: 'Saída' },
           { name: 'Infraestrutura', type: 'Saída' },
+          { name: 'Envio / Frete', type: 'Saída' },
           { name: 'Outros', type: 'Saída' }
         ];
 
