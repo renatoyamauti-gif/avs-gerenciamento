@@ -301,50 +301,49 @@ export default function Remessas() {
       let currentStatus = 'posted';
       let description = '';
 
+      const now = new Date();
+      const formatMockDate = (offsetDays: number, hour: number, minute: number) => {
+        const d = new Date(now);
+        d.setDate(d.getDate() - offsetDays);
+        d.setHours(hour, minute, 0);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      };
+
       if (cleanCode.includes('827361') || cleanCode.startsWith('ME')) {
         currentStatus = 'delivered';
         description = newTrackingDesc || 'Maria Silva (GSB)';
         events = [
-          { date: '17/06/2026 14:30', location: 'São Paulo - SP', desc: 'Objeto entregue ao destinatário', status: 'success' },
-          { date: '17/06/2026 09:15', location: 'São Paulo - SP', desc: 'Objeto saiu para entrega ao destinatário', status: 'info' },
-          { date: '16/06/2026 22:40', location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto encaminhado para Unidade de Distribuição', status: 'info' },
-          { date: '15/06/2026 11:20', location: 'Unidade de Postagem - Campinas/SP', desc: 'Objeto postado pelo remetente', status: 'posted' }
+          { date: formatMockDate(1, 14, 30), location: 'São Paulo - SP', desc: 'Objeto entregue ao destinatário', status: 'success' },
+          { date: formatMockDate(1, 9, 15), location: 'São Paulo - SP', desc: 'Objeto saiu para entrega ao destinatário', status: 'info' },
+          { date: formatMockDate(2, 22, 40), location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto encaminhado para Unidade de Distribuição', status: 'info' },
+          { date: formatMockDate(3, 11, 20), location: 'Unidade de Postagem - Campinas/SP', desc: 'Objeto postado pelo remetente', status: 'posted' }
         ];
       } else if (cleanCode.includes('928471')) {
         currentStatus = 'in_transit';
         description = newTrackingDesc || 'João Souza (Índio Gigante)';
         events = [
-          { date: '17/06/2026 11:00', location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto encaminhado para Unidade de Tratamento em São Paulo/SP', status: 'info' },
-          { date: '16/06/2026 16:45', location: 'Unidade de Postagem - Bauru/SP', desc: 'Objeto postado pelo remetente', status: 'posted' }
+          { date: formatMockDate(1, 11, 0), location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto encaminhado para Unidade de Tratamento em São Paulo/SP', status: 'info' },
+          { date: formatMockDate(2, 16, 45), location: 'Unidade de Postagem - Bauru/SP', desc: 'Objeto postado pelo remetente', status: 'posted' }
         ];
       } else if (cleanCode.length === 13 && cleanCode.endsWith('BR')) {
         // Detailed Correios standard timeline simulation
         currentStatus = 'delivered';
         description = newTrackingDesc || `Objeto Correios (${cleanCode})`;
         
-        const now = new Date();
-        const formatMockDate = (offsetDays: number, hour: number, minute: number) => {
-          const d = new Date(now);
-          d.setDate(d.getDate() - offsetDays);
-          d.setHours(hour, minute, 0);
-          const pad = (n: number) => n.toString().padStart(2, '0');
-          return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-        };
-
         events = [
-          { date: formatMockDate(0, 14, 30), location: 'Unidade de Distribuição - São Paulo/SP', desc: 'Objeto entregue ao destinatário', status: 'success' },
-          { date: formatMockDate(0, 9, 15), location: 'Unidade de Distribuição - São Paulo/SP', desc: 'Objeto saiu para entrega ao destinatário', status: 'info' },
-          { date: formatMockDate(1, 22, 40), location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto encaminhado para Unidade de Distribuição em São Paulo/SP', status: 'info' },
-          { date: formatMockDate(2, 14, 10), location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto recebido na Unidade de Tratamento', status: 'info' },
-          { date: formatMockDate(3, 11, 20), location: 'Unidade de Postagem - Rio de Janeiro/RJ', desc: 'Objeto postado pelo remetente', status: 'posted' }
+          { date: formatMockDate(1, 14, 30), location: 'Unidade de Distribuição - São Paulo/SP', desc: 'Objeto entregue ao destinatário', status: 'success' },
+          { date: formatMockDate(1, 9, 15), location: 'Unidade de Distribuição - São Paulo/SP', desc: 'Objeto saiu para entrega ao destinatário', status: 'info' },
+          { date: formatMockDate(2, 22, 40), location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto encaminhado para Unidade de Distribuição em São Paulo/SP', status: 'info' },
+          { date: formatMockDate(3, 14, 10), location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto recebido na Unidade de Tratamento', status: 'info' },
+          { date: formatMockDate(4, 11, 20), location: 'Unidade de Postagem - Rio de Janeiro/RJ', desc: 'Objeto postado pelo remetente', status: 'posted' }
         ];
       } else {
         currentStatus = 'in_transit';
         description = newTrackingDesc || `Objeto em trânsito (${cleanCode})`;
-        const nowStr = new Date().toLocaleString('pt-BR');
         events = [
-          { date: nowStr, location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto encaminhado para Unidade de Distribuição', status: 'info' },
-          { date: nowStr, location: 'Unidade de Postagem', desc: 'Objeto postado pelo remetente', status: 'posted' }
+          { date: formatMockDate(0, 15, 0), location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto encaminhado para Unidade de Distribuição', status: 'info' },
+          { date: formatMockDate(1, 10, 0), location: 'Unidade de Postagem', desc: 'Objeto postado pelo remetente', status: 'posted' }
         ];
       }
 
