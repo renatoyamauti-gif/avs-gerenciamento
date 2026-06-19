@@ -126,14 +126,28 @@ export default function Remessas() {
     const cleanToken = token.replace(/\s+/g, '');
 
     // Helpers to parse location and status from Correios events
-    const formatDate = (isoStr: string) => {
+    const formatDate = (dateStr: string) => {
+      if (!dateStr) return '';
+      // If it matches YYYY-MM-DDTHH:MM:SS or similar
+      const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+      if (match) {
+        const [, year, month, day, hour, minute] = match;
+        return `${day}/${month}/${year} ${hour}:${minute}`;
+      }
+      // If it matches YYYY-MM-DD HH:MM:SS
+      const match2 = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+      if (match2) {
+        const [, year, month, day, hour, minute] = match2;
+        return `${day}/${month}/${year} ${hour}:${minute}`;
+      }
+      
       try {
-        const date = new Date(isoStr);
-        if (isNaN(date.getTime())) return isoStr;
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr;
         const pad = (n: number) => n.toString().padStart(2, '0');
         return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
       } catch (e) {
-        return isoStr;
+        return dateStr;
       }
     };
 
@@ -162,7 +176,8 @@ export default function Remessas() {
           user: correiosUser,
           password: correiosPassword,
           contract: correiosContract,
-          sandbox: correiosSandbox
+          sandbox: correiosSandbox,
+          skipStateUpdate: true
         });
 
         if (bearerToken) {
@@ -179,14 +194,21 @@ export default function Remessas() {
             const data = await response.json();
             const objeto = data.objetos?.[0];
             if (objeto && Array.isArray(objeto.eventos) && objeto.eventos.length > 0) {
-              const events = objeto.eventos.map((e: any) => ({
+              // Sort events by dtHrCriado descending (newest first)
+              const rawEvents = [...objeto.eventos].sort((a: any, b: any) => {
+                const timeA = a.dtHrCriado || '';
+                const timeB = b.dtHrCriado || '';
+                return timeB.localeCompare(timeA);
+              });
+
+              const events = rawEvents.map((e: any) => ({
                 date: formatDate(e.dtHrCriado || new Date().toISOString()),
                 location: formatLocation(e.unidade),
                 desc: e.descricao || 'Atualização de status',
                 status: getEventStatus(e.descricao || '')
               }));
 
-              // Determine overall status
+              // Determine overall status based on the newest event
               const latestEvent = events[0];
               const overallStatus = latestEvent.status === 'success' 
                 ? 'delivered' 
@@ -259,8 +281,18 @@ export default function Remessas() {
               status: getEventStatus(h.description || h.status || '')
             }));
 
-            // Reverse to match timeline display (latest first)
-            events.reverse();
+            // Sort events by date descending (newest first)
+            events.sort((a: any, b: any) => {
+              const parseToTime = (str: string) => {
+                const match = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+                if (match) {
+                  const [, day, month, year, hour, minute] = match;
+                  return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute)).getTime();
+                }
+                return new Date(str).getTime();
+              };
+              return parseToTime(b.date) - parseToTime(a.date);
+            });
 
             const overallStatus = meInfo.status === 'delivered' 
               ? 'delivered' 
@@ -1137,12 +1169,14 @@ export default function Remessas() {
       : '/api/correios-prod';
   };
 
-  async function validateCorreiosToken(params: { user: string; password: string; contract: string; sandbox: boolean }) {
-    const { user, password, contract, sandbox } = params;
+  async function validateCorreiosToken(params: { user: string; password: string; contract: string; sandbox: boolean; skipStateUpdate?: boolean }) {
+    const { user, password, contract, sandbox, skipStateUpdate } = params;
     if (!user || !password) return null;
     
-    setCorreiosValidationStatus('validating');
-    setCorreiosValidationError(null);
+    if (!skipStateUpdate) {
+      setCorreiosValidationStatus('validating');
+      setCorreiosValidationError(null);
+    }
 
     const baseUrl = getCorreiosBaseUrl(sandbox);
     const apiUrl = `${baseUrl}/token/v1/autentica/contrato`;
@@ -1183,12 +1217,16 @@ export default function Remessas() {
         throw new Error('Resposta de autenticação dos Correios não é um JSON válido.');
       }
 
-      setCorreiosValidationStatus('success');
+      if (!skipStateUpdate) {
+        setCorreiosValidationStatus('success');
+      }
       return data.token || data.access_token || null;
     } catch (err: any) {
       console.error(err);
-      setCorreiosValidationError(err.message || 'Erro ao autenticar com os Correios.');
-      setCorreiosValidationStatus('error');
+      if (!skipStateUpdate) {
+        setCorreiosValidationError(err.message || 'Erro ao autenticar com os Correios.');
+        setCorreiosValidationStatus('error');
+      }
       return null;
     }
   }
