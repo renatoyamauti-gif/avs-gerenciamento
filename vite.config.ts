@@ -30,6 +30,26 @@ export default defineConfig(({mode}) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/melhorenvio-prod/, ''),
         },
+        '/api/superfrete-sandbox': {
+          target: 'https://sandbox.superfrete.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/superfrete-sandbox/, ''),
+        },
+        '/api/superfrete-prod': {
+          target: 'https://api.superfrete.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/superfrete-prod/, ''),
+        },
+        '/api/correios-sandbox': {
+          target: 'https://cwshom.correios.com.br',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/correios-sandbox/, ''),
+        },
+        '/api/correios-prod': {
+          target: 'https://api.correios.com.br',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/correios-prod/, ''),
+        },
       },
     },
   };

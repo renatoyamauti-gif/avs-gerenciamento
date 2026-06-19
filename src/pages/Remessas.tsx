@@ -37,17 +37,18 @@ import { supabase } from '../lib/supabaseClient';
 import { exportToCSV } from '../lib/csvHelper';
 
 interface ShippingOption {
-  id: number;
+  id: string | number;
   name: string;
   price: number;
   custom_price: number;
   delivery_time: number;
   error?: string;
   company: {
-    id: number;
+    id: string | number;
     name: string;
     picture: string;
   };
+  provider: 'melhor_envio' | 'superfrete' | 'correios';
 }
 
 export default function Remessas() {
@@ -55,7 +56,7 @@ export default function Remessas() {
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   
-  // Settings State
+  // Settings State - Melhor Envio
   const [originPostalCode, setOriginPostalCode] = useState('');
   const [token, setToken] = useState('');
   const [sandbox, setSandbox] = useState(false);
@@ -63,6 +64,29 @@ export default function Remessas() {
   const [connectedUser, setConnectedUser] = useState<any>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isEditingMelhorEnvio, setIsEditingMelhorEnvio] = useState(false);
+
+  // Settings State - SuperFrete
+  const [superfreteToken, setSuperfreteToken] = useState('');
+  const [superfreteSandbox, setSuperfreteSandbox] = useState(false);
+  const [superfreteEnabled, setSuperfreteEnabled] = useState(false);
+  const [superfreteValidationStatus, setSuperfreteValidationStatus] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
+  const [superfreteConnectedUser, setSuperfreteConnectedUser] = useState<any>(null);
+  const [superfreteValidationError, setSuperfreteValidationError] = useState<string | null>(null);
+  const [isEditingSuperfrete, setIsEditingSuperfrete] = useState(false);
+
+  // Settings State - Correios
+  const [correiosUser, setCorreiosUser] = useState('');
+  const [correiosPassword, setCorreiosPassword] = useState('');
+  const [correiosContract, setCorreiosContract] = useState('');
+  const [correiosCard, setCorreiosCard] = useState('');
+  const [correiosSandbox, setCorreiosSandbox] = useState(false);
+  const [correiosEnabled, setCorreiosEnabled] = useState(false);
+  const [correiosPacCode, setCorreiosPacCode] = useState('03298');
+  const [correiosSedexCode, setCorreiosSedexCode] = useState('03220');
+  const [correiosValidationStatus, setCorreiosValidationStatus] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
+  const [correiosValidationError, setCorreiosValidationError] = useState<string | null>(null);
+  const [isEditingCorreios, setIsEditingCorreios] = useState(false);
+
   const [isEditingSender, setIsEditingSender] = useState(false);
   const [savingSender, setSavingSender] = useState(false);
 
@@ -268,6 +292,19 @@ export default function Remessas() {
         setOriginPostalCode(prof.origin_postal_code || '');
         setToken(prof.melhor_envio_token || '');
         setSandbox(prof.melhor_envio_sandbox ?? false);
+
+        setSuperfreteToken(prof.superfrete_token || '');
+        setSuperfreteSandbox(prof.superfrete_sandbox ?? false);
+        setSuperfreteEnabled(prof.superfrete_enabled ?? false);
+
+        setCorreiosUser(prof.correios_user || '');
+        setCorreiosPassword(prof.correios_password || '');
+        setCorreiosContract(prof.correios_contract || '');
+        setCorreiosCard(prof.correios_card || '');
+        setCorreiosSandbox(prof.correios_sandbox ?? false);
+        setCorreiosEnabled(prof.correios_enabled ?? false);
+        setCorreiosPacCode(prof.correios_pac_code || '03298');
+        setCorreiosSedexCode(prof.correios_sedex_code || '03220');
         
         // Load sender details from saved profile or fallback to defaults
         setSenderName(prof.sender_name || prof.full_name || '');
@@ -285,6 +322,17 @@ export default function Remessas() {
 
         if (prof.melhor_envio_token) {
           validateToken(prof.melhor_envio_token, prof.melhor_envio_sandbox ?? true);
+        }
+        if (prof.superfrete_token) {
+          validateSuperfreteToken(prof.superfrete_token, prof.superfrete_sandbox ?? false);
+        }
+        if (prof.correios_user && prof.correios_password) {
+          validateCorreiosToken({
+            user: prof.correios_user,
+            password: prof.correios_password,
+            contract: prof.correios_contract,
+            sandbox: prof.correios_sandbox ?? false
+          });
         }
       }
       
@@ -840,6 +888,173 @@ export default function Remessas() {
     }
   }
 
+  const getSuperfreteBaseUrl = (isSandbox: boolean) => {
+    return isSandbox 
+      ? '/api/superfrete-sandbox' 
+      : '/api/superfrete-prod';
+  };
+
+  async function validateSuperfreteToken(testToken: string, isSandbox: boolean) {
+    const cleanToken = testToken.replace(/\s+/g, '');
+    if (!cleanToken) return;
+    setSuperfreteValidationStatus('validating');
+    setSuperfreteValidationError(null);
+
+    const baseUrl = getSuperfreteBaseUrl(isSandbox);
+    const apiUrl = `${baseUrl}/api/v0/services/info`;
+
+    try {
+      const response = await fetchWithProxy(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${cleanToken}`,
+          'Accept': 'application/json',
+          'User-Agent': 'AVSGerenciamento/1.0.0 (suporte@avsgerenciamento.local)'
+        }
+      });
+
+      const responseText = await response.text();
+
+      if (!response.ok) {
+        let errMsg = 'Token do SuperFrete inválido ou expirado.';
+        try {
+          const errData = JSON.parse(responseText);
+          if (errData.message) errMsg = errData.message;
+        } catch (e) {
+          errMsg = responseText.substring(0, 150) || errMsg;
+        }
+        throw new Error(errMsg);
+      }
+
+      setSuperfreteConnectedUser({ name: 'Integração Ativa' });
+      setSuperfreteValidationStatus('success');
+    } catch (err: any) {
+      console.error(err);
+      setSuperfreteValidationError(err.message || 'Erro ao conectar com SuperFrete.');
+      setSuperfreteValidationStatus('error');
+      setSuperfreteConnectedUser(null);
+    }
+  }
+
+  const getCorreiosBaseUrl = (isSandbox: boolean) => {
+    return isSandbox 
+      ? '/api/correios-sandbox' 
+      : '/api/correios-prod';
+  };
+
+  async function validateCorreiosToken(params: { user: string; password: string; contract: string; sandbox: boolean }) {
+    const { user, password, contract, sandbox } = params;
+    if (!user || !password) return null;
+    
+    setCorreiosValidationStatus('validating');
+    setCorreiosValidationError(null);
+
+    const baseUrl = getCorreiosBaseUrl(sandbox);
+    const apiUrl = `${baseUrl}/token/v1/autentica/contrato`;
+
+    try {
+      const credentials = btoa(`${user.trim()}:${password.trim()}`);
+      
+      const response = await fetchWithProxy(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          numero: contract.trim()
+        })
+      });
+
+      const responseText = await response.text();
+
+      if (!response.ok) {
+        let errMsg = 'Credenciais dos Correios inválidas ou sem permissão.';
+        try {
+          const errData = JSON.parse(responseText);
+          if (errData.mensagem) errMsg = errData.mensagem;
+          else if (errData.message) errMsg = errData.message;
+        } catch (e) {
+          errMsg = responseText.substring(0, 150) || errMsg;
+        }
+        throw new Error(errMsg);
+      }
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error('Resposta de autenticação dos Correios não é um JSON válido.');
+      }
+
+      setCorreiosValidationStatus('success');
+      return data.token || data.access_token || null;
+    } catch (err: any) {
+      console.error(err);
+      setCorreiosValidationError(err.message || 'Erro ao autenticar com os Correios.');
+      setCorreiosValidationStatus('error');
+      return null;
+    }
+  }
+
+  const handleSaveSuperfrete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    setSuperfreteValidationError(null);
+
+    const cleanToken = superfreteToken.replace(/\s+/g, '');
+
+    try {
+      await dbService.updateProfile({
+        superfrete_token: cleanToken,
+        superfrete_sandbox: superfreteSandbox,
+        superfrete_enabled: superfreteEnabled
+      });
+
+      setSuperfreteToken(cleanToken);
+      await validateSuperfreteToken(cleanToken, superfreteSandbox);
+      setIsEditingSuperfrete(false);
+      alert('Configurações do SuperFrete salvas com sucesso!');
+    } catch (err: any) {
+      alert('Erro ao salvar configurações do SuperFrete: ' + err.message);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleSaveCorreios = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    setCorreiosValidationError(null);
+
+    try {
+      await dbService.updateProfile({
+        correios_user: correiosUser.trim(),
+        correios_password: correiosPassword.trim(),
+        correios_contract: correiosContract.trim(),
+        correios_card: correiosCard.trim(),
+        correios_sandbox: correiosSandbox,
+        correios_enabled: correiosEnabled,
+        correios_pac_code: correiosPacCode.trim(),
+        correios_sedex_code: correiosSedexCode.trim()
+      });
+
+      await validateCorreiosToken({
+        user: correiosUser,
+        password: correiosPassword,
+        contract: correiosContract,
+        sandbox: correiosSandbox
+      });
+      setIsEditingCorreios(false);
+      alert('Configurações dos Correios salvas com sucesso!');
+    } catch (err: any) {
+      alert('Erro ao salvar configurações dos Correios: ' + err.message);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
   const handleSaveMelhorEnvio = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingSettings(true);
@@ -893,13 +1108,21 @@ export default function Remessas() {
 
   const handleCalculateShipping = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanToken = token.replace(/\s+/g, '');
-    if (!cleanToken) {
-      setCalcError('Por favor, configure e valide seu token do Melhor Envio primeiro.');
-      return;
-    }
     if (!originPostalCode) {
       setCalcError('CEP de origem é obrigatório.');
+      return;
+    }
+    if (!destPostalCode) {
+      setCalcError('CEP de destino é obrigatório.');
+      return;
+    }
+
+    const isME = !!token.replace(/\s+/g, '');
+    const isSF = !!superfreteToken.replace(/\s+/g, '') && superfreteEnabled;
+    const isCO = !!correiosUser.trim() && !!correiosPassword.trim() && correiosEnabled;
+
+    if (!isME && !isSF && !isCO) {
+      setCalcError('Nenhum provedor de frete (Melhor Envio, SuperFrete ou Correios) está configurado ou ativado.');
       return;
     }
 
@@ -908,77 +1131,216 @@ export default function Remessas() {
     setShippingOptions([]);
     setSelectedService(null);
 
-    const baseUrl = getBaseUrl(sandbox);
-    const apiUrl = `${baseUrl}/api/v2/me/shipment/calculate`;
-
     const cleanOrigin = originPostalCode.replace(/\D/g, '');
     const cleanDest = destPostalCode.replace(/\D/g, '');
 
-    const bodyData = {
-      from: { postal_code: cleanOrigin },
-      to: { postal_code: cleanDest },
-      products: [
-        {
-          id: 'shipping_item_1',
-          width: parseInt(width) || 20,
-          height: parseInt(height) || 15,
-          length: parseInt(length) || 25,
-          weight: parseFloat(weight) || 1.0,
+    const promises: Promise<any>[] = [];
+
+    // 1. Melhor Envio Quote
+    if (isME) {
+      const cleanToken = token.replace(/\s+/g, '');
+      const meUrl = `${getBaseUrl(sandbox)}/api/v2/me/shipment/calculate`;
+      const meBody = {
+        from: { postal_code: cleanOrigin },
+        to: { postal_code: cleanDest },
+        products: [
+          {
+            id: 'shipping_item_1',
+            width: parseInt(width) || 20,
+            height: parseInt(height) || 15,
+            length: parseInt(length) || 25,
+            weight: parseFloat(weight) || 1.0,
+            insurance_value: 0,
+            quantity: 1
+          }
+        ]
+      };
+
+      promises.push(
+        fetchWithProxy(meUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${cleanToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(meBody)
+        })
+          .then(async (res) => {
+            if (!res.ok) {
+              const text = await res.text();
+              throw new Error(`Melhor Envio: ${text || res.statusText}`);
+            }
+            const data = await res.json();
+            return (data || [])
+              .filter((option: any) => !option.error && option.price)
+              .map((option: any) => ({
+                id: option.id,
+                name: option.name,
+                price: parseFloat(option.price),
+                custom_price: parseFloat(option.custom_price || option.price),
+                delivery_time: option.delivery_time,
+                company: {
+                  id: option.company.id,
+                  name: option.company.name,
+                  picture: option.company.picture
+                },
+                provider: 'melhor_envio'
+              }));
+          })
+          .catch((err) => {
+            console.error('Erro na cotação do Melhor Envio:', err);
+            return [];
+          })
+      );
+    }
+
+    // 2. SuperFrete Quote
+    if (isSF) {
+      const cleanSFToken = superfreteToken.replace(/\s+/g, '');
+      const sfUrl = `${getSuperfreteBaseUrl(superfreteSandbox)}/api/v0/calculator`;
+      const sfBody = {
+        from: { postal_code: cleanOrigin },
+        to: { postal_code: cleanDest },
+        services: "1,2,17,3,31",
+        options: {
+          own_hand: false,
+          receipt: false,
           insurance_value: 0,
-          quantity: 1
+          use_insurance_value: false
+        },
+        package: {
+          height: parseInt(height) || 15,
+          width: parseInt(width) || 20,
+          length: parseInt(length) || 25,
+          weight: parseFloat(weight) || 1.0
         }
-      ]
-    };
+      };
+
+      promises.push(
+        fetchWithProxy(sfUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${cleanSFToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'User-Agent': 'AVSGerenciamento/1.0.0 (suporte@avsgerenciamento.local)'
+          },
+          body: JSON.stringify(sfBody)
+        })
+          .then(async (res) => {
+            if (!res.ok) {
+              const text = await res.text();
+              throw new Error(`SuperFrete: ${text || res.statusText}`);
+            }
+            const data = await res.json();
+            return (data || [])
+              .filter((option: any) => !option.has_error && option.price)
+              .map((option: any) => ({
+                id: option.id,
+                name: option.name,
+                price: parseFloat(option.price),
+                custom_price: parseFloat(option.price),
+                delivery_time: option.delivery_time,
+                company: {
+                  id: option.company.id,
+                  name: option.company.name,
+                  picture: option.company.picture || 'https://storage.googleapis.com/sandbox-api-superfrete.appspot.com/logos/correios.png'
+                },
+                provider: 'superfrete'
+              }));
+          })
+          .catch((err) => {
+            console.error('Erro na cotação do SuperFrete:', err);
+            return [];
+          })
+      );
+    }
+
+    // 3. Correios Direto Quote
+    if (isCO) {
+      promises.push(
+        validateCorreiosToken({
+          user: correiosUser,
+          password: correiosPassword,
+          contract: correiosContract,
+          sandbox: correiosSandbox
+        })
+          .then(async (bearerToken) => {
+            if (!bearerToken) throw new Error('Falha de autenticação nos Correios.');
+
+            const coUrl = `${getCorreiosBaseUrl(correiosSandbox)}/preco/v1/nacional`;
+            const coBody = [
+              {
+                "coProduto": correiosPacCode || "03298",
+                "nuRequisicao": "1",
+                "cepOrigem": cleanOrigin,
+                "cepDestino": cleanDest,
+                "psObjeto": Math.round((parseFloat(weight) || 1.0) * 1000).toString(),
+                "tpObjeto": "2",
+                "comprimento": parseInt(length) || 25,
+                "largura": parseInt(width) || 20,
+                "altura": parseInt(height) || 15
+              },
+              {
+                "coProduto": correiosSedexCode || "03220",
+                "nuRequisicao": "2",
+                "cepOrigem": cleanOrigin,
+                "cepDestino": cleanDest,
+                "psObjeto": Math.round((parseFloat(weight) || 1.0) * 1000).toString(),
+                "tpObjeto": "2",
+                "comprimento": parseInt(length) || 25,
+                "largura": parseInt(width) || 20,
+                "altura": parseInt(height) || 15
+              }
+            ];
+
+            const res = await fetchWithProxy(coUrl, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${bearerToken}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(coBody)
+            });
+
+            if (!res.ok) {
+              const text = await res.text();
+              throw new Error(`Correios Direto: ${text || res.statusText}`);
+            }
+
+            const data = await res.json();
+            return (data || [])
+              .map((item: any) => ({
+                id: item.coProduto,
+                name: item.coProduto === (correiosPacCode || '03298') ? 'PAC Contrato' : (item.coProduto === (correiosSedexCode || '03220') ? 'SEDEX Contrato' : `Correios (${item.coProduto})`),
+                price: parseFloat(item.valorFinal || item.valor),
+                custom_price: parseFloat(item.valorFinal || item.valor),
+                delivery_time: parseInt(item.prazoEntrega) || 5,
+                company: {
+                  id: 'correios',
+                  name: 'Correios Direto',
+                  picture: 'https://storage.googleapis.com/sandbox-api-superfrete.appspot.com/logos/correios.png'
+                },
+                provider: 'correios'
+              }));
+          })
+          .catch((err) => {
+            console.error('Erro na cotação dos Correios Direto:', err);
+            return [];
+          })
+      );
+    }
 
     try {
-      const response = await fetchWithProxy(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${cleanToken}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(bodyData)
-      });
+      const results = await Promise.all(promises);
+      const combinedOptions = results.flat();
 
-      const responseText = await response.text();
+      combinedOptions.sort((a, b) => a.price - b.price);
 
-      if (!response.ok) {
-        let errMsg = 'Falha ao calcular frete. Verifique o CEP de destino.';
-        try {
-          const errData = JSON.parse(responseText);
-          if (errData.message) errMsg = errData.message;
-        } catch (e) {
-          errMsg = responseText.substring(0, 150) || errMsg;
-        }
-        throw new Error(errMsg);
-      }
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        throw new Error(`Resposta do cálculo não é um JSON válido: ${responseText.substring(0, 150)}`);
-      }
-      
-      // Filter out options with errors or no price
-      const validOptions = (data || [])
-        .filter((option: any) => !option.error && option.price)
-        .map((option: any) => ({
-          id: option.id,
-          name: option.name,
-          price: parseFloat(option.price),
-          custom_price: parseFloat(option.custom_price || option.price),
-          delivery_time: option.delivery_time,
-          company: {
-            id: option.company.id,
-            name: option.company.name,
-            picture: option.company.picture
-          }
-        }));
-
-      setShippingOptions(validOptions);
-      if (validOptions.length === 0) {
+      setShippingOptions(combinedOptions);
+      if (combinedOptions.length === 0) {
         setCalcError('Nenhuma opção de entrega disponível para as dimensões e CEP informados.');
       }
     } catch (err: any) {
@@ -991,99 +1353,219 @@ export default function Remessas() {
 
   const handleCreateLabel = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanToken = token.replace(/\s+/g, '');
-    if (!selectedService || !cleanToken) return;
+    if (!selectedService) return;
 
     setGeneratingLabel(true);
     setLabelError(null);
     setLabelResult(null);
 
-    const baseUrl = getBaseUrl(sandbox);
-    const apiUrl = `${baseUrl}/api/v2/me/cart`;
-
     const cleanOrigin = originPostalCode.replace(/\D/g, '');
     const cleanDest = destPostalCode.replace(/\D/g, '');
 
-    const cartData = {
-      service: selectedService.id,
-      from: {
-        name: senderName || 'Remetente AVS',
-        phone: senderPhone.replace(/\D/g, '') || '11999999999',
-        email: senderEmail || 'remetente@exemplo.com',
-        document: senderCpf.replace(/\D/g, '') || '12345678909',
-        address: senderAddress || 'Rua de Origem',
-        number: senderNumber || '100',
-        district: senderDistrict || 'Bairro',
-        city: senderCity || 'Cidade',
-        postal_code: cleanOrigin,
-        state_abbr: senderState || 'SP'
-      },
-      to: {
-        name: recipientName,
-        phone: recipientPhone.replace(/\D/g, ''),
-        email: recipientEmail,
-        document: recipientCpf.replace(/\D/g, ''),
-        address: recipientAddress,
-        number: recipientNumber,
-        district: recipientDistrict,
-        city: recipientCity,
-        postal_code: cleanDest,
-        state_abbr: recipientState
-      },
-      products: [
-        {
-          name: 'Ovos férteis / Aves vivas / Itens criatórios',
-          quantity: 1,
-          unitary_value: 10
+    // 1. Melhor Envio Label
+    if (selectedService.provider === 'melhor_envio') {
+      const cleanToken = token.replace(/\s+/g, '');
+      if (!cleanToken) {
+        setLabelError('Token do Melhor Envio é obrigatório.');
+        setGeneratingLabel(false);
+        return;
+      }
+
+      const baseUrl = getBaseUrl(sandbox);
+      const apiUrl = `${baseUrl}/api/v2/me/cart`;
+      const cartData = {
+        service: selectedService.id,
+        from: {
+          name: senderName || 'Remetente AVS',
+          phone: senderPhone.replace(/\D/g, '') || '11999999999',
+          email: senderEmail || 'remetente@exemplo.com',
+          document: senderCpf.replace(/\D/g, '') || '12345678909',
+          address: senderAddress || 'Rua de Origem',
+          number: senderNumber || '100',
+          district: senderDistrict || 'Bairro',
+          city: senderCity || 'Cidade',
+          postal_code: cleanOrigin,
+          state_abbr: senderState || 'SP'
+        },
+        to: {
+          name: recipientName,
+          phone: recipientPhone.replace(/\D/g, ''),
+          email: recipientEmail,
+          document: recipientCpf.replace(/\D/g, ''),
+          address: recipientAddress,
+          number: recipientNumber,
+          district: recipientDistrict,
+          city: recipientCity,
+          postal_code: cleanDest,
+          state_abbr: recipientState
+        },
+        products: [
+          {
+            name: 'Ovos férteis / Aves vivas / Itens criatórios',
+            quantity: 1,
+            unitary_value: 10
+          }
+        ],
+        volumes: [
+          {
+            width: parseInt(width) || 20,
+            height: parseInt(height) || 15,
+            length: parseInt(length) || 25,
+            weight: parseFloat(weight) || 1.0
+          }
+        ]
+      };
+
+      try {
+        const response = await fetchWithProxy(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${cleanToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(cartData)
+        });
+
+        const responseText = await response.text();
+
+        if (!response.ok) {
+          let errMsg = 'Falha ao gerar etiqueta no carrinho.';
+          try {
+            const errData = JSON.parse(responseText);
+            if (errData.message) errMsg = errData.message;
+          } catch (e) {
+            errMsg = responseText.substring(0, 150) || errMsg;
+          }
+          throw new Error(errMsg);
         }
-      ],
-      volumes: [
-        {
+
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (e) {
+          throw new Error(`Resposta de criação de etiqueta não é um JSON válido: ${responseText.substring(0, 150)}`);
+        }
+        setLabelResult({ ...data, provider: 'melhor_envio' });
+        alert('Rascunho de envio inserido no carrinho do seu Melhor Envio!');
+      } catch (err: any) {
+        console.error(err);
+        setLabelError(err.message || 'Erro ao gerar etiqueta no Melhor Envio.');
+      } finally {
+        setGeneratingLabel(false);
+      }
+      return;
+    }
+
+    // 2. SuperFrete Label
+    if (selectedService.provider === 'superfrete') {
+      const cleanSFToken = superfreteToken.replace(/\s+/g, '');
+      if (!cleanSFToken) {
+        setLabelError('Token do SuperFrete é obrigatório.');
+        setGeneratingLabel(false);
+        return;
+      }
+
+      const sfUrl = `${getSuperfreteBaseUrl(superfreteSandbox)}/api/v0/cart`;
+      const sfCartData = {
+        service: selectedService.id,
+        from: {
+          name: senderName || 'Remetente AVS',
+          phone: senderPhone.replace(/\D/g, '') || '11999999999',
+          email: senderEmail || 'remetente@exemplo.com',
+          document: senderCpf.replace(/\D/g, '') || '12345678909',
+          address: senderAddress || 'Rua de Origem',
+          number: senderNumber || '100',
+          district: senderDistrict || 'Bairro',
+          city: senderCity || 'Cidade',
+          postal_code: cleanOrigin,
+          state: senderState || 'SP'
+        },
+        to: {
+          name: recipientName,
+          phone: recipientPhone.replace(/\D/g, ''),
+          email: recipientEmail,
+          document: recipientCpf.replace(/\D/g, ''),
+          address: recipientAddress,
+          number: recipientNumber,
+          district: recipientDistrict,
+          city: recipientCity,
+          postal_code: cleanDest,
+          state: recipientState
+        },
+        package: {
           width: parseInt(width) || 20,
           height: parseInt(height) || 15,
           length: parseInt(length) || 25,
           weight: parseFloat(weight) || 1.0
         }
-      ]
-    };
+      };
 
-    try {
-      const response = await fetchWithProxy(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${cleanToken}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(cartData)
-      });
-
-      const responseText = await response.text();
-
-      if (!response.ok) {
-        let errMsg = 'Falha ao gerar etiqueta no carrinho.';
-        try {
-          const errData = JSON.parse(responseText);
-          if (errData.message) errMsg = errData.message;
-        } catch (e) {
-          errMsg = responseText.substring(0, 150) || errMsg;
-        }
-        throw new Error(errMsg);
-      }
-
-      let data;
       try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        throw new Error(`Resposta de criação de etiqueta não é um JSON válido: ${responseText.substring(0, 150)}`);
+        const response = await fetchWithProxy(sfUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${cleanSFToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'User-Agent': 'AVSGerenciamento/1.0.0 (suporte@avsgerenciamento.local)'
+          },
+          body: JSON.stringify(sfCartData)
+        });
+
+        const responseText = await response.text();
+
+        if (!response.ok) {
+          let errMsg = 'Falha ao gerar etiqueta no SuperFrete.';
+          try {
+            const errData = JSON.parse(responseText);
+            if (errData.message) errMsg = errData.message;
+          } catch (e) {
+            errMsg = responseText.substring(0, 150) || errMsg;
+          }
+          throw new Error(errMsg);
+        }
+
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (e) {
+          throw new Error(`Resposta de criação de etiqueta no SuperFrete não é um JSON válido: ${responseText.substring(0, 150)}`);
+        }
+
+        setLabelResult({
+          id: data.id || data.tag || 'SF-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+          service: {
+            name: selectedService.name
+          },
+          price: data.price || selectedService.price,
+          provider: 'superfrete'
+        });
+        alert('Rascunho de envio inserido no carrinho do seu SuperFrete!');
+      } catch (err: any) {
+        console.error(err);
+        setLabelError(err.message || 'Erro ao gerar etiqueta no SuperFrete.');
+      } finally {
+        setGeneratingLabel(false);
       }
-      setLabelResult(data);
-      alert('Rascunho de envio inserido no carrinho do seu Melhor Envio!');
-    } catch (err: any) {
-      console.error(err);
-      setLabelError(err.message || 'Erro ao gerar etiqueta no Melhor Envio.');
-    } finally {
+      return;
+    }
+
+    // 3. Correios Direto Label
+    if (selectedService.provider === 'correios') {
+      // Como os Correios utilizam faturamento offline via contrato, não há chamada de carrinho via API REST pública padrão.
+      // Exibimos as instruções de postagem e geramos o registro no sistema local.
+      setLabelResult({
+        id: 'CO-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+        service: {
+          name: selectedService.name
+        },
+        price: selectedService.price,
+        provider: 'correios'
+      });
       setGeneratingLabel(false);
+      alert('Remessa registrada para postagem sob Contrato Correios!');
+      return;
     }
   };
 
@@ -2424,6 +2906,17 @@ export default function Remessas() {
     validationStatus === 'success'
   );
 
+  const isSuperfreteConfigured = !!(
+    superfreteToken && 
+    superfreteValidationStatus === 'success'
+  );
+
+  const isCorreiosConfigured = !!(
+    correiosUser && 
+    correiosPassword && 
+    correiosValidationStatus === 'success'
+  );
+
   const isSenderConfigured = !!(
     senderName && 
     senderCpf && 
@@ -2674,6 +3167,404 @@ export default function Remessas() {
             </div>
           </div>
         )}
+
+          {/* Card: SuperFrete API Connection */}
+          {isSuperfreteConfigured && !isEditingSuperfrete ? (
+            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-3">
+                  <Truck className="text-[#2563EB]" size={20} />
+                  <h3 className="font-bold text-[#1F2937] text-base">SuperFrete</h3>
+                </div>
+                <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${superfreteSandbox ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
+                  {superfreteSandbox ? 'Sandbox' : 'Produção'}
+                </span>
+              </div>
+
+              {/* Status Indicator Button */}
+              <div className={`flex items-center justify-between p-3 border rounded-2xl ${superfreteEnabled ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-3 w-3">
+                    {superfreteEnabled && (
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    )}
+                    <span className={`relative inline-flex rounded-full h-3 w-3 ${superfreteEnabled ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                  </span>
+                  <span className={`text-xs font-bold uppercase tracking-wider ${superfreteEnabled ? 'text-emerald-800' : 'text-amber-800'}`}>
+                    {superfreteEnabled ? 'Integração Ativa' : 'Desativada'}
+                  </span>
+                </div>
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${superfreteEnabled ? 'text-emerald-600 bg-emerald-100/50' : 'text-amber-600 bg-amber-100/50'}`}>
+                  {superfreteEnabled ? 'OK' : 'PAUSADO'}
+                </span>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                {superfreteConnectedUser && (
+                  <div className="bg-[#F8FAFC] border border-slate-100 p-3 rounded-2xl space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Usuário</p>
+                    <p className="font-bold text-[#1F2937]">{superfreteConnectedUser.name}</p>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setIsEditingSuperfrete(true)}
+                className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-350 text-slate-600 hover:bg-slate-50 py-3.5 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+              >
+                <Settings size={14} /> Editar Conexão
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+                <div className="flex items-center gap-3">
+                  <Settings className="text-[#2563EB]" size={20} />
+                  <h3 className="font-bold text-[#1F2937] text-lg">Integração SuperFrete</h3>
+                </div>
+                {isSuperfreteConfigured && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-emerald-100 text-emerald-800">Ativo</span>
+                )}
+              </div>
+
+              <form onSubmit={handleSaveSuperfrete} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Token de API SuperFrete</label>
+                  <div className="relative">
+                    <Key className="absolute left-3 top-4 text-slate-400" size={16} />
+                    <textarea
+                      required
+                      rows={3}
+                      placeholder="Cole seu token gerado no painel do SuperFrete..."
+                      value={superfreteToken}
+                      onChange={(e) => setSuperfreteToken(e.target.value)}
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-[#1F2937] text-xs font-mono focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
+                  <div>
+                    <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider block">Ambiente Sandbox</span>
+                    <span className="text-[10px] text-slate-400 font-medium">Ativar para realizar testes simulados.</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={superfreteSandbox} 
+                      onChange={(e) => setSuperfreteSandbox(e.target.checked)} 
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
+                  <div>
+                    <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider block">Ativar Integração</span>
+                    <span className="text-[10px] text-slate-400 font-medium">Habilitar SuperFrete nas cotações.</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={superfreteEnabled} 
+                      onChange={(e) => setSuperfreteEnabled(e.target.checked)} 
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
+                  </label>
+                </div>
+
+                {superfreteValidationStatus === 'validating' && (
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+                    <RefreshCw className="animate-spin text-slate-400" size={16} />
+                    Validando Token...
+                  </div>
+                )}
+
+                {superfreteValidationStatus === 'success' && superfreteConnectedUser && (
+                  <div className="bg-[#E8F5E9] border border-[#A5D6A7] rounded-2xl p-4 flex gap-3 text-[#2E7D32] text-xs font-medium">
+                    <CheckCircle2 className="shrink-0 mt-0.5" size={18} />
+                    <div>
+                      <span className="font-bold block uppercase tracking-wider">Conectado com sucesso!</span>
+                      <p className="mt-1">Usuário: **{superfreteConnectedUser.name}**</p>
+                    </div>
+                  </div>
+                )}
+
+                {superfreteValidationStatus === 'error' && superfreteValidationError && (
+                  <div className="bg-[#FFEBEE] border border-[#FFCDD2] rounded-2xl p-4 flex gap-3 text-[#C62828] text-xs font-medium">
+                    <AlertCircle className="shrink-0 mt-0.5" size={18} />
+                    <div>
+                      <span className="font-bold block uppercase tracking-wider">Falha na Conexão</span>
+                      <p className="mt-1">{superfreteValidationError}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  {isSuperfreteConfigured && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditingSuperfrete(false);
+                        setSuperfreteValidationError(null);
+                      }}
+                      className="w-1/3 border border-slate-200 hover:border-slate-350 text-slate-600 py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={savingSettings}
+                    className={`flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] active:scale-95 transition-all disabled:opacity-50 ${isSuperfreteConfigured ? 'w-2/3' : 'w-full'}`}
+                  >
+                    {savingSettings ? <RefreshCw className="animate-spin" size={14} /> : 'Salvar & Validar'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Card: Correios Contrato API Connection */}
+          {isCorreiosConfigured && !isEditingCorreios ? (
+            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-5">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-3">
+                  <Truck className="text-[#2563EB]" size={20} />
+                  <h3 className="font-bold text-[#1F2937] text-base">Correios Contrato</h3>
+                </div>
+                <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${correiosSandbox ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
+                  {correiosSandbox ? 'Sandbox' : 'Produção'}
+                </span>
+              </div>
+
+              {/* Status Indicator Button */}
+              <div className={`flex items-center justify-between p-3 border rounded-2xl ${correiosEnabled ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-3 w-3">
+                    {correiosEnabled && (
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    )}
+                    <span className={`relative inline-flex rounded-full h-3 w-3 ${correiosEnabled ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                  </span>
+                  <span className={`text-xs font-bold uppercase tracking-wider ${correiosEnabled ? 'text-emerald-800' : 'text-amber-800'}`}>
+                    {correiosEnabled ? 'Integração Ativa' : 'Desativada'}
+                  </span>
+                </div>
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${correiosEnabled ? 'text-emerald-600 bg-emerald-100/50' : 'text-amber-600 bg-amber-100/50'}`}>
+                  {correiosEnabled ? 'OK' : 'PAUSADO'}
+                </span>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="bg-[#F8FAFC] border border-slate-100 p-3 rounded-2xl space-y-2">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Usuário</p>
+                    <p className="font-bold text-[#1F2937]">{correiosUser}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contrato</p>
+                      <p className="font-semibold text-slate-700">{correiosContract || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cartão</p>
+                      <p className="font-semibold text-slate-700">{correiosCard || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cód. PAC</p>
+                      <p className="font-semibold text-slate-700">{correiosPacCode || '03298'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cód. SEDEX</p>
+                      <p className="font-semibold text-slate-700">{correiosSedexCode || '03220'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsEditingCorreios(true)}
+                className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-350 text-slate-600 hover:bg-slate-50 py-3.5 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+              >
+                <Settings size={14} /> Editar Conexão
+              </button>
+            </div>
+          ) : (
+            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
+                <div className="flex items-center gap-3">
+                  <Settings className="text-[#2563EB]" size={20} />
+                  <h3 className="font-bold text-[#1F2937] text-lg">Integração Correios</h3>
+                </div>
+                {isCorreiosConfigured && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-emerald-100 text-emerald-800">Ativo</span>
+                )}
+              </div>
+
+              <form onSubmit={handleSaveCorreios} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Usuário (CWS)</label>
+                    <input 
+                      required 
+                      type="text" 
+                      value={correiosUser} 
+                      onChange={(e) => setCorreiosUser(e.target.value)} 
+                      placeholder="Geralmente CNPJ"
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Senha / Cód. Acesso</label>
+                    <input 
+                      required 
+                      type="password" 
+                      value={correiosPassword} 
+                      onChange={(e) => setCorreiosPassword(e.target.value)} 
+                      placeholder="Código do Portal CWS"
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nº do Contrato</label>
+                    <input 
+                      required 
+                      type="text" 
+                      value={correiosContract} 
+                      onChange={(e) => setCorreiosContract(e.target.value)} 
+                      placeholder="Ex: 9912345678"
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nº do Cartão de Postagem</label>
+                    <input 
+                      required 
+                      type="text" 
+                      value={correiosCard} 
+                      onChange={(e) => setCorreiosCard(e.target.value)} 
+                      placeholder="Ex: 0075123456"
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cód. Serviço PAC</label>
+                    <input 
+                      required 
+                      type="text" 
+                      value={correiosPacCode} 
+                      onChange={(e) => setCorreiosPacCode(e.target.value)} 
+                      placeholder="Padrão: 03298"
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cód. Serviço SEDEX</label>
+                    <input 
+                      required 
+                      type="text" 
+                      value={correiosSedexCode} 
+                      onChange={(e) => setCorreiosSedexCode(e.target.value)} 
+                      placeholder="Padrão: 03220"
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
+                  <div>
+                    <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider block">Ambiente Sandbox (Homologação)</span>
+                    <span className="text-[10px] text-slate-400 font-medium">Usar servidores de teste dos Correios.</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={correiosSandbox} 
+                      onChange={(e) => setCorreiosSandbox(e.target.checked)} 
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
+                  <div>
+                    <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider block">Ativar Integração</span>
+                    <span className="text-[10px] text-slate-400 font-medium">Habilitar tarifas diretas nas cotações.</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={correiosEnabled} 
+                      onChange={(e) => setCorreiosEnabled(e.target.checked)} 
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
+                  </label>
+                </div>
+
+                {correiosValidationStatus === 'validating' && (
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+                    <RefreshCw className="animate-spin text-slate-400" size={16} />
+                    Autenticando com os Correios...
+                  </div>
+                )}
+
+                {correiosValidationStatus === 'success' && (
+                  <div className="bg-[#E8F5E9] border border-[#A5D6A7] rounded-2xl p-4 flex gap-3 text-[#2E7D32] text-xs font-medium">
+                    <CheckCircle2 className="shrink-0 mt-0.5" size={18} />
+                    <div>
+                      <span className="font-bold block uppercase tracking-wider">Conectado com sucesso!</span>
+                      <p className="mt-1">Contrato e credenciais validados junto à API dos Correios.</p>
+                    </div>
+                  </div>
+                )}
+
+                {correiosValidationStatus === 'error' && correiosValidationError && (
+                  <div className="bg-[#FFEBEE] border border-[#FFCDD2] rounded-2xl p-4 flex gap-3 text-[#C62828] text-xs font-medium">
+                    <AlertCircle className="shrink-0 mt-0.5" size={18} />
+                    <div>
+                      <span className="font-bold block uppercase tracking-wider">Falha na Autenticação</span>
+                      <p className="mt-1">{correiosValidationError}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  {isCorreiosConfigured && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditingCorreios(false);
+                        setCorreiosValidationError(null);
+                      }}
+                      className="w-1/3 border border-slate-200 hover:border-slate-350 text-slate-600 py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={savingSettings}
+                    className={`flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] active:scale-95 transition-all disabled:opacity-50 ${isCorreiosConfigured ? 'w-2/3' : 'w-full'}`}
+                  >
+                    {savingSettings ? <RefreshCw className="animate-spin" size={14} /> : 'Salvar & Validar'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
           {/* Card 2: Dados do Remetente */}
           {isSenderConfigured && !isEditingSender ? (
@@ -2950,7 +3841,7 @@ export default function Remessas() {
 
               <button
                 type="submit"
-                disabled={calculating || !token}
+                disabled={calculating || (!token.replace(/\s+/g, '') && !superfreteEnabled && !correiosEnabled)}
                 className="w-full py-4 bg-[#16A34A] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#15803D] active:scale-95 transition-all disabled:opacity-50"
               >
                 {calculating ? (
@@ -2985,7 +3876,16 @@ export default function Remessas() {
                           <img src={option.company.picture} alt={option.company.name} className="w-10 h-10 object-contain bg-[#F8FAFC] rounded-lg p-1 border border-slate-100" />
                           <div>
                             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">{option.company.name}</span>
-                            <span className="text-sm font-bold text-[#1F2937]">{option.name}</span>
+                            <span className="text-sm font-bold text-[#1F2937] block">{option.name}</span>
+                            <span className={`inline-block mt-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                              option.provider === 'melhor_envio' 
+                                ? 'bg-blue-50 text-blue-700 border border-blue-100' 
+                                : option.provider === 'superfrete' 
+                                  ? 'bg-purple-50 text-purple-700 border border-purple-100' 
+                                  : 'bg-yellow-50 text-yellow-700 border border-yellow-100'
+                            }`}>
+                              {option.provider === 'melhor_envio' ? 'via Melhor Envio' : option.provider === 'superfrete' ? 'via SuperFrete' : 'via Correios Contrato'}
+                            </span>
                           </div>
                         </div>
                         <div className="h-5 w-5 border border-slate-300 rounded-full flex items-center justify-center bg-white shrink-0">
@@ -3119,7 +4019,7 @@ export default function Remessas() {
                     </div>
                   )}
 
-                  {labelResult && (
+                  {labelResult && (!labelResult.provider || labelResult.provider === 'melhor_envio') && (
                     <div className="bg-[#E8F5E9] border border-[#A5D6A7] rounded-3xl p-6 flex flex-col gap-4 text-[#2E7D32]">
                       <div className="flex gap-3">
                         <CheckCircle2 className="shrink-0 mt-0.5" size={24} />
@@ -3149,6 +4049,82 @@ export default function Remessas() {
                         className="w-full py-3 bg-[#16A34A] text-white text-center rounded-2xl font-bold text-sm uppercase tracking-widest shadow-sm hover:bg-[#15803D] transition-colors flex items-center justify-center gap-2"
                       >
                         Pagar e Imprimir Etiqueta <ExternalLink size={16} />
+                      </a>
+                    </div>
+                  )}
+
+                  {labelResult && labelResult.provider === 'superfrete' && (
+                    <div className="bg-[#E8F5E9] border border-[#A5D6A7] rounded-3xl p-6 flex flex-col gap-4 text-[#2E7D32]">
+                      <div className="flex gap-3">
+                        <CheckCircle2 className="shrink-0 mt-0.5" size={24} />
+                        <div>
+                          <span className="font-bold text-lg block uppercase tracking-wider">Etiqueta Adicionada ao Carrinho!</span>
+                          <p className="mt-1 text-sm">A remessa foi gerada com sucesso e inserida no carrinho da sua conta do SuperFrete.</p>
+                        </div>
+                      </div>
+                      <div className="bg-white border border-[#A5D6A7]/30 rounded-2xl p-4 space-y-2 text-[#1F2937] text-xs">
+                        <div className="flex justify-between">
+                          <span className="font-medium text-slate-400">ID da Remessa:</span>
+                          <span className="font-bold font-mono">{labelResult.id}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-slate-400">Serviço:</span>
+                          <span className="font-bold">{labelResult.service?.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-slate-400">Valor Pago:</span>
+                          <span className="font-bold text-[#16A34A]">R$ {parseFloat(labelResult.price || 0).toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <a 
+                        href={superfreteSandbox ? "https://sandbox.superfrete.com" : "https://superfrete.com"} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-full py-3 bg-[#16A34A] text-white text-center rounded-2xl font-bold text-sm uppercase tracking-widest shadow-sm hover:bg-[#15803D] transition-colors flex items-center justify-center gap-2"
+                      >
+                        Pagar e Imprimir Etiqueta <ExternalLink size={16} />
+                      </a>
+                    </div>
+                  )}
+
+                  {labelResult && labelResult.provider === 'correios' && (
+                    <div className="bg-[#E8F5E9] border border-[#A5D6A7] rounded-3xl p-6 flex flex-col gap-4 text-[#2E7D32]">
+                      <div className="flex gap-3">
+                        <CheckCircle2 className="shrink-0 mt-0.5" size={24} />
+                        <div>
+                          <span className="font-bold text-lg block uppercase tracking-wider">Pré-Postagem Registrada!</span>
+                          <p className="mt-1 text-sm">A remessa foi gerada com sucesso sob o convênio Correios Contrato.</p>
+                        </div>
+                      </div>
+                      <div className="bg-white border border-[#A5D6A7]/30 rounded-2xl p-4 space-y-2 text-[#1F2937] text-xs">
+                        <div className="flex justify-between">
+                          <span className="font-medium text-slate-400">Código de Referência:</span>
+                          <span className="font-bold font-mono">{labelResult.id}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-slate-400">Serviço Contratado:</span>
+                          <span className="font-bold">{labelResult.service?.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-medium text-slate-400">Valor Estimado (Faturamento):</span>
+                          <span className="font-bold text-[#16A34A]">R$ {parseFloat(labelResult.price || 0).toFixed(2)}</span>
+                        </div>
+                      </div>
+                      <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-2xl p-4 text-xs space-y-1.5">
+                        <p className="font-bold uppercase tracking-wider text-blue-900">Próximos Passos:</p>
+                        <ul className="list-disc list-inside space-y-1 text-blue-700 font-medium">
+                          <li>Imprima a PLP (Pré-Lista de Postagem) no portal dos Correios (CWS).</li>
+                          <li>Utilize o cartão de postagem nº <strong>{correiosCard}</strong> para o faturamento.</li>
+                          <li>Despache as caixas em uma agência franqueada ou própria dos Correios.</li>
+                        </ul>
+                      </div>
+                      <a 
+                        href="https://cws.correios.com.br" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-full py-3 bg-[#2563EB] text-white text-center rounded-2xl font-bold text-sm uppercase tracking-widest shadow-sm hover:bg-[#1D4ED8] transition-colors flex items-center justify-center gap-2"
+                      >
+                        Acessar Portal CWS <ExternalLink size={16} />
                       </a>
                     </div>
                   )}

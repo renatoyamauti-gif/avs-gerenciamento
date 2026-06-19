@@ -553,7 +553,6 @@ export const dbService = {
       .eq('id', user.id)
       .single();
 
-    // Prioridade absoluta para o Auth Metadata.
     const profileData = {
       ...(data || {}),
       id: user.id,
@@ -563,6 +562,17 @@ export const dbService = {
       melhor_envio_token: user.user_metadata?.melhor_envio_token || data?.melhor_envio_token || '',
       origin_postal_code: user.user_metadata?.origin_postal_code || data?.origin_postal_code || '',
       melhor_envio_sandbox: user.user_metadata?.melhor_envio_sandbox ?? data?.melhor_envio_sandbox ?? false,
+      superfrete_token: user.user_metadata?.superfrete_token || data?.superfrete_token || '',
+      superfrete_sandbox: user.user_metadata?.superfrete_sandbox ?? data?.superfrete_sandbox ?? false,
+      superfrete_enabled: user.user_metadata?.superfrete_enabled ?? data?.superfrete_enabled ?? false,
+      correios_user: user.user_metadata?.correios_user || data?.correios_user || '',
+      correios_password: user.user_metadata?.correios_password || data?.correios_password || '',
+      correios_contract: user.user_metadata?.correios_contract || data?.correios_contract || '',
+      correios_card: user.user_metadata?.correios_card || data?.correios_card || '',
+      correios_sandbox: user.user_metadata?.correios_sandbox ?? data?.correios_sandbox ?? false,
+      correios_enabled: user.user_metadata?.correios_enabled ?? data?.correios_enabled ?? false,
+      correios_pac_code: user.user_metadata?.correios_pac_code || data?.correios_pac_code || '03298',
+      correios_sedex_code: user.user_metadata?.correios_sedex_code || data?.correios_sedex_code || '03220',
       sender_name: user.user_metadata?.sender_name || data?.sender_name || '',
       sender_cpf: user.user_metadata?.sender_cpf || data?.sender_cpf || '',
       sender_phone: user.user_metadata?.sender_phone || data?.sender_phone || '',

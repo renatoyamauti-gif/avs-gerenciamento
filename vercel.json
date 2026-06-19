@@ -9,6 +9,22 @@
       "destination": "https://melhorenvio.com.br/:path*"
     },
     {
+      "source": "/api/superfrete-sandbox/:path*",
+      "destination": "https://sandbox.superfrete.com/:path*"
+    },
+    {
+      "source": "/api/superfrete-prod/:path*",
+      "destination": "https://api.superfrete.com/:path*"
+    },
+    {
+      "source": "/api/correios-sandbox/:path*",
+      "destination": "https://cwshom.correios.com.br/:path*"
+    },
+    {
+      "source": "/api/correios-prod/:path*",
+      "destination": "https://api.correios.com.br/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
