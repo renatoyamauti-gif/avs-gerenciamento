@@ -308,6 +308,8 @@ export default function Maternity() {
                           record.status === 'Crescimento' ? 'bg-[#DCFCE7] text-[#16A34A]' : 
                           record.status === 'Transferido' ? 'bg-[#DBEAFE] text-[#2563EB]' : 
                           record.status === 'Óbito' ? 'bg-[#FEE2E2] text-[#EF4444]' :
+                          record.status === 'Vendido' ? 'bg-[#F3E8FF] text-[#7E22CE]' :
+                          record.status === 'Reservado' ? 'bg-[#FCE7F3] text-[#DB2777]' :
                           'bg-slate-100 text-slate-600'}
                       `}>
                         {record.status}
@@ -462,6 +464,8 @@ export default function Maternity() {
                         <option value="Crescimento">Crescimento</option>
                         <option value="Transferido">Transferido para Plantel</option>
                         <option value="Óbito">Óbito</option>
+                        <option value="Vendido">Vendido</option>
+                        <option value="Reservado">Reservado</option>
                       </select>
                     </div>
                   </div>
@@ -633,6 +637,8 @@ export default function Maternity() {
                       <option value="Crescimento">Crescimento</option>
                       <option value="Transferido">Transferido para Plantel</option>
                       <option value="Óbito">Óbito</option>
+                      <option value="Vendido">Vendido</option>
+                      <option value="Reservado">Reservado</option>
                     </select>
                   </div>
                   <div className="space-y-2">
