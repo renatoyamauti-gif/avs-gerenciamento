@@ -501,6 +501,7 @@ export default function Remessas() {
   const [recipientDistrict, setRecipientDistrict] = useState('');
   const [recipientCity, setRecipientCity] = useState('');
   const [recipientState, setRecipientState] = useState('');
+  const [recipientComplement, setRecipientComplement] = useState('');
 
   // Sender details (pre-filled or customized)
   const [senderName, setSenderName] = useState('');
@@ -541,6 +542,7 @@ export default function Remessas() {
   const [clientDistrict, setClientDistrict] = useState('');
   const [clientCity, setClientCity] = useState('');
   const [clientState, setClientState] = useState('');
+  const [clientComplement, setClientComplement] = useState('');
   const [loadingCep, setLoadingCep] = useState(false);
 
   // Order Form State
@@ -682,6 +684,7 @@ export default function Remessas() {
         setClientDistrict(data.bairro || '');
         setClientCity(data.localidade || '');
         setClientState(data.uf || '');
+        setClientComplement(data.complemento || '');
       }
     } catch (err) {
       console.error('Erro ao buscar CEP:', err);
@@ -707,6 +710,7 @@ export default function Remessas() {
         postal_code: clientPostalCode.replace(/\D/g, ''),
         address: clientAddress,
         number: clientNumber,
+        complemento: clientComplement,
         district: clientDistrict,
         city: clientCity,
         state: clientState
@@ -725,6 +729,7 @@ export default function Remessas() {
       setClientPostalCode('');
       setClientAddress('');
       setClientNumber('');
+      setClientComplement('');
       setClientDistrict('');
       setClientCity('');
       setClientState('');
@@ -760,6 +765,7 @@ export default function Remessas() {
     setClientPostalCode(client.postal_code || '');
     setClientAddress(client.address || '');
     setClientNumber(client.number || '');
+    setClientComplement(client.complemento || '');
     setClientDistrict(client.district || '');
     setClientCity(client.city || '');
     setClientState(client.state || '');
@@ -1073,6 +1079,7 @@ export default function Remessas() {
     setRecipientCpf(client.cpf_cnpj || '');
     setRecipientAddress(client.address || '');
     setRecipientNumber(client.number || '');
+    setRecipientComplement(client.complemento || '');
     setRecipientDistrict(client.district || '');
     setRecipientCity(client.city || '');
     setRecipientState(client.state || '');
@@ -1713,6 +1720,7 @@ export default function Remessas() {
           document: recipientCpf.replace(/\D/g, ''),
           address: recipientAddress,
           number: recipientNumber,
+          complement: recipientComplement,
           district: recipientDistrict,
           city: recipientCity,
           postal_code: cleanDest,
@@ -1807,6 +1815,8 @@ export default function Remessas() {
           document: recipientCpf.replace(/\D/g, ''),
           address: recipientAddress,
           number: recipientNumber,
+          complement: recipientComplement,
+          complemento: recipientComplement,
           district: recipientDistrict,
           city: recipientCity,
           postal_code: cleanDest,
@@ -1987,7 +1997,7 @@ export default function Remessas() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <div className="col-span-2 space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Endereço de Entrega</label>
                 <input
@@ -1996,7 +2006,7 @@ export default function Remessas() {
                   placeholder="Rua, Avenida..."
                   value={clientAddress}
                   onChange={(e) => setClientAddress(e.target.value)}
-                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
                 />
               </div>
               <div className="space-y-1">
@@ -2007,6 +2017,16 @@ export default function Remessas() {
                   value={clientNumber}
                   onChange={(e) => setClientNumber(e.target.value)}
                   className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-center text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Complemento</label>
+                <input
+                  type="text"
+                  placeholder="Apto, Bloco..."
+                  value={clientComplement}
+                  onChange={(e) => setClientComplement(e.target.value)}
+                  className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
                 />
               </div>
             </div>
@@ -4303,14 +4323,18 @@ export default function Remessas() {
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">E-mail</label>
                         <input required type="email" placeholder="comprador@exemplo.com" value={recipientEmail} onChange={(e) => setRecipientEmail(e.target.value)} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-2.5 text-sm text-[#1F2937] font-medium outline-none" />
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-4 gap-2">
                         <div className="col-span-2 space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Endereço de Entrega</label>
-                          <input required type="text" placeholder="Rua/Av..." value={recipientAddress} onChange={(e) => setRecipientAddress(e.target.value)} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-2.5 text-sm text-[#1F2937] font-medium outline-none" />
+                          <input required type="text" placeholder="Rua/Av..." value={recipientAddress} onChange={(e) => setRecipientAddress(e.target.value)} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-2.5 text-sm text-[#1F2937] font-medium outline-none focus:border-[#2563EB]/30 transition-all" />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Número</label>
-                          <input required type="text" value={recipientNumber} onChange={(e) => setRecipientNumber(e.target.value)} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-2.5 text-sm text-center text-[#1F2937] font-bold outline-none" />
+                          <input required type="text" value={recipientNumber} onChange={(e) => setRecipientNumber(e.target.value)} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-2.5 text-sm text-center text-[#1F2937] font-bold outline-none focus:border-[#2563EB]/30 transition-all" />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Complemento</label>
+                          <input type="text" placeholder="Apto, Bloco..." value={recipientComplement} onChange={(e) => setRecipientComplement(e.target.value)} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-2.5 text-sm text-[#1F2937] font-medium outline-none focus:border-[#2563EB]/30 transition-all" />
                         </div>
                       </div>
                     </div>
