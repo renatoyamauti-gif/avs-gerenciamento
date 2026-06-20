@@ -479,8 +479,8 @@ export default function Chocadeira() {
               </div>
               <form onSubmit={(e) => handleAddBatch(e, isAddingBatch)} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Identificação / Casal</label>
-                  <input required name="name" type="text" placeholder="Ex: Casal MR-42" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Identificação</label>
+                  <input required name="name" type="text" placeholder="Ex: Lote 01" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                 </div>
 
                 {/* Composição por Baia */}
