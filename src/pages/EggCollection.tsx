@@ -679,7 +679,7 @@ export default function EggCollection() {
       {/* Edit Modal */}
       <AnimatePresence>
         {editingDay !== null && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0 overflow-y-auto">
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
@@ -691,7 +691,7 @@ export default function EggCollection() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl"
+              className="relative w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar my-8"
             >
               <div className="flex justify-between items-center mb-6">
                 <div>
