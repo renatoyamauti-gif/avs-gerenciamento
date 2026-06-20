@@ -274,7 +274,10 @@ export default function EggCollection() {
       const existingLogs = logs.filter(l => 
         l.day === editingDay && 
         l.month === viewDate.getMonth() + 1 && 
-        l.year === viewDate.getFullYear()
+        l.year === viewDate.getFullYear() &&
+        (originType === 'baia' 
+          ? l.baia === baia 
+          : l.raca === raca)
       );
       
       if (existingLogs.length > 0) {
@@ -286,22 +289,6 @@ export default function EggCollection() {
           logData.pairs = Array.from(new Set([...existing.pairs, ...pairs]));
         }
         
-        if (originType === 'baia') {
-          if (existing.baia && baia && !existing.baia.includes(baia)) {
-             logData.baia = `${existing.baia}, ${baia}`;
-          } else {
-             logData.baia = baia || existing.baia;
-          }
-          logData.raca = existing.raca;
-        } else {
-          if (existing.raca && raca && !existing.raca.includes(raca)) {
-             logData.raca = `${existing.raca}, ${raca}`;
-          } else {
-             logData.raca = raca || existing.raca;
-          }
-          logData.baia = existing.baia;
-        }
-
         // Aggregate condition
         if (existing.condition && condition && !existing.condition.includes(condition)) {
            logData.condition = `${existing.condition}, ${condition}`;
