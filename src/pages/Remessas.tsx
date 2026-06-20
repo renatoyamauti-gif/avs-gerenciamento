@@ -125,22 +125,88 @@ export default function Remessas() {
     const isCorreiosFormat = /^[A-Z]{2}\d{9}[A-Z]{2}$/i.test(cleanCode);
     const cleanToken = token.replace(/\s+/g, '');
 
+    const getRawDateStr = (field: any): string => {
+      if (!field) return '';
+      if (typeof field === 'object') {
+        return field.date || field.datetime || '';
+      }
+      return String(field);
+    };
+
+    const getEventDateVal = (event: any): string => {
+      if (!event) return '';
+      const rawField = event.dtHrCriado || event.dataHora || event.dhEvento || event.dtEvento || event.date || '';
+      return getRawDateStr(rawField);
+    };
+
     // Helpers to parse location and status from Correios events
-    const formatDate = (dateStr: string) => {
+    const formatDate = (dateStrInput: any) => {
+      const dateStr = getRawDateStr(dateStrInput);
       if (!dateStr) return '';
-      // If it matches YYYY-MM-DDTHH:MM:SS or similar
+
+      // Check if there is a timezone suffix (e.g. Z or +/-hh:mm or +/-hhmm at the end)
+      const hasTimezone = /[zZ]$|[\+\-]\d{2}:?\d{2}$/.test(dateStr);
+
+      if (hasTimezone) {
+        try {
+          const date = new Date(dateStr);
+          if (!isNaN(date.getTime())) {
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+          }
+        } catch (e) {
+          // Fall through
+        }
+      }
+
+      // If it's a numeric string (timestamp), parse it as a number
+      if (/^\d+$/.test(dateStr)) {
+        try {
+          const date = new Date(parseInt(dateStr, 10));
+          if (!isNaN(date.getTime())) {
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+          }
+        } catch (e) {
+          // Fall through
+        }
+      }
+
+      // If no timezone is specified, parse as a local string to avoid UTC shifting
+      // YYYY-MM-DDTHH:MM:SS
       const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
       if (match) {
         const [, year, month, day, hour, minute] = match;
         return `${day}/${month}/${year} ${hour}:${minute}`;
       }
-      // If it matches YYYY-MM-DD HH:MM:SS
+      
+      // YYYY-MM-DD HH:MM:SS
       const match2 = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
       if (match2) {
         const [, year, month, day, hour, minute] = match2;
         return `${day}/${month}/${year} ${hour}:${minute}`;
       }
-      
+
+      // YYYY-MM-DD
+      const matchDateOnly = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (matchDateOnly) {
+        const [, year, month, day] = matchDateOnly;
+        return `${day}/${month}/${year}`;
+      }
+
+      // DD/MM/YYYY HH:MM:SS or DD/MM/YYYY HH:MM
+      const matchBRDateTime = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})[\sT](\d{2}):(\d{2})/);
+      if (matchBRDateTime) {
+        const [, day, month, year, hour, minute] = matchBRDateTime;
+        return `${day}/${month}/${year} ${hour}:${minute}`;
+      }
+
+      // DD/MM/YYYY
+      const matchBRDateOnly = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (matchBRDateOnly) {
+        return dateStr;
+      }
+
       try {
         const date = new Date(dateStr);
         if (isNaN(date.getTime())) return dateStr;
@@ -193,49 +259,61 @@ export default function Remessas() {
           if (response.ok) {
             const data = await response.json();
             const objeto = data.objetos?.[0];
-            if (objeto && Array.isArray(objeto.eventos) && objeto.eventos.length > 0) {
-              // Sort events by dtHrCriado descending (newest first)
-              const rawEvents = [...objeto.eventos].sort((a: any, b: any) => {
-                const timeA = a.dtHrCriado || '';
-                const timeB = b.dtHrCriado || '';
-                return timeB.localeCompare(timeA);
-              });
+            if (objeto) {
+              if (Array.isArray(objeto.eventos) && objeto.eventos.length > 0) {
+                const events = objeto.eventos.map((e: any) => ({
+                  date: formatDate(getEventDateVal(e)),
+                  location: formatLocation(e.unidade),
+                  desc: e.descricao || 'Atualização de status',
+                  status: getEventStatus(e.descricao || '')
+                }));
 
-              const events = rawEvents.map((e: any) => ({
-                date: formatDate(e.dtHrCriado || new Date().toISOString()),
-                location: formatLocation(e.unidade),
-                desc: e.descricao || 'Atualização de status',
-                status: getEventStatus(e.descricao || '')
-              }));
+                // Sort events by date descending (newest first)
+                const parseToTime = (str: string) => {
+                  const match = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+                  if (match) {
+                    const [, day, month, year, hour, minute] = match;
+                    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute)).getTime();
+                  }
+                  return new Date(str).getTime();
+                };
+                events.sort((a: any, b: any) => parseToTime(b.date) - parseToTime(a.date));
 
-              // Determine overall status based on the newest event
-              const latestEvent = events[0];
-              const overallStatus = latestEvent.status === 'success' 
-                ? 'delivered' 
-                : latestEvent.status === 'posted' 
-                  ? 'posted' 
-                  : 'in_transit';
+                // Determine overall status based on the newest event
+                const latestEvent = events[0];
+                const overallStatus = latestEvent.status === 'success' 
+                  ? 'delivered' 
+                  : latestEvent.status === 'posted' 
+                    ? 'posted' 
+                    : 'in_transit';
 
-              const description = newTrackingDesc || objeto.mensagem || `Objeto Correios (${cleanCode})`;
+                const description = newTrackingDesc || objeto.mensagem || `Objeto Correios (${cleanCode})`;
 
-              setTrackingResult({
-                code: cleanCode,
-                description,
-                status: overallStatus,
-                events
-              });
+                setTrackingResult({
+                  code: cleanCode,
+                  description,
+                  status: overallStatus,
+                  events
+                });
 
-              setRecentTrackings(prev => {
-                const exists = prev.some(t => t.code === cleanCode);
-                if (exists) return prev;
-                const updated = [{ code: cleanCode, description, status: overallStatus }, ...prev].slice(0, 5);
-                localStorage.setItem('avs_recent_trackings', JSON.stringify(updated));
-                return updated;
-              });
+                setRecentTrackings(prev => {
+                  const exists = prev.some(t => t.code === cleanCode);
+                  if (exists) return prev;
+                  const updated = [{ code: cleanCode, description, status: overallStatus }, ...prev].slice(0, 5);
+                  localStorage.setItem('avs_recent_trackings', JSON.stringify(updated));
+                  return updated;
+                });
 
-              setNewTrackingDesc('');
-              setIsTracking(false);
-              return;
+                setNewTrackingDesc('');
+                setIsTracking(false);
+                return;
+              } else {
+                // Objeto retornado, mas sem eventos (ex: não postado, erro de não encontrado)
+                const errMsg = objeto.mensagem || 'Objeto não encontrado na base de dados dos Correios.';
+                setTrackingError(errMsg);
+                setIsTracking(false);
+                return;
+              }
             }
           }
         }
@@ -273,53 +351,61 @@ export default function Remessas() {
             }
           }
 
-          if (meInfo && Array.isArray(meInfo.history)) {
-            const events = meInfo.history.map((h: any) => ({
-              date: formatDate(h.date || h.created_at || new Date().toISOString()),
-              location: h.location || h.unidade || 'Unidade de Tratamento',
-              desc: h.description || h.status || 'Status atualizado',
-              status: getEventStatus(h.description || h.status || '')
-            }));
+          if (meInfo) {
+            if (meInfo.error) {
+              setTrackingError(meInfo.error);
+              setIsTracking(false);
+              return;
+            }
 
-            // Sort events by date descending (newest first)
-            events.sort((a: any, b: any) => {
-              const parseToTime = (str: string) => {
-                const match = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
-                if (match) {
-                  const [, day, month, year, hour, minute] = match;
-                  return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute)).getTime();
-                }
-                return new Date(str).getTime();
-              };
-              return parseToTime(b.date) - parseToTime(a.date);
-            });
+            if (Array.isArray(meInfo.history) && meInfo.history.length > 0) {
+              const events = meInfo.history.map((h: any) => ({
+                date: formatDate(h.date || h.created_at || new Date().toISOString()),
+                location: h.location || h.unidade || 'Unidade de Tratamento',
+                desc: h.description || h.status || 'Status atualizado',
+                status: getEventStatus(h.description || h.status || '')
+              }));
 
-            const overallStatus = meInfo.status === 'delivered' 
-              ? 'delivered' 
-              : meInfo.status === 'posted' 
-                ? 'posted' 
-                : 'in_transit';
+              // Sort events by date descending (newest first)
+              events.sort((a: any, b: any) => {
+                const parseToTime = (str: string) => {
+                  const match = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+                  if (match) {
+                    const [, day, month, year, hour, minute] = match;
+                    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute)).getTime();
+                  }
+                  return new Date(str).getTime();
+                };
+                return parseToTime(b.date) - parseToTime(a.date);
+              });
 
-            const description = newTrackingDesc || `Objeto Melhor Envio (${cleanCode})`;
+              const overallStatus = meInfo.status === 'delivered' 
+                ? 'delivered' 
+                : meInfo.status === 'posted' 
+                  ? 'posted' 
+                  : 'in_transit';
 
-            setTrackingResult({
-              code: cleanCode,
-              description,
-              status: overallStatus,
-              events
-            });
+              const description = newTrackingDesc || `Objeto Melhor Envio (${cleanCode})`;
 
-            setRecentTrackings(prev => {
-              const exists = prev.some(t => t.code === cleanCode);
-              if (exists) return prev;
-              const updated = [{ code: cleanCode, description, status: overallStatus }, ...prev].slice(0, 5);
-              localStorage.setItem('avs_recent_trackings', JSON.stringify(updated));
-              return updated;
-            });
+              setTrackingResult({
+                code: cleanCode,
+                description,
+                status: overallStatus,
+                events
+              });
 
-            setNewTrackingDesc('');
-            setIsTracking(false);
-            return;
+              setRecentTrackings(prev => {
+                const exists = prev.some(t => t.code === cleanCode);
+                if (exists) return prev;
+                const updated = [{ code: cleanCode, description, status: overallStatus }, ...prev].slice(0, 5);
+                localStorage.setItem('avs_recent_trackings', JSON.stringify(updated));
+                return updated;
+              });
+
+              setNewTrackingDesc('');
+              setIsTracking(false);
+              return;
+            }
           }
         }
       } catch (err) {
