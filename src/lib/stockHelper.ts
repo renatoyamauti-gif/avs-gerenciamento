@@ -25,6 +25,26 @@ export function normalizeBaia(name: string): string {
     .join(' ');
 }
 
+export function isBreedMatchingBaia(breed: string, baia: string): boolean {
+  if (!breed || !baia) return false;
+  const br = breed.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const ba = baia.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  
+  if (br.includes(ba) || ba.includes(br)) return true;
+  
+  // Handle brama/bhrama/bhama/bhrma spelling variations
+  const isBramaBreed = br.includes('brama') || br.includes('bhrama') || br.includes('bhama') || br.includes('bhrma');
+  const isBramaBaia = ba.includes('brama') || ba.includes('bhrama') || ba.includes('bhama') || ba.includes('bhrma');
+  if (isBramaBreed && isBramaBaia) return true;
+
+  // Handle RIR/Rhode spelling variations
+  const isRIRBreed = br === 'rir' || br.includes('rhode');
+  const isRIRBaia = ba.includes('rir') || ba.includes('rhode');
+  if (isRIRBreed && isRIRBaia) return true;
+  
+  return false;
+}
+
 export function getRacaBaiaMapping(birds: any[]) {
   const baiaToRacas: Record<string, Set<string>> = {};
   const racaToBaias: Record<string, Set<string>> = {};
@@ -118,13 +138,25 @@ export function calculateEggStock({
   const getRacasForBaia = (bName: string): string[] => {
     if (!bName) return [];
     const b = normalizeBaia(bName);
-    return baiaToRacas[b] ? Array.from(baiaToRacas[b]) : [];
+    const allBreeds = baiaToRacas[b] ? Array.from(baiaToRacas[b]) : [];
+    if (allBreeds.length <= 1) return allBreeds;
+    
+    const matchingBreeds = allBreeds.filter(r => isBreedMatchingBaia(r, bName));
+    if (matchingBreeds.length > 0) return matchingBreeds;
+    
+    return allBreeds;
   };
 
   const getBaiasForRaca = (breed: string): string[] => {
     if (!breed) return [];
     const r = normalizeBreed(breed);
-    return racaToBaias[r] ? Array.from(racaToBaias[r]) : [];
+    const allBaias = racaToBaias[r] ? Array.from(racaToBaias[r]) : [];
+    if (allBaias.length <= 1) return allBaias;
+    
+    const matchingBaias = allBaias.filter(b => isBreedMatchingBaia(breed, b));
+    if (matchingBaias.length > 0) return matchingBaias;
+    
+    return allBaias;
   };
 
   // 1. Process Egg Logs (Collected)
