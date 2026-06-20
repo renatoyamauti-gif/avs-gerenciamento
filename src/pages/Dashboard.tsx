@@ -55,9 +55,9 @@ export default function Dashboard() {
         birds
       });
 
-      // Set eggs by Baia and by Raça (using available stock, minimum 0)
-      setEggsByBaia(Object.entries(computedStock.baias).map(([name, item]) => ({ name, count: Math.max(0, item.available) })).sort((a, b) => b.count - a.count));
-      setEggsByRaca(Object.entries(computedStock.racas).map(([name, item]) => ({ name, count: Math.max(0, item.available) })).sort((a, b) => b.count - a.count));
+      // Set eggs by Baia and by Raça (using collected count)
+      setEggsByBaia(Object.entries(computedStock.baias).map(([name, item]) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count));
+      setEggsByRaca(Object.entries(computedStock.racas).map(([name, item]) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count));
 
       // Calculate total available egg stock
       const totalCollected = (eggLogs || []).reduce((acc, curr) => acc + curr.count, 0);
