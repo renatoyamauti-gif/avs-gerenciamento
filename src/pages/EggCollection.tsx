@@ -55,8 +55,8 @@ export default function EggCollection() {
       birds
     });
 
-    const ebBaia = Object.entries(computedStock.baias).map(([name, item]) => ({ name, count: Math.max(0, item.available) })).sort((a, b) => b.count - a.count);
-    const ebRaca = Object.entries(computedStock.racas).map(([name, item]) => ({ name, count: Math.max(0, item.available) })).sort((a, b) => b.count - a.count);
+    const ebBaia = Object.entries(computedStock.baias).map(([name, item]) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count);
+    const ebRaca = Object.entries(computedStock.racas).map(([name, item]) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count);
 
     const bEst = Object.entries(computedStock.baias).map(([name, item]) => {
       const monthlyEst = Math.round(item.dailyAvg * 30);
