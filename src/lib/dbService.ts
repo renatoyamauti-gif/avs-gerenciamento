@@ -863,6 +863,86 @@ export const dbService = {
     return profileData[0];
   },
 
+  async checkUsernameAvailability(username: string) {
+    const email = `${username.trim().toLowerCase().replace(/\s+/g, '')}@avs.local`;
+    
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Erro ao verificar disponibilidade de usuário:', error);
+      throw error;
+    }
+
+    return {
+      available: !data,
+      exists: !!data
+    };
+  },
+
+  async getUsernameSuggestions(username: string, adminProfile?: any) {
+    const base = username.trim().toLowerCase().replace(/\s+/g, '');
+    let criatorioSuffix = '';
+    
+    if (adminProfile?.criatorio_name) {
+      criatorioSuffix = adminProfile.criatorio_name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+      
+      criatorioSuffix = criatorioSuffix.replace(/^criatorio/, '');
+    }
+
+    const potentialSuggestions: string[] = [];
+    
+    if (criatorioSuffix && criatorioSuffix.length > 0) {
+      potentialSuggestions.push(`${base}_${criatorioSuffix}`);
+      potentialSuggestions.push(`${base}${criatorioSuffix}`);
+    }
+
+    for (let i = 1; i <= 5; i++) {
+      potentialSuggestions.push(`${base}${i}`);
+    }
+    
+    const suggestions: string[] = [];
+    for (const sug of potentialSuggestions) {
+      const email = `${sug}@avs.local`;
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+      
+      if (!error && !data) {
+        suggestions.push(sug);
+        if (suggestions.length >= 3) break;
+      }
+    }
+
+    if (suggestions.length === 0) {
+      for (let i = 0; i < 5; i++) {
+        const rand = Math.floor(100 + Math.random() * 900);
+        const sug = `${base}${rand}`;
+        const email = `${sug}@avs.local`;
+        const { data } = await supabaseAdmin
+          .from('profiles')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
+        if (!data) {
+          suggestions.push(sug);
+          if (suggestions.length >= 3) break;
+        }
+      }
+    }
+
+    return suggestions;
+  },
+
   async deleteSubUser(id: string) {
     // Verify that the user being deleted is indeed a child of the logged-in admin user
     const { data: { user: adminUser } } = await supabase.auth.getUser();

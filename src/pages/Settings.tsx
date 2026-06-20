@@ -45,6 +45,9 @@ export default function Settings() {
 
   // New subuser fields
   const [subUserUsername, setSubUserUsername] = useState('');
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
   const [subUserPassword, setSubUserPassword] = useState('');
   const [subUserFullName, setSubUserFullName] = useState('');
   const [subUserPermissions, setSubUserPermissions] = useState<any>({
@@ -61,6 +64,35 @@ export default function Settings() {
   useEffect(() => {
     loadProfile();
   }, []);
+
+  useEffect(() => {
+    const cleanUsername = subUserUsername.trim().toLowerCase().replace(/\s+/g, '');
+    if (!cleanUsername) {
+      setUsernameAvailable(null);
+      setUsernameSuggestions([]);
+      return;
+    }
+
+    setIsCheckingUsername(true);
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        const { available } = await dbService.checkUsernameAvailability(cleanUsername);
+        setUsernameAvailable(available);
+        if (!available) {
+          const sug = await dbService.getUsernameSuggestions(cleanUsername, profile);
+          setUsernameSuggestions(sug);
+        } else {
+          setUsernameSuggestions([]);
+        }
+      } catch (err) {
+        console.error('Erro ao validar nome de usuário:', err);
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [subUserUsername, profile]);
 
   async function loadProfile() {
     try {
@@ -160,6 +192,18 @@ export default function Settings() {
       return;
     }
 
+    if (isCheckingUsername) {
+      setTeamMessage({ type: 'error', text: 'Aguarde a verificação de disponibilidade do nome de usuário.' });
+      setSubmittingSubUser(false);
+      return;
+    }
+
+    if (usernameAvailable === false) {
+      setTeamMessage({ type: 'error', text: 'Por favor, escolha um nome de usuário disponível.' });
+      setSubmittingSubUser(false);
+      return;
+    }
+
     if (subUserPassword.length < 6) {
       setTeamMessage({ type: 'error', text: 'A senha do tratador deve ter pelo menos 6 caracteres.' });
       setSubmittingSubUser(false);
@@ -176,6 +220,8 @@ export default function Settings() {
 
       setTeamMessage({ type: 'success', text: 'Tratador cadastrado com sucesso!' });
       setSubUserUsername('');
+      setUsernameAvailable(null);
+      setUsernameSuggestions([]);
       setSubUserPassword('');
       setSubUserFullName('');
       setSubUserPermissions({
@@ -546,9 +592,49 @@ export default function Settings() {
                         placeholder="Ex: joaosilva"
                         value={subUserUsername}
                         onChange={(e) => setSubUserUsername(e.target.value)}
-                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-11 pr-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none"
+                        className={`w-full bg-[#F8FAFC] border rounded-2xl pl-11 pr-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 transition-all outline-none ${
+                          usernameAvailable === true 
+                            ? 'border-green-300 focus:ring-green-500/10 focus:border-green-500' 
+                            : usernameAvailable === false
+                              ? 'border-red-300 focus:ring-red-500/10 focus:border-red-500'
+                              : 'border-slate-200 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50'
+                        }`}
                       />
                     </div>
+                    {isCheckingUsername && (
+                      <p className="text-[10px] text-slate-450 font-bold ml-1 flex items-center gap-1">
+                        <Loader2 className="animate-spin text-slate-400" size={10} /> Verificando disponibilidade...
+                      </p>
+                    )}
+                    {!isCheckingUsername && usernameAvailable === true && (
+                      <p className="text-[10px] text-green-600 font-bold ml-1 flex items-center gap-1">
+                        <CheckCircle2 className="text-green-500" size={10} /> Nome de usuário disponível!
+                      </p>
+                    )}
+                    {!isCheckingUsername && usernameAvailable === false && (
+                      <div className="space-y-1.5 ml-1">
+                        <p className="text-[10px] text-red-500 font-bold flex items-center gap-1">
+                          <Shield className="text-red-500" size={10} /> Nome de usuário já em uso.
+                        </p>
+                        {usernameSuggestions.length > 0 && (
+                          <div className="pt-0.5">
+                            <span className="text-[9px] text-slate-450 font-extrabold uppercase tracking-wider block mb-1">Sugestões disponíveis:</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {usernameSuggestions.map((sug) => (
+                                <button
+                                  key={sug}
+                                  type="button"
+                                  onClick={() => setSubUserUsername(sug)}
+                                  className="text-[10px] font-black px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white hover:bg-slate-50 text-slate-700 active:scale-95 transition-all shadow-sm"
+                                >
+                                  {sug}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2">
