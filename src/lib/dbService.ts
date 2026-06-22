@@ -553,6 +553,10 @@ export const dbService = {
       .eq('id', user.id)
       .single();
 
+    if (error && error.code !== 'PGRST116') {
+      console.error("Erro ao carregar perfil do Supabase (ignorado devido a metadados de fallback):", error);
+    }
+
     const profileData = {
       ...(data || {}),
       id: user.id,
@@ -616,9 +620,43 @@ export const dbService = {
   async getOwnerId() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
+
+    // 1. Check cache first. Bypassed for keepers if parent_user_id is missing.
     if (_cachedProfile && _cachedProfile.id === user.id) {
-      return _cachedProfile.parent_user_id || user.id;
+      if (_cachedProfile.parent_user_id) {
+        return _cachedProfile.parent_user_id;
+      }
+      if (_cachedProfile.role !== 'tratador') {
+        return user.id;
+      }
     }
+
+    // 2. Fetch parent_user_id directly from public.profiles table
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('parent_user_id, role')
+        .eq('id', user.id)
+        .single();
+      
+      if (!error && data) {
+        if (_cachedProfile && _cachedProfile.id === user.id) {
+          _cachedProfile.parent_user_id = data.parent_user_id;
+          _cachedProfile.role = data.role || _cachedProfile.role;
+        }
+        return data.parent_user_id || user.id;
+      }
+      if (error && error.code !== 'PGRST116') {
+        console.error("Erro ao buscar parent_user_id direto no banco:", error);
+      }
+    } catch (err) {
+      console.error("Falha ao buscar parent_user_id direto no banco:", err);
+    }
+
+    // 3. Fallback to auth metadata or getProfile()
+    const metadataParentId = user.user_metadata?.parent_user_id;
+    if (metadataParentId) return metadataParentId;
+
     const profile = await this.getProfile();
     return profile ? (profile.parent_user_id || profile.id) : user.id;
   },
@@ -1160,6 +1198,10 @@ export const dbService = {
       .delete()
       .eq('id', id);
     if (error) handleSupabaseError(error, 'delete', 'products');
+  },
+
+  clearCache() {
+    _cachedProfile = null;
   }
 };
 

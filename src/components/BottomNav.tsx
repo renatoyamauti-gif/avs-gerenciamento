@@ -17,7 +17,7 @@ const BottomNav = ({ onOpenMenu, profile }: BottomNavProps) => {
   ];
 
   const hasPermission = (path: string) => {
-    if (!profile) return true;
+    if (!profile) return false; // Default to false (fail-secure) while profile is loading
     if (profile.role !== 'tratador') return true;
 
     if (path === '/') return true;

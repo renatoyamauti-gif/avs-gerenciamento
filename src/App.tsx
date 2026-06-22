@@ -39,24 +39,36 @@ export default function App() {
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-      if (session) {
-        dbService.getProfile().then(setProfile);
+    const initSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        if (session) {
+          const userProfile = await dbService.getProfile();
+          setProfile(userProfile);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar sessão inicial:", err);
+      } finally {
+        setLoading(false);
       }
-    });
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    initSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      dbService.clearCache(); // Invalidate memory cache on any authentication change
       setSession(session);
       if (session) {
-        dbService.getProfile().then(setProfile);
+        const userProfile = await dbService.getProfile();
+        setProfile(userProfile);
       } else {
         setProfile(null);
       }
     });
 
     const handleProfileUpdate = () => {
+      dbService.clearCache();
       dbService.getProfile().then(setProfile);
     };
     window.addEventListener('profileUpdated', handleProfileUpdate);
@@ -113,7 +125,7 @@ export default function App() {
   }
 
   const hasPermission = (moduleName: string) => {
-    if (!profile) return true;
+    if (!profile) return false; // Default to false (fail-secure) while profile is loading
     if (profile.role !== 'tratador') return true;
     return profile.permissions?.[moduleName] ?? false;
   };

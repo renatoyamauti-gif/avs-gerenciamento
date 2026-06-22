@@ -10,6 +10,8 @@ export default function Dashboard() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<string>('');
+  const [permissions, setPermissions] = useState<any>(null);
   const [birdCount, setBirdCount] = useState(0);
   const [eggCount, setEggCount] = useState(0);
   const [incubatorEggs, setIncubatorEggs] = useState(0);
@@ -23,6 +25,12 @@ export default function Dashboard() {
   const [racaEstimates, setRacaEstimates] = useState<{ name: string; estimativa: number }[]>([]);
   const [deliveredOrders, setDeliveredOrders] = useState<any[]>([]);
 
+  const showSection = (moduleName: string) => {
+    if (role === 'admin') return true;
+    if (role === 'tratador') return permissions?.[moduleName] ?? false;
+    return false; // Fail-secure default if role is not loaded yet
+  };
+
   useEffect(() => {
     loadDashboardData();
   }, []);
@@ -30,15 +38,34 @@ export default function Dashboard() {
   async function loadDashboardData() {
     try {
       setLoading(true);
-      // Load all data in parallel
+
+      const profile = await dbService.getProfile();
+      let currentRole = 'admin';
+      let currentPermissions: any = null;
+
+      if (profile) {
+        currentRole = profile.role || 'admin';
+        currentPermissions = profile.permissions || null;
+        setRole(currentRole);
+        setPermissions(currentPermissions);
+      }
+
+      const hasBirds = currentRole === 'admin' || (currentPermissions?.birds ?? false);
+      const hasEggs = currentRole === 'admin' || (currentPermissions?.eggs ?? false);
+      const hasMaternity = currentRole === 'admin' || (currentPermissions?.maternity ?? false);
+      const hasBreeding = currentRole === 'admin' || (currentPermissions?.breeding ?? false);
+      const hasFinance = currentRole === 'admin' || (currentPermissions?.finance ?? false);
+      const hasShipping = currentRole === 'admin' || (currentPermissions?.shipping ?? false);
+
+      // Load all authorized data in parallel
       const [birds, eggLogs, maternityRecords, incubators, transactions, orders, products] = await Promise.all([
-        dbService.getBirds(),
-        dbService.getEggLogs(),
-        dbService.getMaternityRecords(),
-        dbService.getIncubators(),
-        dbService.getTransactions(),
-        dbService.getOrders(),
-        dbService.getProducts()
+        hasBirds ? dbService.getBirds() : Promise.resolve([]),
+        hasEggs ? dbService.getEggLogs() : Promise.resolve([]),
+        hasMaternity ? dbService.getMaternityRecords() : Promise.resolve([]),
+        hasBreeding ? dbService.getIncubators() : Promise.resolve([]),
+        hasFinance ? dbService.getTransactions() : Promise.resolve([]),
+        hasShipping ? dbService.getOrders() : Promise.resolve([]),
+        hasShipping ? dbService.getProducts() : Promise.resolve([])
       ]);
 
       const activeBirds = (birds || []).filter(b => b.status !== 'Vendida' && b.status !== 'Óbito' && b.status !== 'Reservada');
@@ -200,6 +227,14 @@ export default function Dashboard() {
     );
   }
 
+  const eggVis = showSection('eggs');
+  const breedVis = showSection('breeding');
+  const finVis = showSection('finance');
+  const matVis = showSection('maternity');
+  const birdVis = showSection('birds');
+
+  const visibleCardsCount = [eggVis, breedVis, finVis, matVis, birdVis].filter(Boolean).length;
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }} 
@@ -216,363 +251,394 @@ export default function Dashboard() {
       </section>
 
       {/* Metrics Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
-        
-        {/* Estoque de Ovos */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="bg-[#FFF7ED] dark:bg-amber-955/20 p-3 rounded-full">
-              <Egg size={24} className="text-[#F59E0B] dark:text-amber-500" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Estoque de Ovos</p>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <p className="text-2xl font-black text-[#1F2937] dark:text-slate-100">{eggCount}</p>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500">Disponível</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Em Incubação */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="bg-[#FEF2F2] dark:bg-red-955/20 p-3 rounded-full">
-              <Activity size={24} className="text-[#EF4444] dark:text-red-400" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Em Incubação</p>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <p className="text-2xl font-black text-[#1F2937] dark:text-slate-100">{incubatorEggs}</p>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500">Unidades</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Saldo Atual */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="bg-[#DCFCE7] dark:bg-green-955/20 p-3 rounded-full">
-              <Wallet size={24} className="text-[#16A34A] dark:text-green-500" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Saldo Atual</p>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <span className="text-sm font-semibold text-slate-400 dark:text-slate-500">R$</span>
-                <p className="text-2xl font-black text-[#1F2937] dark:text-slate-100">{financeSummary.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Maternidade (Pintinhos) */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="bg-[#EFF6FF] dark:bg-blue-955/20 p-3 rounded-full">
-              <Baby size={24} className="text-[#2563EB] dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Maternidade</p>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <p className="text-2xl font-black text-[#1F2937] dark:text-slate-100">{chickCount}</p>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500">Filhotes</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Plantel Total */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="bg-[#DBEAFE] dark:bg-blue-900/30 p-3 rounded-full">
-              <Bird size={24} className="text-[#2563EB] dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Plantel Total</p>
-              <div className="flex items-baseline gap-1 mt-0.5">
-                <p className="text-2xl font-black text-[#1F2937] dark:text-slate-100">{birdCount}</p>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500">Aves</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Performance Chart */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-          <div className="flex justify-between items-center mb-10">
-            <div>
-              <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100">Performance Financeira</h3>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Evolução do Fluxo de Caixa</p>
-            </div>
-          </div>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#334155" : "#F1F5F9"} vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 12 }} 
-                  dy={10}
-                />
-                <YAxis 
-                  hide
-                />
-                <Tooltip 
-                  cursor={{ fill: isDark ? '#1E293B' : '#F8FAFC' }}
-                  contentStyle={{ 
-                    backgroundColor: isDark ? '#1E293B' : '#FFFFFF', 
-                    borderColor: isDark ? '#334155' : '#E2E8F0', 
-                    borderRadius: '16px', 
-                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                    color: isDark ? '#F1F5F9' : '#1F2937'
-                  }}
-                  itemStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#2563EB' }}
-                />
-                <Area type="monotone" dataKey="balance" stroke="#2563EB" strokeWidth={3} fillOpacity={1} fill="url(#colorBalance)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Real-time Alerts */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-          <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100 mb-8">Próximos Eventos</h3>
-          <div className="space-y-6">
-             {nextHatch ? (
-                <div className={`p-6 rounded-2xl border ${nextHatch.finished ? 'bg-[#DCFCE7] border-[#bbf7d0] dark:bg-green-950/20 dark:border-green-900/40' : 'bg-[#FFF7ED] border-[#ffedd5] dark:bg-amber-955/20 dark:border-amber-900/40'}`}>
-                   <div className="flex items-center gap-4 mb-4">
-                      {nextHatch.finished ? (
-                        <CheckCircle2 size={24} className="text-[#16A34A] dark:text-green-400" />
-                      ) : (
-                        <Activity size={24} className="text-[#F59E0B] dark:text-amber-500 animate-pulse" />
-                      )}
-                      <div>
-                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Eclosão</p>
-                        <h4 className={`font-bold ${nextHatch.finished ? 'text-[#16A34A] dark:text-green-400' : 'text-[#F59E0B] dark:text-amber-500'}`}>
-                           {nextHatch.finished ? 'Lote Pronto!' : 'Em Incubação'}
-                        </h4>
-                      </div>
-                   </div>
-                   <div className="flex items-baseline gap-1">
-                      <span className={`text-3xl sm:text-4xl font-black ${nextHatch.finished ? 'text-[#16A34A] dark:text-green-400' : 'text-[#F59E0B] dark:text-amber-500'}`}>
-                        {nextHatch.finished ? 'ECLOSÃO' : `${nextHatch.days}d ${nextHatch.hours}h`}
-                      </span>
-                      {!nextHatch.finished && <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase ml-1">Restantes</span>}
-                   </div>
+      {visibleCardsCount > 0 && (
+        <div className={`grid grid-cols-1 ${visibleCardsCount > 1 ? 'sm:grid-cols-2' : ''} ${
+          visibleCardsCount === 5 ? 'lg:grid-cols-5' :
+          visibleCardsCount === 4 ? 'lg:grid-cols-4 max-w-6xl' :
+          visibleCardsCount === 3 ? 'lg:grid-cols-3 max-w-4xl' :
+          visibleCardsCount === 2 ? 'lg:grid-cols-2 max-w-2xl' :
+          'max-w-md'
+        } gap-4 sm:gap-6`}>
+          
+          {/* Estoque de Ovos */}
+          {eggVis && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="bg-[#FFF7ED] dark:bg-amber-955/20 p-3 rounded-full">
+                  <Egg size={24} className="text-[#F59E0B] dark:text-amber-500" />
                 </div>
-             ) : (
-                <div className="text-center py-10 opacity-50 flex flex-col items-center gap-2">
-                   <Activity size={40} className="text-slate-300 dark:text-slate-650" />
-                   <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Sem eventos próximos</p>
-                </div>
-             )}
-
-              <div className="space-y-4">
-                 <div className="flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
-                    <div className="h-2 w-2 rounded-full bg-[#16A34A]" />
-                    <div className="flex-1">
-                       <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Status Geral</p>
-                       <p className="text-sm font-bold text-[#1F2937] dark:text-slate-100">Operacional: 100%</p>
-                     </div>
-                 </div>
-              </div>
-
-              {/* Delivery Alerts */}
-              {deliveredOrders.length > 0 && (
-                <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <p className="text-xs font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Entregas Concluídas</p>
-                  <div className="space-y-3">
-                    {deliveredOrders.slice(0, 3).map((order) => (
-                      <div key={order.id} className="flex items-start gap-3 p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-955/10 border border-emerald-100/30 dark:border-emerald-900/20 shadow-sm transition-colors">
-                        <CheckCircle2 className="text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" size={16} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-slate-850 dark:text-slate-200">
-                            Pedido de {order.clients?.name || 'Cliente'} entregue
-                          </p>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate font-medium">
-                            {order.quantity} {order.quantity === 1 ? 'ovo' : 'ovos'} • {order.raca}
-                          </p>
-                          {order.tracking_code && (
-                            <span className="inline-block text-[9px] font-mono font-bold text-[#2563EB] dark:text-blue-400 bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-900/30 mt-1.5 shadow-sm">
-                              {order.tracking_code}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-550">Estoque de Ovos</p>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <p className="text-2xl font-black text-[#1F2937] dark:text-slate-100">{eggCount}</p>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-550 font-semibold">Disponível</span>
                   </div>
                 </div>
-              )}
-           </div>
-        </div>
-      </div>
+              </div>
+            </div>
+          )}
 
+          {/* Em Incubação */}
+          {breedVis && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="bg-[#FEF2F2] dark:bg-red-955/20 p-3 rounded-full">
+                  <Activity size={24} className="text-[#EF4444] dark:text-red-400" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-550">Em Incubação</p>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <p className="text-2xl font-black text-[#1F2937] dark:text-slate-100">{incubatorEggs}</p>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-550 font-semibold">Unidades</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Saldo Atual */}
+          {finVis && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="bg-[#DCFCE7] dark:bg-green-955/20 p-3 rounded-full">
+                  <Wallet size={24} className="text-[#16A34A] dark:text-green-500" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-550">Saldo Atual</p>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <span className="text-sm font-semibold text-slate-400 dark:text-slate-550">R$</span>
+                    <p className="text-2xl font-black text-[#1F2937] dark:text-slate-100">{financeSummary.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Maternidade (Pintinhos) */}
+          {matVis && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="bg-[#EFF6FF] dark:bg-blue-955/20 p-3 rounded-full">
+                  <Baby size={24} className="text-[#2563EB] dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-550">Maternidade</p>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <p className="text-2xl font-black text-[#1F2937] dark:text-slate-100">{chickCount}</p>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-550 font-semibold">Filhotes</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Plantel Total */}
+          {birdVis && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="bg-[#DBEAFE] dark:bg-blue-900/30 p-3 rounded-full">
+                  <Bird size={24} className="text-[#2563EB] dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-550">Plantel Total</p>
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <p className="text-2xl font-black text-[#1F2937] dark:text-slate-100">{birdCount}</p>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-550 font-semibold">Aves</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      )}
+       {/* Charts / Alerts Section */}
+      {(showSection('finance') || showSection('breeding') || (showSection('shipping') && deliveredOrders.length > 0)) && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Performance Chart */}
+          {showSection('finance') && (
+            <div className={`${(showSection('breeding') || (showSection('shipping') && deliveredOrders.length > 0)) ? 'lg:col-span-2' : 'lg:col-span-3'} bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]`}>
+              <div className="flex justify-between items-center mb-10">
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100">Performance Financeira</h3>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Evolução do Fluxo de Caixa</p>
+                </div>
+              </div>
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <defs>
+                      <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2563EB" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#2563EB" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#334155" : "#F1F5F9"} vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 12 }} 
+                      dy={10}
+                    />
+                    <YAxis 
+                      hide
+                    />
+                    <Tooltip 
+                      cursor={{ fill: isDark ? '#1E293B' : '#F8FAFC' }}
+                      contentStyle={{ 
+                        backgroundColor: isDark ? '#1E293B' : '#FFFFFF', 
+                        borderColor: isDark ? '#334155' : '#E2E8F0', 
+                        borderRadius: '16px', 
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                        color: isDark ? '#F1F5F9' : '#1F2937'
+                      }}
+                      itemStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#2563EB' }}
+                    />
+                    <Area type="monotone" dataKey="balance" stroke="#2563EB" strokeWidth={3} fillOpacity={1} fill="url(#colorBalance)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Real-time Alerts */}
+          {(showSection('breeding') || (showSection('shipping') && deliveredOrders.length > 0)) && (
+            <div className={`${!showSection('finance') ? 'lg:col-span-3 max-w-2xl' : ''} bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]`}>
+              <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100 mb-8">Próximos Eventos</h3>
+              <div className="space-y-6">
+                 {showSection('breeding') && (
+                    <>
+                       {nextHatch ? (
+                          <div className={`p-6 rounded-2xl border ${nextHatch.finished ? 'bg-[#DCFCE7] border-[#bbf7d0] dark:bg-green-950/20 dark:border-green-900/40' : 'bg-[#FFF7ED] border-[#ffedd5] dark:bg-amber-955/20 dark:border-amber-900/40'}`}>
+                             <div className="flex items-center gap-4 mb-4">
+                                {nextHatch.finished ? (
+                                  <CheckCircle2 size={24} className="text-[#16A34A] dark:text-green-400" />
+                                ) : (
+                                  <Activity size={24} className="text-[#F59E0B] dark:text-amber-500 animate-pulse" />
+                                )}
+                                <div>
+                                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Eclosão</p>
+                                  <h4 className={`font-bold ${nextHatch.finished ? 'text-[#16A34A] dark:text-green-400' : 'text-[#F59E0B] dark:text-amber-500'}`}>
+                                     {nextHatch.finished ? 'Lote Pronto!' : 'Em Incubação'}
+                                  </h4>
+                                </div>
+                             </div>
+                             <div className="flex items-baseline gap-1">
+                                <span className={`text-3xl sm:text-4xl font-black ${nextHatch.finished ? 'text-[#16A34A] dark:text-green-400' : 'text-[#F59E0B] dark:text-amber-500'}`}>
+                                  {nextHatch.finished ? 'ECLOSÃO' : `${nextHatch.days}d ${nextHatch.hours}h`}
+                                </span>
+                                {!nextHatch.finished && <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase ml-1">Restantes</span>}
+                             </div>
+                          </div>
+                       ) : (
+                          <div className="text-center py-10 opacity-50 flex flex-col items-center gap-2">
+                             <Activity size={40} className="text-slate-300 dark:text-slate-650" />
+                             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Sem eventos próximos</p>
+                          </div>
+                       )}
+                    </>
+                 )}
+
+                  <div className="space-y-4">
+                     <div className="flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <div className="h-2 w-2 rounded-full bg-[#16A34A]" />
+                        <div className="flex-1">
+                           <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Status Geral</p>
+                           <p className="text-sm font-bold text-[#1F2937] dark:text-slate-100">Operacional: 100%</p>
+                         </div>
+                     </div>
+                  </div>
+
+                  {/* Delivery Alerts */}
+                  {showSection('shipping') && deliveredOrders.length > 0 && (
+                    <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                      <p className="text-xs font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Entregas Concluídas</p>
+                      <div className="space-y-3">
+                        {deliveredOrders.slice(0, 3).map((order) => (
+                          <div key={order.id} className="flex items-start gap-3 p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-955/10 border border-emerald-100/30 dark:border-emerald-900/20 shadow-sm transition-colors">
+                            <CheckCircle2 className="text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" size={16} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-slate-850 dark:text-slate-200">
+                                Pedido de {order.clients?.name || 'Cliente'} entregue
+                              </p>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate font-medium">
+                                {order.quantity} {order.quantity === 1 ? 'ovo' : 'ovos'} • {order.raca}
+                              </p>
+                              {order.tracking_code && (
+                                <span className="inline-block text-[9px] font-mono font-bold text-[#2563EB] dark:text-blue-400 bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-900/30 mt-1.5 shadow-sm">
+                                  {order.tracking_code}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+               </div>
+            </div>
+          )}
+        </div>
+      )}
       {/* Eggs by Baia and Raça Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Ovos por Baia */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-          <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100 mb-6 flex items-center gap-3">
-            <div className="bg-[#EFF6FF] dark:bg-blue-955/20 p-2 rounded-2xl">
-              <Egg size={24} className="text-[#2563EB] dark:text-blue-400" />
-            </div>
-            Ovos por Baia
-          </h3>
-          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            {eggsByBaia.map((item, index) => (
-              <div key={item.name} className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-800 border border-slate-50 dark:border-slate-700">
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#EFF6FF] dark:bg-blue-955/40 text-[#2563EB] dark:text-blue-400 font-bold text-sm">
-                    {index + 1}
+      {showSection('eggs') && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Ovos por Baia */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+            <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100 mb-6 flex items-center gap-3">
+              <div className="bg-[#EFF6FF] dark:bg-blue-955/20 p-2 rounded-2xl">
+                <Egg size={24} className="text-[#2563EB] dark:text-blue-400" />
+              </div>
+              Ovos por Baia
+            </h3>
+            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              {eggsByBaia.map((item, index) => (
+                <div key={item.name} className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-800 border border-slate-50 dark:border-slate-700">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#EFF6FF] dark:bg-blue-955/40 text-[#2563EB] dark:text-blue-400 font-bold text-sm">
+                      {index + 1}
+                    </span>
+                    <span className="font-bold text-[#1F2937] dark:text-slate-100">{item.name}</span>
+                  </div>
+                  <span className="bg-[#2563EB] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                    {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
                   </span>
-                  <span className="font-bold text-[#1F2937] dark:text-slate-100">{item.name}</span>
                 </div>
-                <span className="bg-[#2563EB] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                  {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
-                </span>
-              </div>
-            ))}
-            {eggsByBaia.length === 0 && (
-              <div className="text-center py-10 opacity-50 text-slate-400 dark:text-slate-550 font-medium">
-                Nenhum registro de ovos por baia
-              </div>
-            )}
+              ))}
+              {eggsByBaia.length === 0 && (
+                <div className="text-center py-10 opacity-50 text-slate-400 dark:text-slate-550 font-medium">
+                  Nenhum registro de ovos por baia
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Ovos por Raça */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-          <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100 mb-6 flex items-center gap-3">
-            <div className="bg-[#FAF5FF] dark:bg-purple-955/20 p-2 rounded-2xl">
-              <Egg size={24} className="text-[#8B5CF6] dark:text-purple-400" />
-            </div>
-            Ovos por Raça
-          </h3>
-          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            {eggsByRaca.map((item, index) => (
-              <div key={item.name} className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-800 border border-slate-50 dark:border-slate-700">
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FAF5FF] dark:bg-purple-955/40 text-[#8B5CF6] dark:text-purple-400 font-bold text-sm">
-                    {index + 1}
+          {/* Ovos por Raça */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+            <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100 mb-6 flex items-center gap-3">
+              <div className="bg-[#FAF5FF] dark:bg-purple-955/20 p-2 rounded-2xl">
+                <Egg size={24} className="text-[#8B5CF6] dark:text-purple-400" />
+              </div>
+              Ovos por Raça
+            </h3>
+            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              {eggsByRaca.map((item, index) => (
+                <div key={item.name} className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-800 border border-slate-50 dark:border-slate-700">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FAF5FF] dark:bg-purple-955/40 text-[#8B5CF6] dark:text-purple-400 font-bold text-sm">
+                      {index + 1}
+                    </span>
+                    <span className="font-bold text-[#1F2937] dark:text-slate-100">{item.name}</span>
+                  </div>
+                  <span className="bg-[#8B5CF6] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                    {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
                   </span>
-                  <span className="font-bold text-[#1F2937] dark:text-slate-100">{item.name}</span>
                 </div>
-                <span className="bg-[#8B5CF6] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                  {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
-                </span>
-              </div>
-            ))}
-            {eggsByRaca.length === 0 && (
-              <div className="text-center py-10 opacity-50 text-slate-400 dark:text-slate-550 font-medium">
-                Nenhum registro de ovos por raça
-              </div>
-            )}
+              ))}
+              {eggsByRaca.length === 0 && (
+                <div className="text-center py-10 opacity-50 text-slate-400 dark:text-slate-550 font-medium">
+                  Nenhum registro de ovos por raça
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Estimativa Mensal de Ovos Section */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div>
-            <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100">Estimativa Mensal de Produção</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-              Projeção de produção de ovos para os próximos 30 dias com base na média das coletas diárias registradas.
+      {showSection('eggs') && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100">Estimativa Mensal de Produção</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                Projeção de produção de ovos para os próximos 30 dias com base na média das coletas diárias registradas.
+              </p>
+            </div>
+            <div className="bg-[#EFF6FF] dark:bg-blue-955/40 text-[#2563EB] dark:text-blue-400 text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
+              Estimativa: Média Diária × 30 dias
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Gráfico Baias */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Projeção por Baia (Ovos / Mês)</h4>
+              <div className="h-[250px] w-full">
+                {baiaEstimates.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={baiaEstimates} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#334155" : "#F1F5F9"} vertical={false} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: '500' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: '500' }} />
+                      <Tooltip 
+                        cursor={{ fill: isDark ? '#1E293B' : '#F8FAFC' }}
+                        contentStyle={{ 
+                          backgroundColor: isDark ? '#1E293B' : '#FFFFFF', 
+                          borderColor: isDark ? '#334155' : '#E2E8F0', 
+                          borderRadius: '12px', 
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', 
+                          fontSize: '12px', 
+                          fontWeight: 'bold',
+                          color: isDark ? '#F1F5F9' : '#1F2937'
+                        }}
+                        formatter={(value: any) => [`${value} Ovos / Mês`, 'Estimativa']}
+                      />
+                      <Bar dataKey="estimativa" fill="#2563EB" radius={[6, 6, 0, 0]}>
+                        <LabelList dataKey="estimativa" position="top" fill={isDark ? '#94A3B8' : '#64748B'} fontSize={11} fontWeight="bold" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-slate-400 dark:text-slate-550 text-sm font-medium">Nenhuma projeção por baia disponível</div>
+                )}
+              </div>
+            </div>
+
+            {/* Gráfico Raças */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-slate-400 dark:text-slate-550 uppercase tracking-widest">Projeção por Raça (Ovos / Mês)</h4>
+              <div className="h-[250px] w-full">
+                {racaEstimates.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={racaEstimates} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#334155" : "#F1F5F9"} vertical={false} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: '500' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: '500' }} />
+                      <Tooltip 
+                        cursor={{ fill: isDark ? '#1E293B' : '#F8FAFC' }}
+                        contentStyle={{ 
+                          backgroundColor: isDark ? '#1E293B' : '#FFFFFF', 
+                          borderColor: isDark ? '#334155' : '#E2E8F0', 
+                          borderRadius: '12px', 
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', 
+                          fontSize: '12px', 
+                          fontWeight: 'bold',
+                          color: isDark ? '#F1F5F9' : '#1F2937'
+                        }}
+                        formatter={(value: any) => [`${value} Ovos / Mês`, 'Estimativa']}
+                      />
+                      <Bar dataKey="estimativa" fill="#8B5CF6" radius={[6, 6, 0, 0]}>
+                        <LabelList dataKey="estimativa" position="top" fill={isDark ? '#94A3B8' : '#64748B'} fontSize={11} fontWeight="bold" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-slate-400 dark:text-slate-550 text-sm font-medium">Nenhuma projeção por raça disponível</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex items-start gap-2.5 text-slate-400 dark:text-slate-400 text-xs font-medium leading-relaxed">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-450 font-bold shrink-0">!</span>
+            <p>
+              <strong>Observação Importante:</strong> Este gráfico apresenta uma estimativa projetada para 30 dias com base no histórico das coletas diárias inseridas no sistema. Os valores reais podem variar de acordo com fatores climáticos, alimentação, ciclo reprodutivo e manejo das aves.
             </p>
           </div>
-          <div className="bg-[#EFF6FF] dark:bg-blue-955/40 text-[#2563EB] dark:text-blue-400 text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
-            Estimativa: Média Diária × 30 dias
-          </div>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Gráfico Baias */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Projeção por Baia (Ovos / Mês)</h4>
-            <div className="h-[250px] w-full">
-              {baiaEstimates.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={baiaEstimates} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#334155" : "#F1F5F9"} vertical={false} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: '500' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: '500' }} />
-                    <Tooltip 
-                      cursor={{ fill: isDark ? '#1E293B' : '#F8FAFC' }}
-                      contentStyle={{ 
-                        backgroundColor: isDark ? '#1E293B' : '#FFFFFF', 
-                        borderColor: isDark ? '#334155' : '#E2E8F0', 
-                        borderRadius: '12px', 
-                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', 
-                        fontSize: '12px', 
-                        fontWeight: 'bold',
-                        color: isDark ? '#F1F5F9' : '#1F2937'
-                      }}
-                      formatter={(value: any) => [`${value} Ovos / Mês`, 'Estimativa']}
-                    />
-                    <Bar dataKey="estimativa" fill="#2563EB" radius={[6, 6, 0, 0]}>
-                      <LabelList dataKey="estimativa" position="top" fill={isDark ? '#94A3B8' : '#64748B'} fontSize={11} fontWeight="bold" />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-400 dark:text-slate-550 text-sm font-medium">Nenhuma projeção por baia disponível</div>
-              )}
-            </div>
-          </div>
-
-          {/* Gráfico Raças */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Projeção por Raça (Ovos / Mês)</h4>
-            <div className="h-[250px] w-full">
-              {racaEstimates.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={racaEstimates} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#334155" : "#F1F5F9"} vertical={false} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: '500' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: '500' }} />
-                    <Tooltip 
-                      cursor={{ fill: isDark ? '#1E293B' : '#F8FAFC' }}
-                      contentStyle={{ 
-                        backgroundColor: isDark ? '#1E293B' : '#FFFFFF', 
-                        borderColor: isDark ? '#334155' : '#E2E8F0', 
-                        borderRadius: '12px', 
-                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', 
-                        fontSize: '12px', 
-                        fontWeight: 'bold',
-                        color: isDark ? '#F1F5F9' : '#1F2937'
-                      }}
-                      formatter={(value: any) => [`${value} Ovos / Mês`, 'Estimativa']}
-                    />
-                    <Bar dataKey="estimativa" fill="#8B5CF6" radius={[6, 6, 0, 0]}>
-                      <LabelList dataKey="estimativa" position="top" fill={isDark ? '#94A3B8' : '#64748B'} fontSize={11} fontWeight="bold" />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-400 dark:text-slate-550 text-sm font-medium">Nenhuma projeção por raça disponível</div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex items-start gap-2.5 text-slate-400 dark:text-slate-400 text-xs font-medium leading-relaxed">
-          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-450 font-bold shrink-0">!</span>
-          <p>
-            <strong>Observação Importante:</strong> Este gráfico apresenta uma estimativa projetada para 30 dias com base no histórico das coletas diárias inseridas no sistema. Os valores reais podem variar de acordo com fatores climáticos, alimentação, ciclo reprodutivo e manejo das aves.
-          </p>
-        </div>
-      </div>
+      )}
     </motion.div>
   );
 }
