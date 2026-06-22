@@ -378,7 +378,7 @@ export default function EggCollection() {
       exit={{ opacity: 0 }}
       className="space-y-8"
     >
-      <section className="flex flex-col md:flex-row justify-between items-center gap-6">
+      <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h2 className="text-3xl font-bold text-[#1F2937] font-headline tracking-tight">Coleta de Ovos</h2>
           <p className="mt-1 text-slate-500 font-medium text-sm">Registro diário e monitoramento de incubação.</p>
@@ -414,8 +414,8 @@ export default function EggCollection() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Calendar View */}
-        <div className="lg:col-span-2 bg-white border border-slate-100 rounded-3xl p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-          <div className="flex justify-between items-center mb-10">
+        <div className="lg:col-span-2 bg-white border border-slate-100 rounded-3xl p-4 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+          <div className="flex justify-between items-center mb-6 sm:mb-10">
             <div className="flex items-center gap-3">
               <CalendarIcon className="text-[#2563EB] size-6" />
               <h3 className="text-xl font-bold text-[#1F2937] font-headline tracking-tight uppercase">
@@ -438,7 +438,7 @@ export default function EggCollection() {
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-4">
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-4">
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'].map(d => (
               <div key={d} className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest pb-4">{d}</div>
             ))}
@@ -460,17 +460,17 @@ export default function EggCollection() {
                   key={day} 
                   onClick={() => setEditingDay(day)}
                   className={`
-                    aspect-square rounded-2xl p-2 relative flex flex-col justify-between transition-all cursor-pointer group
+                    aspect-square rounded-xl sm:rounded-2xl p-1 sm:p-2 relative flex flex-col justify-between transition-all cursor-pointer group
                     ${dayLogs.length > 0 ? 'bg-[#EFF6FF] border border-[#DBEAFE]' : 'bg-[#F8FAFC] border border-transparent hover:border-slate-200'}
                     ${isToday ? 'ring-2 ring-[#2563EB] ring-offset-2' : ''}
                   `}
                 >
-                  <span className={`text-sm ${isToday ? 'font-black text-[#2563EB]' : 'font-bold'} ${dayLogs.length > 0 && !isToday ? 'text-[#2563EB]' : (!isToday ? 'text-slate-500' : '')}`}>
+                  <span className={`text-xs sm:text-sm ${isToday ? 'font-black text-[#2563EB]' : 'font-bold'} ${dayLogs.length > 0 && !isToday ? 'text-[#2563EB]' : (!isToday ? 'text-slate-500' : '')}`}>
                     {day}
                   </span>
                   {dayLogs.length > 0 && (
                     <div className="flex flex-col items-center">
-                      <div className="bg-[#2563EB] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-sm z-10">{totalOvos}</div>
+                      <div className="bg-[#2563EB] text-white w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold shadow-sm z-10">{totalOvos}</div>
                     </div>
                   )}
                 </div>
@@ -480,7 +480,7 @@ export default function EggCollection() {
         </div>
 
         {/* Recent Recordings */}
-        <div className="bg-white border border-slate-100 rounded-3xl p-8 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] max-h-[600px] overflow-hidden">
+        <div className="bg-white border border-slate-100 rounded-3xl p-4 sm:p-8 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] max-h-[600px] overflow-hidden">
           <h3 className="text-xl font-bold text-[#1F2937] mb-8 tracking-tight">Últimos Registros</h3>
           <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
             {logs.slice(0, 10).map((log, i) => (
@@ -704,7 +704,7 @@ export default function EggCollection() {
       {/* Edit Modal */}
       <AnimatePresence>
         {editingDay !== null && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0 overflow-y-auto">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-0 overflow-y-auto">
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
@@ -716,7 +716,7 @@ export default function EggCollection() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar my-8"
+              className="relative w-full max-w-md bg-white p-5 sm:p-8 rounded-[24px] sm:rounded-[32px] shadow-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto custom-scrollbar my-4 sm:my-8"
             >
               <div className="flex justify-between items-center mb-6">
                 <div>
@@ -919,19 +919,40 @@ export default function EggCollection() {
                 </div>
 
                 <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                  <button 
-                    type="submit" 
-                    className="flex-1 px-6 py-4 bg-[#2563EB] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all"
-                  >
-                    {editingLogId ? 'Salvar Alterações' : 'Adicionar Coleta'}
-                  </button>
-                  <button 
-                    type="submit" 
-                    data-close="true"
-                    className="flex-1 px-6 py-4 bg-[#10B981] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#059669] hover:scale-[1.02] active:scale-95 transition-all"
-                  >
-                    Atualizar
-                  </button>
+                  {editingLogId ? (
+                    <>
+                      <button 
+                        type="submit" 
+                        data-close="true"
+                        className="flex-1 px-6 py-4 bg-[#2563EB] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-center"
+                      >
+                        Salvar Alterações
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={handleCloseModal}
+                        className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-slate-200 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-center"
+                      >
+                        Cancelar
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        type="submit" 
+                        data-close="true"
+                        className="flex-1 px-6 py-4 bg-[#2563EB] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-center"
+                      >
+                        Salvar e Fechar
+                      </button>
+                      <button 
+                        type="submit" 
+                        className="flex-1 px-6 py-4 bg-slate-100 text-slate-700 border border-slate-200 rounded-2xl font-bold text-xs uppercase tracking-wider hover:bg-slate-200 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-center"
+                      >
+                        Salvar e Continuar Lançando
+                      </button>
+                    </>
+                  )}
                 </div>
               </form>
             </motion.div>
