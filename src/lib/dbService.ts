@@ -547,7 +547,11 @@ export const dbService = {
   },
 
   // Profiles
-  async getProfile() {
+  async getProfile(forceRefresh = false) {
+    if (!forceRefresh && _cachedProfile) {
+      return _cachedProfile;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
@@ -628,18 +632,18 @@ export const dbService = {
   },
 
   async getOwnerId() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Não autenticado');
-
-    // 1. Check cache first. Bypassed for keepers if parent_user_id is missing.
-    if (_cachedProfile && _cachedProfile.id === user.id) {
+    // 1. Check cache first.
+    if (_cachedProfile) {
       if (_cachedProfile.parent_user_id) {
         return _cachedProfile.parent_user_id;
       }
       if (_cachedProfile.role !== 'tratador') {
-        return user.id;
+        return _cachedProfile.id;
       }
     }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Não autenticado');
 
     // 2. Fetch parent_user_id directly from public.profiles table
     try {
