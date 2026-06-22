@@ -837,18 +837,21 @@ export default function EggCollection() {
 
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Responsável / Coletor</label>
-                  <select 
+                  <input 
+                    type="text" 
+                    value={
+                      logToEdit 
+                        ? (logToEdit.collector?.full_name || currentUser?.full_name || "") 
+                        : (currentUser?.full_name || "")
+                    } 
+                    disabled
+                    className="w-full bg-[#F1F5F9] border border-slate-200 rounded-2xl px-4 py-3 text-slate-500 font-semibold outline-none cursor-not-allowed"
+                  />
+                  <input 
+                    type="hidden" 
                     name="collector_id" 
-                    defaultValue={logToEdit?.collector_id || currentUser?.id || ""} 
-                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none"
-                  >
-                    <option value="">Selecione o coletor...</option>
-                    {collectors.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.full_name} ({c.role === 'admin' ? 'Admin' : 'Tratador'})
-                      </option>
-                    ))}
-                  </select>
+                    value={logToEdit?.collector_id || currentUser?.id || ""} 
+                  />
                 </div>
 
                 <div className="space-y-3">
