@@ -15,7 +15,8 @@ import {
   Mail, 
   Lock, 
   Plus, 
-  X 
+  X,
+  Edit2
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { supabase } from '../lib/supabaseClient';
@@ -40,6 +41,7 @@ export default function Settings() {
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [loadingTeam, setLoadingTeam] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingSubUserId, setEditingSubUserId] = useState<string | null>(null);
   const [submittingSubUser, setSubmittingSubUser] = useState(false);
   const [teamMessage, setTeamMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -66,6 +68,9 @@ export default function Settings() {
   }, []);
 
   useEffect(() => {
+    if (editingSubUserId) {
+      return;
+    }
     const cleanUsername = subUserUsername.trim().toLowerCase().replace(/\s+/g, '');
     if (!cleanUsername) {
       setUsernameAvailable(null);
@@ -92,7 +97,7 @@ export default function Settings() {
     }, 500); // 500ms debounce
 
     return () => clearTimeout(delayDebounceFn);
-  }, [subUserUsername, profile]);
+  }, [subUserUsername, profile, editingSubUserId]);
 
   async function loadProfile() {
     try {
@@ -183,76 +188,128 @@ export default function Settings() {
     }
   }
 
-  async function handleAddSubUser(e: React.FormEvent) {
+  function resetSubUserForm() {
+    setEditingSubUserId(null);
+    setSubUserUsername('');
+    setUsernameAvailable(null);
+    setUsernameSuggestions([]);
+    setSubUserPassword('');
+    setSubUserFullName('');
+    setSubUserPermissions({
+      birds: true,
+      breeding: true,
+      maternity: true,
+      eggs: true,
+      ration: true,
+      shipping: false,
+      finance: false,
+      chat: true
+    });
+    setShowAddForm(false);
+  }
+
+  function handleStartEditSubUser(member: any) {
+    setEditingSubUserId(member.id);
+    setSubUserFullName(member.full_name || '');
+    setSubUserUsername(getDisplayEmail(member.email || member.sender_email));
+    setSubUserPassword(''); // blank for no password change
+    setSubUserPermissions(member.permissions || {
+      birds: true,
+      breeding: true,
+      maternity: true,
+      eggs: true,
+      ration: true,
+      shipping: false,
+      finance: false,
+      chat: true
+    });
+    setUsernameAvailable(true);
+    setUsernameSuggestions([]);
+    setShowAddForm(true);
+    setTeamMessage(null);
+  }
+
+  async function handleSaveSubUser(e: React.FormEvent) {
     e.preventDefault();
     setSubmittingSubUser(true);
     setTeamMessage(null);
 
-    const sanitizedUsername = subUserUsername.trim().toLowerCase().replace(/\s+/g, '');
-    if (!sanitizedUsername) {
-      setTeamMessage({ type: 'error', text: 'O nome de usuário não pode ser vazio.' });
-      setSubmittingSubUser(false);
-      return;
-    }
-
-    if (isCheckingUsername) {
-      setTeamMessage({ type: 'error', text: 'Aguarde a verificação de disponibilidade do nome de usuário.' });
-      setSubmittingSubUser(false);
-      return;
-    }
-
-    if (usernameAvailable === false) {
-      setTeamMessage({ type: 'error', text: 'Por favor, escolha um nome de usuário disponível.' });
-      setSubmittingSubUser(false);
-      return;
-    }
-
-    if (subUserPassword.length < 6) {
-      setTeamMessage({ type: 'error', text: 'A senha do tratador deve ter pelo menos 6 caracteres.' });
-      setSubmittingSubUser(false);
-      return;
-    }
-
-    try {
-      await dbService.createSubUser(
-        sanitizedUsername,
-        subUserPassword,
-        subUserFullName,
-        subUserPermissions
-      );
-
-      setTeamMessage({ type: 'success', text: 'Tratador cadastrado com sucesso!' });
-      setSubUserUsername('');
-      setUsernameAvailable(null);
-      setUsernameSuggestions([]);
-      setSubUserPassword('');
-      setSubUserFullName('');
-      setSubUserPermissions({
-        birds: true,
-        breeding: true,
-        maternity: true,
-        eggs: true,
-        ration: true,
-        shipping: false,
-        finance: false,
-        chat: true
-      });
-      setShowAddForm(false);
-      await loadTeam();
-    } catch (error: any) {
-      console.error('Erro ao adicionar tratador:', error);
-      let errorMsg = error.message || 'Erro inesperado.';
-      if (
-        errorMsg.includes('Email already exists') || 
-        errorMsg.includes('User already registered') || 
-        errorMsg.includes('email_exists') ||
-        errorMsg.includes('already exists')
-      ) {
-        errorMsg = 'Este nome de usuário já está em uso.';
+    if (editingSubUserId) {
+      if (subUserPassword.length > 0 && subUserPassword.length < 6) {
+        setTeamMessage({ type: 'error', text: 'A nova senha do tratador deve ter pelo menos 6 caracteres.' });
+        setSubmittingSubUser(false);
+        return;
       }
-      setTeamMessage({ type: 'error', text: 'Erro ao cadastrar tratador: ' + errorMsg });
-    } finally {
-      setSubmittingSubUser(false);
+
+      try {
+        await dbService.updateSubUser(
+          editingSubUserId,
+          subUserFullName,
+          subUserPermissions,
+          subUserPassword || undefined
+        );
+
+        setTeamMessage({ type: 'success', text: 'Tratador atualizado com sucesso!' });
+        resetSubUserForm();
+        await loadTeam();
+      } catch (error: any) {
+        console.error('Erro ao atualizar tratador:', error);
+        setTeamMessage({ type: 'error', text: 'Erro ao atualizar tratador: ' + error.message });
+      } finally {
+        setSubmittingSubUser(false);
+      }
+    } else {
+      const sanitizedUsername = subUserUsername.trim().toLowerCase().replace(/\s+/g, '');
+      if (!sanitizedUsername) {
+        setTeamMessage({ type: 'error', text: 'O nome de usuário não pode ser vazio.' });
+        setSubmittingSubUser(false);
+        return;
+      }
+
+      if (isCheckingUsername) {
+        setTeamMessage({ type: 'error', text: 'Aguarde a verificação de disponibilidade do nome de usuário.' });
+        setSubmittingSubUser(false);
+        return;
+      }
+
+      if (usernameAvailable === false) {
+        setTeamMessage({ type: 'error', text: 'Por favor, escolha um nome de usuário disponível.' });
+        setSubmittingSubUser(false);
+        return;
+      }
+
+      if (subUserPassword.length < 6) {
+        setTeamMessage({ type: 'error', text: 'A senha do tratador deve ter pelo menos 6 caracteres.' });
+        setSubmittingSubUser(false);
+        return;
+      }
+
+      try {
+        await dbService.createSubUser(
+          sanitizedUsername,
+          subUserPassword,
+          subUserFullName,
+          subUserPermissions
+        );
+
+        setTeamMessage({ type: 'success', text: 'Tratador cadastrado com sucesso!' });
+        resetSubUserForm();
+        await loadTeam();
+      } catch (error: any) {
+        console.error('Erro ao adicionar tratador:', error);
+        let errorMsg = error.message || 'Erro inesperado.';
+        if (
+          errorMsg.includes('Email already exists') || 
+          errorMsg.includes('User already registered') || 
+          errorMsg.includes('email_exists') ||
+          errorMsg.includes('already exists')
+        ) {
+          errorMsg = 'Este nome de usuário já está em uso.';
+        }
+        setTeamMessage({ type: 'error', text: 'Erro ao cadastrar tratador: ' + errorMsg });
+      } finally {
+        setSubmittingSubUser(false);
+      }
     }
   }
 
@@ -537,8 +594,11 @@ export default function Settings() {
             </div>
             {!showAddForm && (
               <button
-                onClick={() => setShowAddForm(true)}
-                className="flex items-center gap-2 bg-[#2563EB] text-white px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all"
+                onClick={() => {
+                  resetSubUserForm();
+                  setShowAddForm(true);
+                }}
+                className="flex items-center gap-2 bg-[#2563EB] text-white px-6 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
               >
                 <UserPlus size={16} /> Cadastrar Tratador
               </button>
@@ -552,7 +612,7 @@ export default function Settings() {
             </div>
           )}
 
-          {/* Form to add sub-user */}
+          {/* Form to add/edit sub-user */}
           {showAddForm && (
             <motion.section 
               initial={{ opacity: 0, height: 0 }}
@@ -562,17 +622,17 @@ export default function Settings() {
               <div className="flex justify-between items-center border-b border-slate-100 pb-4">
                 <div className="flex items-center gap-2 text-lg font-bold text-[#1F2937]">
                   <UserPlus className="text-[#2563EB]" size={20} />
-                  <span>Novo Tratador</span>
+                  <span>{editingSubUserId ? 'Editar Tratador' : 'Novo Tratador'}</span>
                 </div>
                 <button 
-                  onClick={() => setShowAddForm(false)} 
+                  onClick={resetSubUserForm} 
                   className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-50 rounded-lg transition-all"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <form onSubmit={handleAddSubUser} className="space-y-6">
+              <form onSubmit={handleSaveSubUser} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nome Completo</label>
@@ -592,30 +652,33 @@ export default function Settings() {
                        <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#2563EB] transition-colors" />
                       <input
                         required
+                        disabled={!!editingSubUserId}
                         type="text"
                         placeholder="Ex: joaosilva"
                         value={subUserUsername}
                         onChange={(e) => setSubUserUsername(e.target.value)}
-                        className={`w-full bg-[#F8FAFC] border rounded-2xl pl-11 pr-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 transition-all outline-none ${
-                          usernameAvailable === true 
-                            ? 'border-green-300 focus:ring-green-500/10 focus:border-green-500' 
-                            : usernameAvailable === false
-                              ? 'border-red-300 focus:ring-red-500/10 focus:border-red-500'
-                              : 'border-slate-200 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50'
+                        className={`w-full bg-[#F8FAFC] border rounded-2xl pl-11 pr-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 transition-all outline-none disabled:opacity-60 disabled:cursor-not-allowed ${
+                          editingSubUserId
+                            ? 'border-slate-200'
+                            : usernameAvailable === true 
+                              ? 'border-green-300 focus:ring-green-500/10 focus:border-green-500' 
+                              : usernameAvailable === false
+                                ? 'border-red-300 focus:ring-red-500/10 focus:border-red-500'
+                                : 'border-slate-200 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50'
                         }`}
                       />
                     </div>
-                    {isCheckingUsername && (
+                    {!editingSubUserId && isCheckingUsername && (
                       <p className="text-[10px] text-slate-450 font-bold ml-1 flex items-center gap-1">
                         <Loader2 className="animate-spin text-slate-400" size={10} /> Verificando disponibilidade...
                       </p>
                     )}
-                    {!isCheckingUsername && usernameAvailable === true && (
+                    {!editingSubUserId && !isCheckingUsername && usernameAvailable === true && (
                       <p className="text-[10px] text-green-600 font-bold ml-1 flex items-center gap-1">
                         <CheckCircle2 className="text-green-500" size={10} /> Nome de usuário disponível!
                       </p>
                     )}
-                    {!isCheckingUsername && usernameAvailable === false && (
+                    {!editingSubUserId && !isCheckingUsername && usernameAvailable === false && (
                       <div className="space-y-1.5 ml-1">
                         <p className="text-[10px] text-red-500 font-bold flex items-center gap-1">
                           <Shield className="text-red-500" size={10} /> Nome de usuário já em uso.
@@ -642,13 +705,15 @@ export default function Settings() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Senha Inicial</label>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
+                      {editingSubUserId ? 'Nova Senha (deixar em branco para não alterar)' : 'Senha Inicial'}
+                    </label>
                     <div className="relative group">
                       <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#2563EB] transition-colors" />
                       <input
-                        required
+                        required={!editingSubUserId}
                         type="password"
-                        placeholder="Mínimo 6 caracteres"
+                        placeholder={editingSubUserId ? "Digite apenas se quiser alterar" : "Mínimo 6 caracteres"}
                         value={subUserPassword}
                         onChange={(e) => setSubUserPassword(e.target.value)}
                         className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-11 pr-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none"
@@ -689,15 +754,15 @@ export default function Settings() {
                   <button
                     type="submit"
                     disabled={submittingSubUser}
-                    className="flex items-center justify-center gap-2 bg-[#2563EB] text-white px-8 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] transition-all disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 bg-[#2563EB] text-white px-8 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] transition-all disabled:opacity-50 cursor-pointer"
                   >
-                    {submittingSubUser ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />}
-                    Salvar Tratador
+                    {submittingSubUser ? <Loader2 className="animate-spin" size={14} /> : (editingSubUserId ? <CheckCircle2 size={14} /> : <Plus size={14} />)}
+                    {editingSubUserId ? 'Salvar Alterações' : 'Salvar Tratador'}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowAddForm(false)}
-                    className="bg-slate-100 text-slate-600 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-colors"
+                    onClick={resetSubUserForm}
+                    className="bg-slate-100 text-slate-600 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-colors cursor-pointer"
                   >
                     Cancelar
                   </button>
@@ -751,8 +816,15 @@ export default function Settings() {
                           </td>
                           <td className="px-6 py-4 text-center">
                             <button
+                              onClick={() => handleStartEditSubUser(member)}
+                              className="text-[#2563EB] hover:text-[#1D4ED8] p-2 hover:bg-blue-50 rounded-xl transition-all mr-1.5 cursor-pointer"
+                              title="Editar Tratador"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
                               onClick={() => handleDeleteSubUser(member.id, member.full_name)}
-                              className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-xl transition-all"
+                              className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
                               title="Excluir Tratador"
                             >
                               <Trash2 size={16} />

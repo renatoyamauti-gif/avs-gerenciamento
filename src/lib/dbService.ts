@@ -991,6 +991,51 @@ export const dbService = {
     return suggestions;
   },
 
+  async updateSubUser(id: string, fullName: string, permissions: any, password?: string) {
+    const { data: { user: adminUser } } = await supabase.auth.getUser();
+    if (!adminUser) throw new Error('Não autenticado');
+
+    const { data: existingProfile, error: fetchError } = await supabaseAdmin
+      .from('profiles')
+      .select('parent_user_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (existingProfile.parent_user_id !== adminUser.id) {
+      throw new Error('Você não tem permissão para editar este usuário.');
+    }
+
+    const updateData: any = {
+      user_metadata: {
+        full_name: fullName,
+        permissions
+      }
+    };
+    if (password && password.trim().length >= 6) {
+      updateData.password = password.trim();
+    }
+
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+      id,
+      updateData
+    );
+    if (authError) throw authError;
+
+    const { data: profileData, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        full_name: fullName,
+        permissions,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select();
+
+    if (profileError) throw profileError;
+    return profileData[0];
+  },
+
   async deleteSubUser(id: string) {
     // Verify that the user being deleted is indeed a child of the logged-in admin user
     const { data: { user: adminUser } } = await supabase.auth.getUser();
