@@ -425,7 +425,7 @@ export const dbService = {
   async getEggLogs() {
     const { data, error } = await supabase
       .from('egg_logs')
-      .select('*')
+      .select('*, collector:profiles!collector_id(full_name)')
       .order('year', { ascending: false })
       .order('month', { ascending: false })
       .order('day', { ascending: false });
@@ -437,7 +437,11 @@ export const dbService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
-    const logData = { ...log, user_id: await this.getOwnerId() };
+    const logData = { 
+      ...log, 
+      user_id: await this.getOwnerId(),
+      collector_id: log.collector_id || user.id
+    };
 
     if (log.id && log.id.length > 15) {
       const { data, error } = await supabase
@@ -1202,6 +1206,17 @@ export const dbService = {
 
   clearCache() {
     _cachedProfile = null;
+  },
+
+  async getCollectors() {
+    const ownerId = await this.getOwnerId();
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, role')
+      .or(`id.eq.${ownerId},parent_user_id.eq.${ownerId}`)
+      .order('full_name');
+    if (error) handleSupabaseError(error, 'list', 'profiles');
+    return data || [];
   }
 };
 

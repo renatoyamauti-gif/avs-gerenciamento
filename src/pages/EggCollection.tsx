@@ -17,11 +17,15 @@ interface CollectionEntry {
   baia?: string;
   raca?: string;
   condition?: string;
+  collector_id?: string;
+  collector?: { full_name: string } | null;
 }
 
 export default function EggCollection() {
   const [logs, setLogs] = useState<CollectionEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [collectors, setCollectors] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [editingDay, setEditingDay] = useState<number | null>(null);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [uniqueBaias, setUniqueBaias] = useState<string[]>([]);
@@ -153,7 +157,21 @@ export default function EggCollection() {
     loadLogs();
     loadBaias();
     loadRacas();
+    loadCollectorsAndUser();
   }, []);
+
+  async function loadCollectorsAndUser() {
+    try {
+      const [collectorsData, profileData] = await Promise.all([
+        dbService.getCollectors(),
+        dbService.getProfile()
+      ]);
+      setCollectors(collectorsData || []);
+      setCurrentUser(profileData);
+    } catch (error) {
+      console.error('Erro ao carregar dados de coletores/perfil:', error);
+    }
+  }
 
   async function loadBaias() {
     try {
@@ -256,6 +274,7 @@ export default function EggCollection() {
     const baia = formData.get('baia') as string;
     const raca = formData.get('raca') as string;
     const condition = formData.get('condition') as string || 'Normal';
+    const collectorId = formData.get('collector_id') as string;
 
     const logData: any = {
       day: editingDay,
@@ -265,7 +284,8 @@ export default function EggCollection() {
       pairs,
       baia: originType === 'baia' ? baia : null,
       raca: originType === 'raca' ? raca : null,
-      condition
+      condition,
+      collector_id: collectorId || null
     };
     
     if (editingLogId) {
@@ -476,11 +496,16 @@ export default function EggCollection() {
                 className="bg-[#F8FAFC] p-4 rounded-2xl border border-slate-100 group hover:border-[#2563EB]/50 transition-all cursor-pointer relative overflow-hidden"
               >
                 <div className="flex justify-between items-start mb-2 gap-2">
-                  <div className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                  <div className="text-xs font-bold text-slate-500 uppercase tracking-widest flex flex-wrap items-center gap-1.5">
                     {log.day}/{log.month}/{log.year}
                     <span className="text-[10px] font-bold text-[#2563EB] flex items-center gap-0.5 bg-[#EFF6FF] px-1.5 py-0.5 rounded-md border border-[#2563EB]/10">
                       <Edit2 size={10} /> Editar
                     </span>
+                    {log.collector?.full_name && (
+                      <span className="text-[10px] text-slate-400 font-semibold normal-case tracking-normal">
+                        por {log.collector.full_name}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {log.baia && (
@@ -740,6 +765,9 @@ export default function EggCollection() {
                           {log.pairs && log.pairs.length > 0 && (
                             <div className="text-[10px] font-bold text-slate-500 uppercase">Casais: {log.pairs.join(', ')}</div>
                           )}
+                          {log.collector?.full_name && (
+                            <div className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Coletor: {log.collector.full_name}</div>
+                          )}
                         </div>
                         <div className="flex gap-1">
                           <button 
@@ -804,6 +832,22 @@ export default function EggCollection() {
                     <option value="Quebrado">Quebrado</option>
                     <option value="Casca Mole">Casca Mole</option>
                     <option value="Pequeno">Pequeno</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Responsável / Coletor</label>
+                  <select 
+                    name="collector_id" 
+                    defaultValue={logToEdit?.collector_id || currentUser?.id || ""} 
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none"
+                  >
+                    <option value="">Selecione o coletor...</option>
+                    {collectors.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.full_name} ({c.role === 'admin' ? 'Admin' : 'Tratador'})
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -950,6 +994,11 @@ export default function EggCollection() {
                       {log.pairs && log.pairs.length > 0 && (
                         <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
                           Casais: {log.pairs.join(', ')}
+                        </div>
+                      )}
+                      {log.collector?.full_name && (
+                        <div className="text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase mt-0.5">
+                          Coletor: {log.collector.full_name}
                         </div>
                       )}
                     </div>
