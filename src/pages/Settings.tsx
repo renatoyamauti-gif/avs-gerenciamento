@@ -129,11 +129,14 @@ export default function Settings() {
     setMessage(null);
 
     const formData = new FormData(e.currentTarget);
-    const updates = {
+    const updates: any = {
       full_name: formData.get('full_name'),
       phone: formData.get('phone'),
-      criatorio_name: formData.get('criatorio_name'),
     };
+
+    if (profile?.role !== 'tratador') {
+      updates.criatorio_name = formData.get('criatorio_name');
+    }
 
     try {
       await dbService.updateProfile(updates);
@@ -383,8 +386,9 @@ export default function Settings() {
                       name="criatorio_name" 
                       type="text" 
                       defaultValue={profile?.criatorio_name || ''}
-                      placeholder="Ex: Criatório AVS" 
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none" 
+                      disabled={profile?.role === 'tratador'}
+                      placeholder={profile?.role === 'tratador' ? "Não disponível para tratador" : "Ex: Criatório AVS"}
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none disabled:opacity-60 disabled:cursor-not-allowed" 
                     />
                   </div>
 

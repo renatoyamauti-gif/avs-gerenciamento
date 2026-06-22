@@ -605,20 +605,26 @@ export const dbService = {
 
     _cachedProfile = null; // Invalidate cache
 
+    const profile = await this.getProfile();
+    const cleanUpdates = { ...updates };
+    if (profile && profile.role === 'tratador') {
+      delete cleanUpdates.criatorio_name;
+    }
+
     await supabase.auth.updateUser({
-      data: updates
+      data: cleanUpdates
     });
 
     const { data, error } = await supabase
       .from('profiles')
-      .upsert({ id: user.id, ...updates, updated_at: new Date().toISOString() })
+      .upsert({ id: user.id, ...cleanUpdates, updated_at: new Date().toISOString() })
       .select();
 
     if (error && error.code !== 'PGRST116') {
        console.error("DB Profile Save Error (Ignored due to Auth Fallback):", error);
     }
     
-    return data ? data[0] : updates;
+    return data ? data[0] : cleanUpdates;
   },
 
   async getOwnerId() {
@@ -892,7 +898,7 @@ export const dbService = {
         parent_user_id: adminUser.id,
         role: 'tratador',
         permissions,
-        criatorio_name: criatorioName
+        criatorio_name: null
       })
       .select();
 
