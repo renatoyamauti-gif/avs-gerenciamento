@@ -31,21 +31,8 @@ function isNetworkError(error: any): boolean {
 
 function getCachedData(key: string) {
   const cached = _queryCache[key];
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+  if (cached && Date.now() - cached.timestamp < 15000) { // 15 seconds memory TTL
     return cached.data;
-  }
-
-  try {
-    const stored = localStorage.getItem(`avs_cache_${key}`);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      _queryCache[key] = parsed;
-      if (Date.now() - parsed.timestamp < CACHE_TTL) {
-        return parsed.data;
-      }
-    }
-  } catch (e) {
-    console.error(`Error reading cache for ${key}:`, e);
   }
   return null;
 }
