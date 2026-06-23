@@ -2,18 +2,43 @@ import { supabase, supabaseAdmin } from './supabaseClient';
 import { handleSupabaseError } from './errorHandlers';
 
 let _cachedProfile: any = null;
+const _queryCache: Record<string, { data: any; timestamp: number }> = {};
+const CACHE_TTL = 15000; // 15 seconds TTL
+
+function getCachedData(key: string) {
+  const cached = _queryCache[key];
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  return null;
+}
+
+function setCachedData(key: string, data: any) {
+  _queryCache[key] = {
+    data,
+    timestamp: Date.now()
+  };
+}
+
+function invalidateCache(key: string) {
+  delete _queryCache[key];
+}
 
 export const dbService = {
   // Birds (Plantel)
   async getBirds() {
+    const cached = getCachedData('birds');
+    if (cached) return cached;
     const { data, error } = await supabase
       .from('birds')
       .select('*, rations(*), bird_history(id)');
     if (error) handleSupabaseError(error, 'list', 'birds');
+    setCachedData('birds', data);
     return data;
   },
 
   async saveBird(bird: any) {
+    invalidateCache('birds');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
@@ -42,6 +67,7 @@ export const dbService = {
   },
 
   async deleteBird(id: string) {
+    invalidateCache('birds');
     const { error } = await supabase
       .from('birds')
       .delete()
@@ -50,6 +76,7 @@ export const dbService = {
   },
 
   async updateBirdsBaia(birdIds: string[], baiaName: string | null) {
+    invalidateCache('birds');
     const { error } = await supabase
       .from('birds')
       .update({ baia: baiaName })
@@ -146,15 +173,21 @@ export const dbService = {
 
   // Baias (New Table)
   async getBaias() {
+    const cached = getCachedData('baias');
+    if (cached) return cached;
     const { data, error } = await supabase
       .from('baias')
       .select('*')
       .order('name');
     if (error) handleSupabaseError(error, 'list', 'baias');
+    setCachedData('baias', data);
     return data;
   },
 
   async saveBaia(baia: any) {
+    invalidateCache('baias');
+    invalidateCache('birds');
+    invalidateCache('egg_logs');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
@@ -193,6 +226,8 @@ export const dbService = {
   },
 
   async deleteBaia(id: string | null, name?: string) {
+    invalidateCache('baias');
+    invalidateCache('birds');
     if (id) {
       const { error } = await supabase
         .from('baias')
@@ -208,15 +243,19 @@ export const dbService = {
 
   // Racas
   async getRacas() {
+    const cached = getCachedData('racas');
+    if (cached) return cached;
     const { data, error } = await supabase
       .from('racas')
       .select('*')
       .order('name');
     if (error) handleSupabaseError(error, 'list', 'racas');
+    setCachedData('racas', data);
     return data;
   },
 
   async saveRaca(raca: any) {
+    invalidateCache('racas');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
@@ -242,6 +281,7 @@ export const dbService = {
   },
 
   async deleteRaca(id: string) {
+    invalidateCache('racas');
     const { error } = await supabase
       .from('racas')
       .delete()
@@ -251,15 +291,19 @@ export const dbService = {
 
   // Transaction Categories
   async getTransactionCategories() {
+    const cached = getCachedData('transaction_categories');
+    if (cached) return cached;
     const { data, error } = await supabase
       .from('transaction_categories')
       .select('*')
       .order('name');
     if (error) handleSupabaseError(error, 'list', 'transaction_categories');
+    setCachedData('transaction_categories', data);
     return data;
   },
 
   async saveTransactionCategory(category: any) {
+    invalidateCache('transaction_categories');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
@@ -285,6 +329,7 @@ export const dbService = {
   },
 
   async deleteTransactionCategory(id: string) {
+    invalidateCache('transaction_categories');
     const { error } = await supabase
       .from('transaction_categories')
       .delete()
@@ -294,15 +339,20 @@ export const dbService = {
 
   // Rations
   async getRations() {
+    const cached = getCachedData('rations');
+    if (cached) return cached;
     const { data, error } = await supabase
       .from('rations')
       .select('*')
       .order('name');
     if (error) handleSupabaseError(error, 'list', 'rations');
+    setCachedData('rations', data);
     return data;
   },
 
   async saveRation(ration: any) {
+    invalidateCache('rations');
+    invalidateCache('birds'); // rations are sub-resources of birds
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
@@ -328,6 +378,8 @@ export const dbService = {
   },
 
   async deleteRation(id: string) {
+    invalidateCache('rations');
+    invalidateCache('birds');
     const { error } = await supabase
       .from('rations')
       .delete()
@@ -337,15 +389,19 @@ export const dbService = {
 
   // Ingredients
   async getIngredients() {
+    const cached = getCachedData('ingredients');
+    if (cached) return cached;
     const { data, error } = await supabase
       .from('ingredients')
       .select('*')
       .order('name');
     if (error) handleSupabaseError(error, 'list', 'ingredients');
+    setCachedData('ingredients', data);
     return data;
   },
 
   async saveIngredient(ingredient: any) {
+    invalidateCache('ingredients');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
@@ -371,6 +427,7 @@ export const dbService = {
   },
 
   async deleteIngredient(id: string) {
+    invalidateCache('ingredients');
     const { error } = await supabase
       .from('ingredients')
       .delete()
@@ -380,15 +437,19 @@ export const dbService = {
 
   // Finance
   async getTransactions() {
+    const cached = getCachedData('transactions');
+    if (cached) return cached;
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
       .order('date', { ascending: false });
     if (error) handleSupabaseError(error, 'list', 'transactions');
+    setCachedData('transactions', data);
     return data;
   },
 
   async saveTransaction(transaction: any) {
+    invalidateCache('transactions');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
@@ -414,6 +475,7 @@ export const dbService = {
   },
 
   async deleteTransaction(id: string) {
+    invalidateCache('transactions');
     const { error } = await supabase
       .from('transactions')
       .delete()
@@ -423,6 +485,8 @@ export const dbService = {
 
   // Eggs
   async getEggLogs() {
+    const cached = getCachedData('egg_logs');
+    if (cached) return cached;
     const { data, error } = await supabase
       .from('egg_logs')
       .select('*, collector:profiles!collector_id(full_name)')
@@ -430,10 +494,12 @@ export const dbService = {
       .order('month', { ascending: false })
       .order('day', { ascending: false });
     if (error) handleSupabaseError(error, 'list', 'egg_logs');
+    setCachedData('egg_logs', data);
     return data;
   },
 
   async saveEggLog(log: any) {
+    invalidateCache('egg_logs');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
@@ -463,6 +529,7 @@ export const dbService = {
   },
 
   async deleteEggLog(id: string) {
+    invalidateCache('egg_logs');
     const { error } = await supabase
       .from('egg_logs')
       .delete()
@@ -472,14 +539,18 @@ export const dbService = {
 
   // Incubators
   async getIncubators() {
+    const cached = getCachedData('incubators');
+    if (cached) return cached;
     const { data, error } = await supabase
       .from('incubators')
       .select('*, incubator_batches(*)');
     if (error) handleSupabaseError(error, 'list', 'incubators');
+    setCachedData('incubators', data);
     return data;
   },
 
   async saveIncubator(incubator: any) {
+    invalidateCache('incubators');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
@@ -506,6 +577,7 @@ export const dbService = {
   },
 
   async deleteIncubator(id: string) {
+    invalidateCache('incubators');
     const { error } = await supabase
       .from('incubators')
       .delete()
@@ -514,6 +586,7 @@ export const dbService = {
   },
 
   async saveBatch(batch: any) {
+    invalidateCache('incubators');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
@@ -539,6 +612,7 @@ export const dbService = {
   },
 
   async deleteBatch(id: string) {
+    invalidateCache('incubators');
     const { error } = await supabase
       .from('incubator_batches')
       .delete()
@@ -677,15 +751,19 @@ export const dbService = {
 
   // Maternity
   async getMaternityRecords() {
+    const cached = getCachedData('maternity');
+    if (cached) return cached;
     const { data, error } = await supabase
       .from('maternity')
       .select('*')
       .order('birth_date', { ascending: false });
     if (error) handleSupabaseError(error, 'list', 'maternity');
+    setCachedData('maternity', data);
     return data;
   },
 
   async saveMaternityRecord(record: any) {
+    invalidateCache('maternity');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
@@ -711,6 +789,7 @@ export const dbService = {
   },
 
   async deleteMaternityRecord(id: string) {
+    invalidateCache('maternity');
     const { error } = await supabase
       .from('maternity')
       .delete()
@@ -1131,15 +1210,19 @@ export const dbService = {
 
   // Clients
   async getClients() {
+    const cached = getCachedData('clients');
+    if (cached) return cached;
     const { data, error } = await supabase
       .from('clients')
       .select('*')
       .order('name');
     if (error) handleSupabaseError(error, 'list', 'clients');
+    setCachedData('clients', data);
     return data;
   },
 
   async saveClient(client: any) {
+    invalidateCache('clients');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
@@ -1165,6 +1248,7 @@ export const dbService = {
   },
 
   async deleteClient(id: string) {
+    invalidateCache('clients');
     const { error } = await supabase
       .from('clients')
       .delete()
@@ -1174,15 +1258,19 @@ export const dbService = {
 
   // Orders
   async getOrders() {
+    const cached = getCachedData('orders');
+    if (cached) return cached;
     const { data, error } = await supabase
       .from('orders')
       .select('*, clients(*)')
       .order('created_at', { ascending: false });
     if (error) handleSupabaseError(error, 'list', 'orders');
+    setCachedData('orders', data);
     return data;
   },
 
   async saveOrder(order: any) {
+    invalidateCache('orders');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
@@ -1209,6 +1297,7 @@ export const dbService = {
   },
 
   async deleteOrder(id: string) {
+    invalidateCache('orders');
     const { error } = await supabase
       .from('orders')
       .delete()
@@ -1218,15 +1307,19 @@ export const dbService = {
 
   // Products
   async getProducts() {
+    const cached = getCachedData('products');
+    if (cached) return cached;
     const { data, error } = await supabase
       .from('products')
       .select('*')
       .order('name');
     if (error) handleSupabaseError(error, 'list', 'products');
+    setCachedData('products', data);
     return data;
   },
 
   async saveProduct(product: any) {
+    invalidateCache('products');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Não autenticado');
 
@@ -1252,6 +1345,7 @@ export const dbService = {
   },
 
   async deleteProduct(id: string) {
+    invalidateCache('products');
     const { error } = await supabase
       .from('products')
       .delete()
@@ -1261,6 +1355,7 @@ export const dbService = {
 
   clearCache() {
     _cachedProfile = null;
+    Object.keys(_queryCache).forEach(key => delete _queryCache[key]);
   },
 
   async getCollectors() {
