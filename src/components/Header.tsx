@@ -10,6 +10,7 @@ const Header = () => {
   
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [supabaseConnected, setSupabaseConnected] = useState(true);
+  const [pendingSyncs, setPendingSyncs] = useState(0);
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -31,8 +32,23 @@ const Header = () => {
       }
     };
 
+    const updatePendingCount = () => {
+      try {
+        const queue = localStorage.getItem('avs_offline_queue');
+        if (queue) {
+          const parsed = JSON.parse(queue);
+          setPendingSyncs(parsed.length);
+        } else {
+          setPendingSyncs(0);
+        }
+      } catch {
+        setPendingSyncs(0);
+      }
+    };
+
     const handleOnline = () => {
       checkConnection();
+      updatePendingCount();
     };
     const handleOffline = () => {
       setIsOnline(false);
@@ -41,15 +57,20 @@ const Header = () => {
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    window.addEventListener('offline-queue-updated', updatePendingCount);
 
     checkConnection();
+    updatePendingCount();
 
-    const interval = setInterval(checkConnection, 30000);
+    const connectionInterval = setInterval(checkConnection, 30000);
+    const queueInterval = setInterval(updatePendingCount, 5000);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      clearInterval(interval);
+      window.removeEventListener('offline-queue-updated', updatePendingCount);
+      clearInterval(connectionInterval);
+      clearInterval(queueInterval);
     };
   }, []);
 
@@ -69,6 +90,17 @@ const Header = () => {
         </div>
       </div>
       <div className="flex items-center gap-6">
+        {/* Pending Sync Badge */}
+        {pendingSyncs > 0 && (
+          <div className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40 flex items-center gap-1.5 animate-pulse">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+            </span>
+            <span>{pendingSyncs} {pendingSyncs === 1 ? 'sincronização pendente' : 'sincronizações pendentes'}</span>
+          </div>
+        )}
+
         {/* Connection Indicator */}
         <div className={`px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-widest flex items-center gap-1.5 transition-colors duration-300 ${
           isOnline && supabaseConnected

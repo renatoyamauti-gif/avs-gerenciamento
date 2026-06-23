@@ -46,6 +46,7 @@ export default function App() {
         if (session) {
           const userProfile = await dbService.getProfile();
           setProfile(userProfile);
+          dbService.syncOfflineQueue().catch(console.error);
         }
       } catch (err) {
         console.error("Erro ao carregar sessão inicial:", err);
@@ -62,6 +63,7 @@ export default function App() {
       if (session) {
         const userProfile = await dbService.getProfile();
         setProfile(userProfile);
+        dbService.syncOfflineQueue().catch(console.error);
       } else {
         setProfile(null);
       }
@@ -71,11 +73,18 @@ export default function App() {
       dbService.clearCache();
       dbService.getProfile().then(setProfile);
     };
+
+    const handleOnline = () => {
+      dbService.syncOfflineQueue().catch(console.error);
+    };
+
     window.addEventListener('profileUpdated', handleProfileUpdate);
+    window.addEventListener('online', handleOnline);
 
     return () => {
       subscription.unsubscribe();
       window.removeEventListener('profileUpdated', handleProfileUpdate);
+      window.removeEventListener('online', handleOnline);
     };
   }, []);
 
