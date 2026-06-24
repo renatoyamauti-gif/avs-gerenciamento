@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Egg, Trash2, X, Loader2, Edit2, QrCode, Printer, Camera, MapPin, TrendingUp } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Egg, Trash2, X, Loader2, Edit2, QrCode, Printer, Camera, MapPin, TrendingUp, MoreHorizontal } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { calculateEggStock, normalizeBaia, normalizeBreed } from '../lib/stockHelper';
 import QRScannerModal from '../components/QRScannerModal';
@@ -812,14 +812,14 @@ export default function EggCollection() {
                             <td className="px-6 py-4 font-bold text-[#1F2937] dark:text-slate-200">{entry.breed}</td>
                             <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.collected} ovos</td>
                             <td className="px-6 py-4 text-center">
-                              <div className="flex items-center justify-center gap-1.5 group">
+                              <div className="flex items-center justify-center gap-1.5">
                                 {getStockBadge(entry.available)}
                                 <button
                                   onClick={() => handleOpenStockEdit(entry, 'raca')}
-                                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-slate-400 hover:text-[#2563EB] transition-colors p-1 cursor-pointer"
+                                  className="text-slate-400 hover:text-[#2563EB] transition-colors p-1 cursor-pointer flex items-center justify-center shrink-0"
                                   title="Ajustar Estoque"
                                 >
-                                  <Edit2 size={12} />
+                                  <MoreHorizontal size={14} />
                                 </button>
                               </div>
                             </td>
@@ -855,10 +855,10 @@ export default function EggCollection() {
                         {getStockBadge(entry.available)}
                         <button
                           onClick={() => handleOpenStockEdit(entry, 'raca')}
-                          className="text-slate-400 hover:text-[#2563EB] p-1.5 cursor-pointer"
+                          className="text-slate-400 hover:text-[#2563EB] p-1.5 cursor-pointer flex items-center justify-center shrink-0"
                           title="Ajustar Estoque"
                         >
-                          <Edit2 size={14} />
+                          <MoreHorizontal size={14} />
                         </button>
                       </div>
                     </div>
@@ -900,14 +900,14 @@ export default function EggCollection() {
                             <td className="px-6 py-4 font-bold text-[#1F2937] dark:text-slate-200">Baia {entry.baia}</td>
                             <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.collected} ovos</td>
                             <td className="px-6 py-4 text-center">
-                              <div className="flex items-center justify-center gap-1.5 group">
+                              <div className="flex items-center justify-center gap-1.5">
                                 {getStockBadge(entry.available)}
                                 <button
                                   onClick={() => handleOpenStockEdit(entry, 'baia')}
-                                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-slate-400 hover:text-[#2563EB] transition-colors p-1 cursor-pointer"
+                                  className="text-slate-400 hover:text-[#2563EB] transition-colors p-1 cursor-pointer flex items-center justify-center shrink-0"
                                   title="Ajustar Estoque"
                                 >
-                                  <Edit2 size={12} />
+                                  <MoreHorizontal size={14} />
                                 </button>
                               </div>
                             </td>
@@ -943,10 +943,10 @@ export default function EggCollection() {
                         {getStockBadge(entry.available)}
                         <button
                           onClick={() => handleOpenStockEdit(entry, 'baia')}
-                          className="text-slate-400 hover:text-[#2563EB] p-1.5 cursor-pointer"
+                          className="text-slate-400 hover:text-[#2563EB] p-1.5 cursor-pointer flex items-center justify-center shrink-0"
                           title="Ajustar Estoque"
                         >
-                          <Edit2 size={14} />
+                          <MoreHorizontal size={14} />
                         </button>
                       </div>
                     </div>
