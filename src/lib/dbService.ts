@@ -116,8 +116,14 @@ function addToOfflineQueue(table: string, action: PendingAction['action'], data:
 }
 
 function applyLocalWriteToCache(cacheKey: string, action: 'insert' | 'update' | 'delete', item: any) {
-  let list = getOfflineFallback(cacheKey) || [];
-  if (!Array.isArray(list)) return;
+  let list = getOfflineFallback(cacheKey);
+  if (!list || !Array.isArray(list)) {
+    if (!navigator.onLine) {
+      list = [];
+    } else {
+      return;
+    }
+  }
 
   if (action === 'insert') {
     if (!list.some((x: any) => x.id === item.id)) {
@@ -216,7 +222,6 @@ export const dbService = {
     data: any,
     executeOnline: () => Promise<any>
   ) {
-    invalidateCache(cacheKey);
     const tempId = id || generateUUID();
     const resolvedData = { ...data, id: tempId };
     
@@ -254,8 +259,6 @@ export const dbService = {
     id: string,
     executeOnline: () => Promise<any>
   ) {
-    invalidateCache(cacheKey);
-    
     if (navigator.onLine) {
       try {
         await executeOnline();
