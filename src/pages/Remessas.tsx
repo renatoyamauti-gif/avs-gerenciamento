@@ -3151,32 +3151,15 @@ export default function Remessas() {
           )}
         </div>
 
-        {/* Legend for mobile abbreviations */}
-        <div className="block md:hidden bg-slate-50 border border-slate-100 p-4 rounded-2xl">
-          <h5 className="font-bold text-[10px] text-slate-400 uppercase tracking-widest mb-3">
-            Legenda (Abreviações Mobile)
-          </h5>
-          <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500 font-medium">
-            <div className="flex items-center gap-1.5">
-              <span className="text-slate-800 font-bold bg-slate-200/60 px-1.5 py-0.5 rounded text-[10px]">Col</span>
-              <span>Coletados</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-slate-800 font-bold bg-slate-200/60 px-1.5 py-0.5 rounded text-[10px]">Est</span>
-              <span>Estoque</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-slate-800 font-bold bg-slate-200/60 px-1.5 py-0.5 rounded text-[10px]">Res</span>
-              <span>Reservados</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[#2563EB] font-bold bg-[#2563EB]/10 px-1.5 py-0.5 rounded text-[10px]">Méd</span>
-              <span>Média / Dia</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-slate-800 font-bold bg-slate-200/60 px-1.5 py-0.5 rounded text-[10px]">Inc</span>
-              <span>Incubados</span>
-            </div>
+        {/* Legenda das Abreviaturas (Mobile) */}
+        <div className="bg-[#F8FAFC] dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50 p-6 rounded-3xl">
+          <h4 className="font-bold text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Legenda das Abreviaturas (Mobile)</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs font-semibold text-slate-650 dark:text-slate-400">
+            <div><span className="text-[#1F2937] dark:text-slate-200 font-bold">Col:</span> Coletados</div>
+            <div><span className="text-[#1F2937] dark:text-slate-200 font-bold">Est:</span> Estoque Disponível</div>
+            <div><span className="text-[#1F2937] dark:text-slate-200 font-bold">Res:</span> Reservados (Vendas)</div>
+            <div><span className="text-[#1F2937] dark:text-slate-200 font-bold">Méd:</span> Média Diária / Dia</div>
+            <div><span className="text-[#1F2937] dark:text-slate-200 font-bold">Inc:</span> Incubados</div>
           </div>
         </div>
       </div>

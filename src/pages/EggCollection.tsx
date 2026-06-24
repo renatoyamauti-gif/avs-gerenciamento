@@ -762,7 +762,7 @@ export default function EggCollection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="flex flex-col gap-8">
           {/* Estoque por Raça */}
           <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-4">
             <h3 className="text-lg font-bold text-[#1F2937] dark:text-slate-100 flex items-center gap-2 mb-2">
@@ -901,6 +901,18 @@ export default function EggCollection() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+
+        {/* Legenda das Abreviaturas (Mobile) */}
+        <div className="bg-[#F8FAFC] dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50 p-6 rounded-3xl">
+          <h4 className="font-bold text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Legenda das Abreviaturas (Mobile)</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-xs font-semibold text-slate-650 dark:text-slate-400">
+            <div><span className="text-[#1F2937] dark:text-slate-200 font-bold">Col:</span> Coletados</div>
+            <div><span className="text-[#1F2937] dark:text-slate-200 font-bold">Est:</span> Estoque Disponível</div>
+            <div><span className="text-[#1F2937] dark:text-slate-200 font-bold">Res:</span> Reservados (Vendas)</div>
+            <div><span className="text-[#1F2937] dark:text-slate-200 font-bold">Méd:</span> Média Diária / Dia</div>
+            <div><span className="text-[#1F2937] dark:text-slate-200 font-bold">Inc:</span> Incubados</div>
           </div>
         </div>
       </div>
