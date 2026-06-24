@@ -76,6 +76,7 @@ interface StockItem {
   available: number;
   dailyAvg: number;
   daysCollected: number;
+  egg_stock_adjustment?: number;
 }
 
 export function calculateEggStock({
@@ -106,7 +107,7 @@ export function calculateEggStock({
   const initRaca = (breed: string) => {
     const normR = normalizeBreed(breed);
     if (!racaMap[normR]) {
-      racaMap[normR] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+      racaMap[normR] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0, egg_stock_adjustment: 0 };
     }
     return normR;
   };
@@ -114,7 +115,7 @@ export function calculateEggStock({
   const initBaia = (bName: string) => {
     const b = normalizeBaia(bName);
     if (!baiaMap[b]) {
-      baiaMap[b] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0 };
+      baiaMap[b] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0, egg_stock_adjustment: 0 };
     }
     return b;
   };
@@ -123,7 +124,10 @@ export function calculateEggStock({
   (racas || []).forEach(r => {
     const name = typeof r === 'string' ? r : r?.name;
     if (name) {
-      initRaca(name);
+      const normR = initRaca(name);
+      if (typeof r === 'object' && r !== null && r.egg_stock_adjustment !== undefined) {
+        racaMap[normR].egg_stock_adjustment = Number(r.egg_stock_adjustment) || 0;
+      }
     }
   });
 
@@ -131,7 +135,10 @@ export function calculateEggStock({
   (baias || []).forEach(b => {
     const name = typeof b === 'string' ? b : b?.name;
     if (name) {
-      initBaia(name);
+      const activeB = initBaia(name);
+      if (typeof b === 'object' && b !== null && b.egg_stock_adjustment !== undefined) {
+        baiaMap[activeB].egg_stock_adjustment = Number(b.egg_stock_adjustment) || 0;
+      }
     }
   });
 
@@ -295,7 +302,7 @@ export function calculateEggStock({
   // 4. Calculate Available and Averages for Racas
   Object.keys(racaMap).forEach(r => {
     const item = racaMap[r];
-    item.available = item.collected - item.incubated - item.sold;
+    item.available = item.collected - item.incubated - item.sold + (item.egg_stock_adjustment || 0);
     const days = racaDays[r]?.size || 1;
     item.daysCollected = days;
     item.dailyAvg = item.collected / days;
@@ -304,7 +311,7 @@ export function calculateEggStock({
   // 5. Calculate Available and Averages for Baias
   Object.keys(baiaMap).forEach(b => {
     const item = baiaMap[b];
-    item.available = item.collected - item.incubated - item.sold;
+    item.available = item.collected - item.incubated - item.sold + (item.egg_stock_adjustment || 0);
     const days = baiaDays[b]?.size || 1;
     item.daysCollected = days;
     item.dailyAvg = item.collected / days;

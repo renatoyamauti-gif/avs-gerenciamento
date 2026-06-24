@@ -36,6 +36,11 @@ export default function EggCollection() {
   const [products, setProducts] = useState<any[]>([]);
   const [birds, setBirds] = useState<any[]>([]);
 
+  const [dbRacas, setDbRacas] = useState<any[]>([]);
+  const [dbBaias, setDbBaias] = useState<any[]>([]);
+  const [editingStock, setEditingStock] = useState<{ entry: any; type: 'raca' | 'baia' } | null>(null);
+  const [adjustingStockVal, setAdjustingStockVal] = useState<string>('');
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [prefilledBaia, setPrefilledBaia] = useState('');
   const [prefilledRaca, setPrefilledRaca] = useState('');
@@ -57,10 +62,10 @@ export default function EggCollection() {
       orders,
       products,
       birds,
-      racas: uniqueRacas,
-      baias: uniqueBaias
+      racas: dbRacas,
+      baias: dbBaias
     });
-  }, [logs, incubators, orders, products, birds, uniqueRacas, uniqueBaias]);
+  }, [logs, incubators, orders, products, birds, dbRacas, dbBaias]);
 
   const { eggsByBaia, eggsByRaca, baiaEstimates, racaEstimates, racaEntries, baiaEntries } = useMemo(() => {
     const ebBaia = Object.entries(eggStock.baias).map(([name, item]: any) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count);
@@ -85,7 +90,8 @@ export default function EggCollection() {
         sold: data.sold,
         available: data.available,
         dailyAvg: data.dailyAvg,
-        daysCollected: data.daysCollected
+        daysCollected: data.daysCollected,
+        egg_stock_adjustment: data.egg_stock_adjustment || 0
       };
     }).sort((a, b) => b.available - a.available);
 
@@ -98,7 +104,8 @@ export default function EggCollection() {
         sold: data.sold,
         available: data.available,
         dailyAvg: data.dailyAvg,
-        daysCollected: data.daysCollected
+        daysCollected: data.daysCollected,
+        egg_stock_adjustment: data.egg_stock_adjustment || 0
       };
     }).sort((a, b) => b.available - a.available);
 
@@ -221,9 +228,18 @@ export default function EggCollection() {
     }
   }
 
+  const handleOpenStockEdit = (entry: any, type: 'raca' | 'baia') => {
+    setEditingStock({ entry, type });
+    setAdjustingStockVal(String(entry.available));
+  };
+
   async function loadBaias() {
     try {
-      const birds = await dbService.getBirds();
+      const [birds, dbBaiasData] = await Promise.all([
+        dbService.getBirds(),
+        dbService.getBaias()
+      ]);
+      setDbBaias(dbBaiasData || []);
       const baias = Array.from(new Set(birds.map(b => b.baia).filter(Boolean))) as string[];
       setUniqueBaias(baias);
     } catch (error) {
@@ -234,6 +250,7 @@ export default function EggCollection() {
   async function loadRacas() {
     try {
       const racasData = await dbService.getRacas();
+      setDbRacas(racasData || []);
       const racasNames = (racasData || []).map((r: any) => r.name).filter(Boolean);
       setUniqueRacas(racasNames);
     } catch (error) {
@@ -794,7 +811,18 @@ export default function EggCollection() {
                           <tr key={entry.breed} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
                             <td className="px-6 py-4 font-bold text-[#1F2937] dark:text-slate-200">{entry.breed}</td>
                             <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.collected} ovos</td>
-                            <td className="px-6 py-4 text-center">{getStockBadge(entry.available)}</td>
+                            <td className="px-6 py-4 text-center">
+                              <div className="flex items-center justify-center gap-1.5 group">
+                                {getStockBadge(entry.available)}
+                                <button
+                                  onClick={() => handleOpenStockEdit(entry, 'raca')}
+                                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-slate-400 hover:text-[#2563EB] transition-colors p-1 cursor-pointer"
+                                  title="Ajustar Estoque"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                              </div>
+                            </td>
                             <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.sold} ovos</td>
                             <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB] dark:text-blue-400">{entry.dailyAvg.toFixed(1)} / dia</td>
                             <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.incubated} ovos</td>
@@ -823,8 +851,15 @@ export default function EggCollection() {
                           <span>Inc: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.incubated}</span></span>
                         </div>
                       </div>
-                      <div className="shrink-0 pl-1">
+                      <div className="shrink-0 pl-1 flex items-center gap-1.5">
                         {getStockBadge(entry.available)}
+                        <button
+                          onClick={() => handleOpenStockEdit(entry, 'raca')}
+                          className="text-slate-400 hover:text-[#2563EB] p-1.5 cursor-pointer"
+                          title="Ajustar Estoque"
+                        >
+                          <Edit2 size={14} />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -864,7 +899,18 @@ export default function EggCollection() {
                           <tr key={entry.baia} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
                             <td className="px-6 py-4 font-bold text-[#1F2937] dark:text-slate-200">Baia {entry.baia}</td>
                             <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.collected} ovos</td>
-                            <td className="px-6 py-4 text-center">{getStockBadge(entry.available)}</td>
+                            <td className="px-6 py-4 text-center">
+                              <div className="flex items-center justify-center gap-1.5 group">
+                                {getStockBadge(entry.available)}
+                                <button
+                                  onClick={() => handleOpenStockEdit(entry, 'baia')}
+                                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-slate-400 hover:text-[#2563EB] transition-colors p-1 cursor-pointer"
+                                  title="Ajustar Estoque"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                              </div>
+                            </td>
                             <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.sold} ovos</td>
                             <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB] dark:text-blue-400">{entry.dailyAvg.toFixed(1)} / dia</td>
                             <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.incubated} ovos</td>
@@ -893,8 +939,15 @@ export default function EggCollection() {
                           <span>Inc: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.incubated}</span></span>
                         </div>
                       </div>
-                      <div className="shrink-0 pl-1">
+                      <div className="shrink-0 pl-1 flex items-center gap-1.5">
                         {getStockBadge(entry.available)}
+                        <button
+                          onClick={() => handleOpenStockEdit(entry, 'baia')}
+                          className="text-slate-400 hover:text-[#2563EB] p-1.5 cursor-pointer"
+                          title="Ajustar Estoque"
+                        >
+                          <Edit2 size={14} />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -916,6 +969,135 @@ export default function EggCollection() {
           </div>
         </div>
       </div>
+
+      {/* Stock Adjustment Modal */}
+      <AnimatePresence>
+        {editingStock !== null && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-0">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setEditingStock(null)}
+              className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm"
+            ></motion.div>
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-[24px] sm:rounded-[32px] shadow-2xl overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-[#1F2937] dark:text-slate-100">
+                    Ajustar Estoque de Ovos
+                  </h3>
+                  <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">
+                    {editingStock.type === 'raca' ? editingStock.entry.breed : `Baia: ${editingStock.entry.baia}`}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setEditingStock(null)}
+                  className="bg-[#F8FAFC] dark:bg-slate-800 p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-xs font-semibold bg-[#F8FAFC] dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+                  <div>
+                    <span className="text-slate-400 block uppercase tracking-wider text-[9px] mb-0.5">Coletados</span>
+                    <span className="text-slate-700 dark:text-slate-300">{editingStock.entry.collected} ovos</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block uppercase tracking-wider text-[9px] mb-0.5">Incubados</span>
+                    <span className="text-slate-700 dark:text-slate-300">{editingStock.entry.incubated} ovos</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block uppercase tracking-wider text-[9px] mb-0.5">Reservados</span>
+                    <span className="text-slate-700 dark:text-slate-300">{editingStock.entry.sold} ovos</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block uppercase tracking-wider text-[9px] mb-0.5">Ajuste Atual</span>
+                    <span className="text-slate-700 dark:text-slate-300">{editingStock.entry.egg_stock_adjustment > 0 ? `+${editingStock.entry.egg_stock_adjustment}` : editingStock.entry.egg_stock_adjustment} ovos</span>
+                  </div>
+                </div>
+
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const targetVal = parseInt(adjustingStockVal);
+                  if (isNaN(targetVal)) return;
+
+                  const calculatedBase = editingStock.entry.collected - editingStock.entry.incubated - editingStock.entry.sold;
+                  const newAdjustment = targetVal - calculatedBase;
+
+                  try {
+                    setLoading(true);
+                    if (editingStock.type === 'raca') {
+                      const existing = dbRacas.find(r => r.name === editingStock.entry.breed);
+                      const racaObj = existing 
+                        ? { ...existing, egg_stock_adjustment: newAdjustment } 
+                        : { name: editingStock.entry.breed, egg_stock_adjustment: newAdjustment };
+
+                      await dbService.saveRaca(racaObj);
+                      await loadRacas();
+                    } else {
+                      const baiaName = editingStock.entry.baia.startsWith('Baia ') ? editingStock.entry.baia.substring(5) : editingStock.entry.baia;
+                      const existing = dbBaias.find(b => b.name === baiaName);
+                      const baiaObj = existing 
+                        ? { ...existing, egg_stock_adjustment: newAdjustment } 
+                        : { name: baiaName, egg_stock_adjustment: newAdjustment, type: 'Reprodução' };
+
+                      await dbService.saveBaia(baiaObj);
+                      await loadBaias();
+                    }
+                    await loadLogs();
+                    setEditingStock(null);
+                  } catch (err: any) {
+                    alert('Erro ao salvar ajuste de estoque: ' + err.message);
+                  } finally {
+                    setLoading(false);
+                  }
+                }} className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Estoque Físico Atual</label>
+                    <input 
+                      required 
+                      type="number"
+                      value={adjustingStockVal}
+                      onChange={(e) => setAdjustingStockVal(e.target.value)}
+                      placeholder="Ex: 10" 
+                      className="w-full bg-[#F8FAFC] dark:bg-slate-800/20 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-[#1F2937] dark:text-slate-100 font-bold focus:bg-white dark:focus:bg-slate-900 focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                    />
+                    <p className="text-[10px] text-slate-400 font-medium ml-1">
+                      O sistema salvará uma compensação de estoque (ajuste de {
+                        parseInt(adjustingStockVal) - (editingStock.entry.collected - editingStock.entry.incubated - editingStock.entry.sold)
+                      } ovos) para que o estoque final bata exatamente com o que você digitar acima.
+                    </p>
+                  </div>
+
+                  <div className="pt-4 flex gap-3">
+                    <button 
+                      type="button" 
+                      onClick={() => setEditingStock(null)} 
+                      className="flex-1 py-3 bg-[#F8FAFC] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-355 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit" 
+                      className="flex-1 py-3 bg-[#2563EB] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-sm hover:bg-[#1D4ED8] transition-all"
+                    >
+                      Confirmar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Edit Modal */}
       <AnimatePresence>

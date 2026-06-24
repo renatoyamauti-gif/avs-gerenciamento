@@ -183,8 +183,8 @@ export default function Products() {
       orders,
       products,
       birds,
-      racas: racas.map(r => r.name),
-      baias: baias.map(b => b.name)
+      racas,
+      baias
     });
   }, [eggLogs, incubators, orders, products, birds, racas, baias]);
 

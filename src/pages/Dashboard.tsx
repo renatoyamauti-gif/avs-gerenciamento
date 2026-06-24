@@ -58,14 +58,15 @@ export default function Dashboard() {
       const hasShipping = currentRole === 'admin' || (currentPermissions?.shipping ?? false);
 
       // Load all authorized data in parallel
-      const [birds, eggLogs, maternityRecords, incubators, transactions, orders, products] = await Promise.all([
+      const [birds, eggLogs, maternityRecords, incubators, transactions, orders, products, racasData] = await Promise.all([
         hasBirds ? dbService.getBirds() : Promise.resolve([]),
         hasEggs ? dbService.getEggLogs() : Promise.resolve([]),
         hasMaternity ? dbService.getMaternityRecords() : Promise.resolve([]),
         hasBreeding ? dbService.getIncubators() : Promise.resolve([]),
         hasFinance ? dbService.getTransactions() : Promise.resolve([]),
         hasShipping ? dbService.getOrders() : Promise.resolve([]),
-        hasShipping ? dbService.getProducts() : Promise.resolve([])
+        hasShipping ? dbService.getProducts() : Promise.resolve([]),
+        hasEggs ? dbService.getRacas() : Promise.resolve([])
       ]);
 
       const activeBirds = (birds || []).filter(b => b.status !== 'Vendida' && b.status !== 'Óbito' && b.status !== 'Reservada');
@@ -79,57 +80,21 @@ export default function Dashboard() {
         incubators,
         orders,
         products,
-        birds
+        birds,
+        racas: racasData
       });
 
       // Set eggs by Baia and by Raça (using collected count)
       setEggsByBaia(Object.entries(computedStock.baias).map(([name, item]) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count));
       setEggsByRaca(Object.entries(computedStock.racas).map(([name, item]) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count));
 
-      // Calculate total available egg stock
-      const totalCollected = (eggLogs || []).reduce((acc, curr) => acc + curr.count, 0);
-      let totalIncubated = 0;
-      (incubators || []).forEach(inc => {
-        (inc.incubator_batches || []).forEach(batch => {
-          totalIncubated += batch.count || 0;
-        });
-      });
-      let totalSold = 0;
-      (orders || []).forEach(ord => {
-        if (ord.status !== 'Cancelado') {
-          const orderItems = ord.items && Array.isArray(ord.items) && ord.items.length > 0
-            ? ord.items
-            : [{ origem_type: ord.origem_type || 'raca', raca: ord.raca || '', baia: ord.baia || '', quantity: ord.quantity || 0 }];
-
-          orderItems.forEach((item: any) => {
-            if (item.origem_type === 'embalagem') return;
-            const qty = Number(item.quantity) || 0;
-            if (qty > 0) {
-              if (item.origem_type === 'produto' && item.product_id) {
-                const prod = (products || []).find((p: any) => p.id === item.product_id);
-                if (prod) {
-                  const eggsPerUnit = Number(prod.eggs_per_unit) || 0;
-                  totalSold += qty * eggsPerUnit;
-                }
-              } else {
-                totalSold += (qty * 12) + (Number(item.gift_eggs) || 0);
-              }
-            }
-          });
-        }
-      });
-
-      // Calculate the sum of negative stocks per breed to adjust the total available count.
-      // This prevents data entry errors (e.g. incubating eggs before registering their collection)
-      // in some breeds from wiping out positive stocks of other breeds.
-      let negativeStockAdjustment = 0;
+      // Calculate total available egg stock (sum of all positive available stocks per breed, including manual adjustments)
+      let totalAvailable = 0;
       Object.values(computedStock.racas).forEach((item: any) => {
-        if (item.available < 0) {
-          negativeStockAdjustment += Math.abs(item.available);
+        if (item.available > 0) {
+          totalAvailable += item.available;
         }
       });
-
-      const totalAvailable = Math.max(0, totalCollected - totalIncubated - totalSold + negativeStockAdjustment);
       setEggCount(totalAvailable);
 
       // Projections (based purely on collection logs)
