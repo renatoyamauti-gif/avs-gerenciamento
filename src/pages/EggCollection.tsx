@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Egg, Trash2, X, Loader2, Edit2, QrCode, Printer, Camera } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Egg, Trash2, X, Loader2, Edit2, QrCode, Printer, Camera, MapPin, TrendingUp } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { calculateEggStock, normalizeBaia, normalizeBreed } from '../lib/stockHelper';
 import QRScannerModal from '../components/QRScannerModal';
@@ -50,35 +50,83 @@ export default function EggCollection() {
   const currentDate = new Date();
   const [viewDate, setViewDate] = useState(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
 
-  const { eggsByBaia, eggsByRaca, baiaEstimates, racaEstimates } = useMemo(() => {
-    const computedStock = calculateEggStock({
+  const eggStock = useMemo(() => {
+    return calculateEggStock({
       eggLogs: logs,
       incubators,
       orders,
       products,
-      birds
+      birds,
+      racas: uniqueRacas,
+      baias: uniqueBaias
     });
+  }, [logs, incubators, orders, products, birds, uniqueRacas, uniqueBaias]);
 
-    const ebBaia = Object.entries(computedStock.baias).map(([name, item]) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count);
-    const ebRaca = Object.entries(computedStock.racas).map(([name, item]) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count);
+  const { eggsByBaia, eggsByRaca, baiaEstimates, racaEstimates, racaEntries, baiaEntries } = useMemo(() => {
+    const ebBaia = Object.entries(eggStock.baias).map(([name, item]: any) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count);
+    const ebRaca = Object.entries(eggStock.racas).map(([name, item]: any) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count);
 
-    const bEst = Object.entries(computedStock.baias).map(([name, item]) => {
+    const bEst = Object.entries(eggStock.baias).map(([name, item]: any) => {
       const monthlyEst = Math.round(item.dailyAvg * 30);
       return { name, estimativa: monthlyEst };
     }).sort((a, b) => b.estimativa - a.estimativa);
 
-    const rEst = Object.entries(computedStock.racas).map(([name, item]) => {
+    const rEst = Object.entries(eggStock.racas).map(([name, item]: any) => {
       const monthlyEst = Math.round(item.dailyAvg * 30);
       return { name, estimativa: monthlyEst };
     }).sort((a, b) => b.estimativa - a.estimativa);
+
+    const rEntries = Object.entries(eggStock.racas).map(([breed, val]) => {
+      const data = val as any;
+      return {
+        breed,
+        collected: data.collected,
+        incubated: data.incubated,
+        sold: data.sold,
+        available: data.available,
+        dailyAvg: data.dailyAvg,
+        daysCollected: data.daysCollected
+      };
+    }).sort((a, b) => b.available - a.available);
+
+    const bEntries = Object.entries(eggStock.baias).map(([baia, val]) => {
+      const data = val as any;
+      return {
+        baia,
+        collected: data.collected,
+        incubated: data.incubated,
+        sold: data.sold,
+        available: data.available,
+        dailyAvg: data.dailyAvg,
+        daysCollected: data.daysCollected
+      };
+    }).sort((a, b) => b.available - a.available);
 
     return {
       eggsByBaia: ebBaia,
       eggsByRaca: ebRaca,
       baiaEstimates: bEst,
-      racaEstimates: rEst
+      racaEstimates: rEst,
+      racaEntries: rEntries,
+      baiaEntries: bEntries
     };
-  }, [logs, incubators, orders, products, birds]);
+  }, [eggStock]);
+
+  const getStockBadge = (available: number) => {
+    let badgeStyle = '';
+    if (available > 0) {
+      badgeStyle = 'bg-green-50 dark:bg-emerald-950/20 text-green-800 dark:text-emerald-400 border-green-200 dark:border-emerald-900/30';
+    } else if (available === 0) {
+      badgeStyle = 'bg-orange-50 dark:bg-amber-955/20 text-orange-800 dark:text-amber-500 border-orange-200 dark:border-amber-900/30';
+    } else {
+      badgeStyle = 'bg-red-50 dark:bg-red-955/20 text-red-800 dark:text-red-400 border-red-200 dark:border-red-900/30';
+    }
+    return (
+      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase border ${badgeStyle}`}>
+        {available}
+      </span>
+    );
+  };
 
   const filteredLogs = useMemo(() => {
     if (!selectedFilter) return [];
@@ -693,11 +741,167 @@ export default function EggCollection() {
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-slate-100 flex items-start gap-2.5 text-slate-400 text-xs font-medium leading-relaxed">
-          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 font-bold shrink-0">!</span>
+        <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex items-start gap-2.5 text-slate-400 dark:text-slate-500 text-xs font-medium leading-relaxed">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold shrink-0">!</span>
           <p>
             <strong>Observação Importante:</strong> Este gráfico apresenta uma estimativa projetada para 30 dias com base no histórico das coletas diárias inseridas no sistema. Os valores reais podem variar de acordo com fatores climáticos, alimentação, ciclo reprodutivo e manejo das aves.
           </p>
+        </div>
+      </div>
+
+      {/* Estoque de Ovos (Calculado) */}
+      <div className="space-y-8">
+        <div className="bg-[#EFF6FF] dark:bg-blue-950/20 border border-[#BFDBFE] dark:border-blue-900/30 p-6 rounded-3xl">
+          <h4 className="font-bold text-sm text-[#1E40AF] dark:text-blue-400 mb-2 uppercase tracking-wider flex items-center gap-2">
+            <TrendingUp size={16} className="text-[#2563EB] dark:text-blue-450" />
+            Como o estoque é calculado?
+          </h4>
+          <p className="text-xs text-[#1E40AF] dark:text-blue-400/90 leading-relaxed">
+            O **Estoque Disponível** para cada item (raça ou baia) é obtido subtraindo-se dos ovos coletados aqueles que já foram colocados em chocadeiras ou que estão reservados para pedidos (pendentes ou enviados). <br />
+            <span className="font-semibold">Fórmula:</span> Coletados - Incubados - Vendidos (Status diferente de 'Cancelado')
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Estoque por Raça */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-4">
+            <h3 className="text-lg font-bold text-[#1F2937] dark:text-slate-100 flex items-center gap-2 mb-2">
+              <Egg className="text-[#2563EB] dark:text-blue-450" size={20} />
+              Estoque por Raça
+            </h3>
+            {racaEntries.length === 0 ? (
+              <div className="bg-[#F8FAFC] dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-2xl p-8 text-center text-slate-400 dark:text-slate-500 text-sm">
+                Nenhum estoque por raça disponível.
+              </div>
+            ) : (
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden md:block border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-left text-sm text-slate-500 dark:text-slate-400">
+                      <thead className="bg-[#F8FAFC] dark:bg-slate-800/50 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+                        <tr>
+                          <th scope="col" className="px-6 py-4">Raça</th>
+                          <th scope="col" className="px-6 py-4 text-center">Coletados</th>
+                          <th scope="col" className="px-6 py-4 text-center">Estoque</th>
+                          <th scope="col" className="px-6 py-4 text-center">Reservados</th>
+                          <th scope="col" className="px-6 py-4 text-center">Média / Dia</th>
+                          <th scope="col" className="px-6 py-4 text-center">Incubados</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {racaEntries.map((entry) => (
+                          <tr key={entry.breed} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                            <td className="px-6 py-4 font-bold text-[#1F2937] dark:text-slate-200">{entry.breed}</td>
+                            <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.collected} ovos</td>
+                            <td className="px-6 py-4 text-center">{getStockBadge(entry.available)}</td>
+                            <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.sold} ovos</td>
+                            <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB] dark:text-blue-400">{entry.dailyAvg.toFixed(1)} / dia</td>
+                            <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.incubated} ovos</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Mobile List View */}
+                <div className="block md:hidden border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+                  {racaEntries.map((entry) => (
+                    <div key={entry.breed} className="flex items-center justify-between p-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors gap-3">
+                      <div className="flex-1 min-w-0">
+                        <span className="font-bold text-sm text-[#1F2937] dark:text-slate-200 block truncate">{entry.breed}</span>
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-semibold">
+                          <span>Col: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.collected}</span></span>
+                          <span className="text-slate-300 dark:text-slate-700">•</span>
+                          <span>Est: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.available}</span></span>
+                          <span className="text-slate-300 dark:text-slate-700">•</span>
+                          <span>Res: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.sold}</span></span>
+                          <span className="text-slate-300 dark:text-slate-700">•</span>
+                          <span>Méd: <span className="text-[#2563EB] dark:text-blue-400 font-bold">{entry.dailyAvg.toFixed(1)}/d</span></span>
+                          <span className="text-slate-300 dark:text-slate-700">•</span>
+                          <span>Inc: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.incubated}</span></span>
+                        </div>
+                      </div>
+                      <div className="shrink-0 pl-1">
+                        {getStockBadge(entry.available)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Estoque por Baia */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-4">
+            <h3 className="text-lg font-bold text-[#1F2937] dark:text-slate-100 flex items-center gap-2 mb-2">
+              <MapPin className="text-[#2563EB] dark:text-blue-450" size={20} />
+              Estoque por Baia
+            </h3>
+            {baiaEntries.length === 0 ? (
+              <div className="bg-[#F8FAFC] dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-2xl p-8 text-center text-slate-400 dark:text-slate-550 text-sm">
+                Nenhum estoque por baia disponível.
+              </div>
+            ) : (
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden md:block border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-left text-sm text-slate-500 dark:text-slate-400">
+                      <thead className="bg-[#F8FAFC] dark:bg-slate-800/50 text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+                        <tr>
+                          <th scope="col" className="px-6 py-4">Baia</th>
+                          <th scope="col" className="px-6 py-4 text-center">Coletados</th>
+                          <th scope="col" className="px-6 py-4 text-center">Estoque</th>
+                          <th scope="col" className="px-6 py-4 text-center">Reservados</th>
+                          <th scope="col" className="px-6 py-4 text-center">Média / Dia</th>
+                          <th scope="col" className="px-6 py-4 text-center">Incubados</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {baiaEntries.map((entry) => (
+                          <tr key={entry.baia} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                            <td className="px-6 py-4 font-bold text-[#1F2937] dark:text-slate-200">Baia {entry.baia}</td>
+                            <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.collected} ovos</td>
+                            <td className="px-6 py-4 text-center">{getStockBadge(entry.available)}</td>
+                            <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.sold} ovos</td>
+                            <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB] dark:text-blue-400">{entry.dailyAvg.toFixed(1)} / dia</td>
+                            <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.incubated} ovos</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Mobile List View */}
+                <div className="block md:hidden border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+                  {baiaEntries.map((entry) => (
+                    <div key={entry.baia} className="flex items-center justify-between p-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors gap-3">
+                      <div className="flex-1 min-w-0">
+                        <span className="font-bold text-sm text-[#1F2937] dark:text-slate-200 block truncate">Baia {entry.baia}</span>
+                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-semibold">
+                          <span>Col: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.collected}</span></span>
+                          <span className="text-slate-300 dark:text-slate-700">•</span>
+                          <span>Est: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.available}</span></span>
+                          <span className="text-slate-300 dark:text-slate-700">•</span>
+                          <span>Res: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.sold}</span></span>
+                          <span className="text-slate-300 dark:text-slate-700">•</span>
+                          <span>Méd: <span className="text-[#2563EB] dark:text-blue-400 font-bold">{entry.dailyAvg.toFixed(1)}/d</span></span>
+                          <span className="text-slate-300 dark:text-slate-700">•</span>
+                          <span>Inc: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.incubated}</span></span>
+                        </div>
+                      </div>
+                      <div className="shrink-0 pl-1">
+                        {getStockBadge(entry.available)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
