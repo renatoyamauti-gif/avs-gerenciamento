@@ -118,7 +118,18 @@ export default function Dashboard() {
           });
         }
       });
-      const totalAvailable = Math.max(0, totalCollected - totalIncubated - totalSold);
+
+      // Calculate the sum of negative stocks per breed to adjust the total available count.
+      // This prevents data entry errors (e.g. incubating eggs before registering their collection)
+      // in some breeds from wiping out positive stocks of other breeds.
+      let negativeStockAdjustment = 0;
+      Object.values(computedStock.racas).forEach((item: any) => {
+        if (item.available < 0) {
+          negativeStockAdjustment += Math.abs(item.available);
+        }
+      });
+
+      const totalAvailable = Math.max(0, totalCollected - totalIncubated - totalSold + negativeStockAdjustment);
       setEggCount(totalAvailable);
 
       // Projections (based purely on collection logs)
@@ -173,12 +184,15 @@ export default function Dashboard() {
 
       (incubators || []).forEach(inc => {
         (inc.incubator_batches || []).forEach(batch => {
-          totalIncEggs += batch.count;
-          
           const start = new Date(batch.start_date).getTime();
           const end = start + 21 * 24 * 60 * 60 * 1000;
           const now = new Date().getTime();
           const diff = end - now;
+
+          // Only count active batches in incubator total
+          if (diff > 0) {
+            totalIncEggs += batch.count;
+          }
 
           if (diff < minDiff) {
             minDiff = diff;
