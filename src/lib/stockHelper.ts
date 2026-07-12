@@ -221,8 +221,8 @@ export function calculateEggStock({
         });
       }
       if (batch.raca_details) {
-        Object.entries(batch.raca_details).forEach(([breed, qtyStr]) => {
-          const qty = Number(qtyStr) || 0;
+        Object.entries(batch.raca_details).forEach(([breed, val]) => {
+          const qty = typeof val === 'object' && val !== null ? (Number((val as any).quantity) || 0) : (Number(val) || 0);
           if (qty <= 0) return;
           const normR = initRaca(breed);
           racaMap[normR].incubated += qty;

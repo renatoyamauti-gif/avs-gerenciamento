@@ -4,6 +4,14 @@ import { Egg, Plus, Trash2, Clock, AlertCircle, CheckCircle2, Thermometer, Dropl
 import { dbService } from '../lib/dbService';
 import { useSubscription } from '../hooks/useSubscription';
 
+interface BreedStats {
+  quantity: number;
+  fertile?: number;
+  infertile?: number;
+  hatched?: number;
+  dead_in_shell?: number;
+}
+
 interface Batch {
   id: string;
   name: string;
@@ -14,7 +22,7 @@ interface Batch {
   hatched: number;
   dead_in_shell: number;
   baia_details?: Record<string, number>;
-  raca_details?: Record<string, number>;
+  raca_details?: Record<string, number | BreedStats>;
 }
 
 interface Incubator {
@@ -37,8 +45,43 @@ export default function Chocadeira() {
   const [uniqueBaias, setUniqueBaias] = useState<string[]>([]);
   const [uniqueRacas, setUniqueRacas] = useState<string[]>([]);
   const [modalBaias, setModalBaias] = useState<{ baia: string; quantity: number }[]>([]);
-  const [modalRacas, setModalRacas] = useState<{ raca: string; quantity: number }[]>([]);
+  const [modalRacas, setModalRacas] = useState<{
+    raca: string;
+    quantity: number;
+    fertile?: number;
+    infertile?: number;
+    hatched?: number;
+    dead_in_shell?: number;
+  }[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
+
+  const [batchFertile, setBatchFertile] = useState<number>(0);
+  const [batchInfertile, setBatchInfertile] = useState<number>(0);
+  const [batchHatched, setBatchHatched] = useState<number>(0);
+  const [batchDeadInShell, setBatchDeadInShell] = useState<number>(0);
+
+  const sumRacaStats = useMemo(() => {
+    let fertile = 0;
+    let infertile = 0;
+    let hatched = 0;
+    let dead_in_shell = 0;
+    modalRacas.forEach(r => {
+      fertile += r.fertile || 0;
+      infertile += r.infertile || 0;
+      hatched += r.hatched || 0;
+      dead_in_shell += r.dead_in_shell || 0;
+    });
+    return { fertile, infertile, hatched, dead_in_shell };
+  }, [modalRacas]);
+
+  useEffect(() => {
+    if (isEditingBatch && modalRacas.length > 0) {
+      setBatchFertile(sumRacaStats.fertile);
+      setBatchInfertile(sumRacaStats.infertile);
+      setBatchHatched(sumRacaStats.hatched);
+      setBatchDeadInShell(sumRacaStats.dead_in_shell);
+    }
+  }, [sumRacaStats, modalRacas.length, isEditingBatch]);
 
   useEffect(() => {
     loadIncubators();
@@ -90,11 +133,34 @@ export default function Chocadeira() {
       ? Object.entries(batch.baia_details).map(([baia, quantity]) => ({ baia, quantity }))
       : [];
     const initialRacas = batch.raca_details
-      ? Object.entries(batch.raca_details).map(([raca, quantity]) => ({ raca, quantity }))
+      ? Object.entries(batch.raca_details).map(([raca, val]) => {
+          if (typeof val === 'object' && val !== null) {
+            return {
+              raca,
+              quantity: val.quantity || 0,
+              fertile: val.fertile || 0,
+              infertile: val.infertile || 0,
+              hatched: val.hatched || 0,
+              dead_in_shell: val.dead_in_shell || 0,
+            };
+          }
+          return {
+            raca,
+            quantity: val || 0,
+            fertile: 0,
+            infertile: 0,
+            hatched: 0,
+            dead_in_shell: 0,
+          };
+        })
       : [];
     setModalBaias(initialBaias);
     setModalRacas(initialRacas);
     setTotalCount(batch.count || 0);
+    setBatchFertile(batch.fertile || 0);
+    setBatchInfertile(batch.infertile || 0);
+    setBatchHatched(batch.hatched || 0);
+    setBatchDeadInShell(batch.dead_in_shell || 0);
     setIsEditingBatch({ incubatorId, batch });
   };
 
@@ -137,10 +203,16 @@ export default function Chocadeira() {
       }
     });
 
-    const raca_details: Record<string, number> = {};
+    const raca_details: Record<string, any> = {};
     modalRacas.forEach(item => {
       if (item.raca) {
-        raca_details[item.raca] = (raca_details[item.raca] || 0) + item.quantity;
+        raca_details[item.raca] = {
+          quantity: item.quantity,
+          fertile: 0,
+          infertile: 0,
+          hatched: 0,
+          dead_in_shell: 0
+        };
       }
     });
 
@@ -188,10 +260,16 @@ export default function Chocadeira() {
       }
     });
 
-    const raca_details: Record<string, number> = {};
+    const raca_details: Record<string, any> = {};
     modalRacas.forEach(item => {
       if (item.raca) {
-        raca_details[item.raca] = (raca_details[item.raca] || 0) + item.quantity;
+        raca_details[item.raca] = {
+          quantity: item.quantity,
+          fertile: item.fertile || 0,
+          infertile: item.infertile || 0,
+          hatched: item.hatched || 0,
+          dead_in_shell: item.dead_in_shell || 0,
+        };
       }
     });
 
@@ -200,10 +278,10 @@ export default function Chocadeira() {
       incubator_id: isEditingBatch.incubatorId,
       name: formData.get('name') as string,
       count: totalCount || calculatedTotal || parseInt(formData.get('count') as string) || 0,
-      fertile: parseInt(formData.get('fertile') as string) || 0,
-      infertile: parseInt(formData.get('infertile') as string) || 0,
-      hatched: parseInt(formData.get('hatched') as string) || 0,
-      dead_in_shell: parseInt(formData.get('dead_in_shell') as string) || 0,
+      fertile: modalRacas.length > 0 ? sumRacaStats.fertile : (parseInt(formData.get('fertile') as string) || 0),
+      infertile: modalRacas.length > 0 ? sumRacaStats.infertile : (parseInt(formData.get('infertile') as string) || 0),
+      hatched: modalRacas.length > 0 ? sumRacaStats.hatched : (parseInt(formData.get('hatched') as string) || 0),
+      dead_in_shell: modalRacas.length > 0 ? sumRacaStats.dead_in_shell : (parseInt(formData.get('dead_in_shell') as string) || 0),
       start_date: newStartDate,
       baia_details,
       raca_details
@@ -377,11 +455,23 @@ export default function Chocadeira() {
                                     {baia}: {qty} ovos
                                   </span>
                                 ))}
-                                {batch.raca_details && Object.entries(batch.raca_details).map(([raca, qty]) => (
-                                  <span key={raca} className="bg-[#FAF5FF] text-purple-600 text-[10px] font-bold px-2 py-0.5 rounded-md border border-purple-200 uppercase">
-                                    {raca}: {qty} ovos
-                                  </span>
-                                ))}
+                                {batch.raca_details && Object.entries(batch.raca_details).map(([raca, val]) => {
+                                  const qty = typeof val === 'object' && val !== null ? (val as any).quantity : val;
+                                  const stats = typeof val === 'object' && val !== null ? (val as any) : null;
+                                  const hasStats = stats && (stats.fertile > 0 || stats.infertile > 0 || stats.hatched > 0 || stats.dead_in_shell > 0);
+                                  return (
+                                    <div key={raca} className="flex flex-col gap-0.5 bg-[#FAF5FF] px-2 py-1 rounded-md border border-purple-200 uppercase">
+                                      <span className="text-purple-600 text-[10px] font-bold leading-tight">
+                                        {raca}: {qty} ovos
+                                      </span>
+                                      {hasStats && (
+                                        <span className="text-[8px] text-slate-500 font-semibold normal-case leading-none">
+                                          F:{stats.fertile || 0} C:{stats.infertile || 0} N:{stats.hatched || 0} M:{stats.dead_in_shell || 0}
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>
@@ -545,7 +635,7 @@ export default function Chocadeira() {
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Composição por Raça</label>
                     <button 
                       type="button" 
-                      onClick={() => setModalRacas([...modalRacas, { raca: '', quantity: 1 }])}
+                      onClick={() => setModalRacas([...modalRacas, { raca: '', quantity: 1, fertile: 0, infertile: 0, hatched: 0, dead_in_shell: 0 }])}
                       className="text-[#2563EB] text-xs font-bold uppercase hover:underline tracking-widest"
                     >
                       + Adicionar Raça
@@ -710,52 +800,114 @@ export default function Chocadeira() {
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Composição por Raça</label>
                     <button 
                       type="button" 
-                      onClick={() => setModalRacas([...modalRacas, { raca: '', quantity: 1 }])}
+                      onClick={() => setModalRacas([...modalRacas, { raca: '', quantity: 1, fertile: 0, infertile: 0, hatched: 0, dead_in_shell: 0 }])}
                       className="text-[#2563EB] text-xs font-bold uppercase hover:underline tracking-widest"
                     >
                       + Adicionar Raça
                     </button>
                   </div>
                   {modalRacas.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100">
-                      <select
-                        value={item.raca}
-                        onChange={(e) => {
-                          const newRacas = [...modalRacas];
-                          newRacas[idx].raca = e.target.value;
-                          setModalRacas(newRacas);
-                        }}
-                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] outline-none"
-                        required
-                      >
-                        <option value="" disabled>Selecionar Raça</option>
-                        {uniqueRacas.map(raca => (
-                          <option key={raca} value={raca}>{raca}</option>
-                        ))}
-                        {!uniqueRacas.includes(item.raca) && item.raca && (
-                          <option value={item.raca}>{item.raca}</option>
-                        )}
-                      </select>
-                      <input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => {
-                          const newRacas = [...modalRacas];
-                          newRacas[idx].quantity = parseInt(e.target.value) || 0;
-                          setModalRacas(newRacas);
-                        }}
-                        placeholder="Qtd"
-                        className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-center font-bold text-[#1F2937] outline-none"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setModalRacas(modalRacas.filter((_, i) => i !== idx))}
-                        className="text-slate-400 hover:text-[#EF4444] p-1.5 hover:bg-[#FEF2F2] rounded-lg transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                    <div key={idx} className="bg-[#F8FAFC] p-4 rounded-2xl border border-slate-100 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <select
+                          value={item.raca}
+                          onChange={(e) => {
+                            const newRacas = [...modalRacas];
+                            newRacas[idx].raca = e.target.value;
+                            setModalRacas(newRacas);
+                          }}
+                          className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] outline-none"
+                          required
+                        >
+                          <option value="" disabled>Selecionar Raça</option>
+                          {uniqueRacas.map(raca => (
+                            <option key={raca} value={raca}>{raca}</option>
+                          ))}
+                          {!uniqueRacas.includes(item.raca) && item.raca && (
+                            <option value={item.raca}>{item.raca}</option>
+                          )}
+                        </select>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const newRacas = [...modalRacas];
+                            newRacas[idx].quantity = parseInt(e.target.value) || 0;
+                            setModalRacas(newRacas);
+                          }}
+                          placeholder="Qtd"
+                          className="w-20 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-center font-bold text-[#1F2937] outline-none"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setModalRacas(modalRacas.filter((_, i) => i !== idx))}
+                          className="text-slate-400 hover:text-[#EF4444] p-1.5 hover:bg-[#FEF2F2] rounded-lg transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+
+                      {/* Breed specific stats */}
+                      <div className="grid grid-cols-4 gap-2 pt-2 border-t border-dashed border-slate-200">
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-[#16A34A] uppercase tracking-widest ml-1">Fértil</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.fertile ?? 0}
+                            onChange={(e) => {
+                              const newRacas = [...modalRacas];
+                              newRacas[idx].fertile = parseInt(e.target.value) || 0;
+                              setModalRacas(newRacas);
+                            }}
+                            className="w-full bg-white border border-[#16A34A]/30 rounded-xl px-2 py-1 text-xs text-center font-semibold text-[#1F2937] outline-none focus:border-[#16A34A]"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest ml-1">Claro</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.infertile ?? 0}
+                            onChange={(e) => {
+                              const newRacas = [...modalRacas];
+                              newRacas[idx].infertile = parseInt(e.target.value) || 0;
+                              setModalRacas(newRacas);
+                            }}
+                            className="w-full bg-white border border-slate-200 rounded-xl px-2 py-1 text-xs text-center font-semibold text-[#1F2937] outline-none focus:border-[#2563EB]/50"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-[#2563EB] uppercase tracking-widest ml-1">Nasceu</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.hatched ?? 0}
+                            onChange={(e) => {
+                              const newRacas = [...modalRacas];
+                              newRacas[idx].hatched = parseInt(e.target.value) || 0;
+                              setModalRacas(newRacas);
+                            }}
+                            className="w-full bg-white border border-[#2563EB]/30 rounded-xl px-2 py-1 text-xs text-center font-semibold text-[#1F2937] outline-none focus:border-[#2563EB]"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-[#EF4444] uppercase tracking-widest ml-1">M. Casca</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.dead_in_shell ?? 0}
+                            onChange={(e) => {
+                              const newRacas = [...modalRacas];
+                              newRacas[idx].dead_in_shell = parseInt(e.target.value) || 0;
+                              setModalRacas(newRacas);
+                            }}
+                            className="w-full bg-white border border-[#EF4444]/30 rounded-xl px-2 py-1 text-xs text-center font-semibold text-[#1F2937] outline-none focus:border-[#EF4444]"
+                          />
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -790,20 +942,60 @@ export default function Chocadeira() {
 
                 <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-100">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-[#16A34A] uppercase tracking-widest ml-1">Ovos Férteis</label>
-                    <input name="fertile" defaultValue={isEditingBatch.batch.fertile} type="number" className="w-full bg-[#F8FAFC] border border-[#16A34A]/30 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#16A34A]/50 focus:ring-4 focus:ring-[#16A34A]/10 transition-all outline-none" />
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-[#16A34A] uppercase tracking-widest ml-1">Ovos Férteis</label>
+                      {modalRacas.length > 0 && <span className="text-[9px] font-bold text-purple-600 uppercase tracking-widest">Soma das raças</span>}
+                    </div>
+                    <input 
+                      name="fertile" 
+                      value={modalRacas.length > 0 ? sumRacaStats.fertile : batchFertile} 
+                      onChange={(e) => setBatchFertile(parseInt(e.target.value) || 0)} 
+                      disabled={modalRacas.length > 0} 
+                      type="number" 
+                      className={`w-full bg-[#F8FAFC] border border-[#16A34A]/30 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#16A34A]/50 focus:ring-4 focus:ring-[#16A34A]/10 transition-all outline-none ${modalRacas.length > 0 ? 'opacity-70 cursor-not-allowed bg-slate-50' : ''}`} 
+                    />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Ovos Claros</label>
-                    <input name="infertile" defaultValue={isEditingBatch.batch.infertile} type="number" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Ovos Claros</label>
+                      {modalRacas.length > 0 && <span className="text-[9px] font-bold text-purple-600 uppercase tracking-widest">Soma das raças</span>}
+                    </div>
+                    <input 
+                      name="infertile" 
+                      value={modalRacas.length > 0 ? sumRacaStats.infertile : batchInfertile} 
+                      onChange={(e) => setBatchInfertile(parseInt(e.target.value) || 0)} 
+                      disabled={modalRacas.length > 0} 
+                      type="number" 
+                      className={`w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none ${modalRacas.length > 0 ? 'opacity-70 cursor-not-allowed bg-slate-50' : ''}`} 
+                    />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-[#2563EB] uppercase tracking-widest ml-1">Nasceram</label>
-                    <input name="hatched" defaultValue={isEditingBatch.batch.hatched} type="number" className="w-full bg-[#F8FAFC] border border-[#2563EB]/30 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-[#2563EB] uppercase tracking-widest ml-1">Nasceram</label>
+                      {modalRacas.length > 0 && <span className="text-[9px] font-bold text-purple-600 uppercase tracking-widest">Soma das raças</span>}
+                    </div>
+                    <input 
+                      name="hatched" 
+                      value={modalRacas.length > 0 ? sumRacaStats.hatched : batchHatched} 
+                      onChange={(e) => setBatchHatched(parseInt(e.target.value) || 0)} 
+                      disabled={modalRacas.length > 0} 
+                      type="number" 
+                      className={`w-full bg-[#F8FAFC] border border-[#2563EB]/30 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none ${modalRacas.length > 0 ? 'opacity-70 cursor-not-allowed bg-slate-50' : ''}`} 
+                    />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-[#EF4444] uppercase tracking-widest ml-1">Morto na Casca</label>
-                    <input name="dead_in_shell" defaultValue={isEditingBatch.batch.dead_in_shell} type="number" className="w-full bg-[#F8FAFC] border border-[#EF4444]/30 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#EF4444]/50 focus:ring-4 focus:ring-[#EF4444]/10 transition-all outline-none" />
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-[#EF4444] uppercase tracking-widest ml-1">Morto na Casca</label>
+                      {modalRacas.length > 0 && <span className="text-[9px] font-bold text-purple-600 uppercase tracking-widest">Soma das raças</span>}
+                    </div>
+                    <input 
+                      name="dead_in_shell" 
+                      value={modalRacas.length > 0 ? sumRacaStats.dead_in_shell : batchDeadInShell} 
+                      onChange={(e) => setBatchDeadInShell(parseInt(e.target.value) || 0)} 
+                      disabled={modalRacas.length > 0} 
+                      type="number" 
+                      className={`w-full bg-[#F8FAFC] border border-[#EF4444]/30 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#EF4444]/50 focus:ring-4 focus:ring-[#EF4444]/10 transition-all outline-none ${modalRacas.length > 0 ? 'opacity-70 cursor-not-allowed bg-slate-50' : ''}`} 
+                    />
                   </div>
                 </div>
 
