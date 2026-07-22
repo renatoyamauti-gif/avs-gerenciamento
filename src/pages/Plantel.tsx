@@ -435,10 +435,21 @@ export default function Plantel() {
             <span className="text-[#16A34A] font-black text-xl">R$</span>
           </div>
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Custo Mensal (Total)</p>
-            <p className="text-xl sm:text-2xl font-black text-[#16A34A]">
-              R$ {totalMonthlyCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Custo Ração (Total)</p>
+            <div className="flex flex-col mt-0.5">
+              <div className="flex items-baseline gap-1 text-[#16A34A] text-xs font-bold uppercase">
+                <span className="text-slate-500 font-bold">Dia:</span>
+                <span className="font-black text-sm">
+                  R$ {(totalMonthlyCost / 30).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1 text-[#16A34A] text-xs font-bold uppercase">
+                <span className="text-slate-500 font-bold">Mês:</span>
+                <span className="font-black text-sm">
+                  R$ {totalMonthlyCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -620,9 +631,15 @@ export default function Plantel() {
                         </span>
                       </div>
                       {bird.monthly_feed_cost ? (
-                        <div className="text-[11px] font-bold text-[#16A34A] flex items-center gap-0.5 mt-0.5">
-                          <span>R$</span>
-                          <span>{bird.monthly_feed_cost.toFixed(2)}</span>
+                        <div className="flex flex-col gap-0.5 mt-1 border-t border-slate-100 pt-1">
+                          <div className="text-[10px] font-bold text-[#16A34A] flex items-center gap-1">
+                            <span className="text-[9px] text-slate-450 uppercase tracking-wider font-semibold">Custo/Dia:</span>
+                            <span>R$ {(bird.monthly_feed_cost / 30).toFixed(2)}</span>
+                          </div>
+                          <div className="text-[10px] font-bold text-[#16A34A] flex items-center gap-1">
+                            <span className="text-[9px] text-slate-450 uppercase tracking-wider font-semibold">Custo/Mês:</span>
+                            <span>R$ {bird.monthly_feed_cost.toFixed(2)}</span>
+                          </div>
                         </div>
                       ) : null}
                     </div>
@@ -716,13 +733,9 @@ export default function Plantel() {
               </div>
               
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-center">
+                <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-center col-span-2">
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Raça</p>
-                  <p className="text-xs font-semibold text-[#1F2937] truncate">{bird.raca}</p>
-                </div>
-                <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-center border-l-4 border-l-[#16A34A]">
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Custo Mensal</p>
-                  <p className="text-sm font-bold text-[#16A34A]">R$ {(bird.monthly_feed_cost || 0).toFixed(2)}</p>
+                  <p className="text-sm font-bold text-[#1F2937] truncate">{bird.raca}</p>
                 </div>
                 <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-center">
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Consumo Diário</p>
@@ -737,6 +750,14 @@ export default function Plantel() {
                       ? `${(bird.monthly_feed_grams / 1000).toFixed(2).replace(/\.00$/, '')} kg` 
                       : `${bird.monthly_feed_grams || 0} g`}
                   </p>
+                </div>
+                <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-center border-l-4 border-l-[#16A34A]">
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Custo Diário</p>
+                  <p className="text-sm font-bold text-[#16A34A]">R$ {((bird.monthly_feed_cost || 0) / 30).toFixed(2)}</p>
+                </div>
+                <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-center border-l-4 border-l-[#16A34A]">
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Custo Mensal</p>
+                  <p className="text-sm font-bold text-[#16A34A]">R$ {(bird.monthly_feed_cost || 0).toFixed(2)}</p>
                 </div>
               </div>
             </div>
