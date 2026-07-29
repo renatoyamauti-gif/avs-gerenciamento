@@ -17,6 +17,8 @@ interface Bird {
   monthly_feed_grams?: number;
   feed_recipe_id?: string;
   monthly_feed_cost?: number;
+  corn_daily_grams?: number;
+  corn_price_per_kg?: number;
   origin: 'Própria' | 'Adquirida';
   breeder_name?: string;
   acquisition_price?: number;
@@ -44,6 +46,8 @@ export default function Plantel() {
   const [birdOrigin, setBirdOrigin] = useState<'Própria' | 'Adquirida'>('Própria');
   const [selectedRecipePrice, setSelectedRecipePrice] = useState(0);
   const [monthlyGrams, setMonthlyGrams] = useState(0);
+  const [cornPrice, setCornPrice] = useState(0);
+  const [cornGrams, setCornGrams] = useState(0);
   const [formStatus, setFormStatus] = useState('Active');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [feedRecipeId, setFeedRecipeId] = useState<string>('');
@@ -144,12 +148,16 @@ export default function Plantel() {
       setImagePreview(editingBird.img_url || null);
       const recipe = recipes.find(r => r.id === editingBird.feed_recipe_id);
       setSelectedRecipePrice(recipe?.price_per_kg || 0);
+      setCornPrice(editingBird.corn_price_per_kg || 0);
+      setCornGrams(editingBird.corn_daily_grams || 0);
       loadBirdHistory(editingBird.id);
     } else {
       setActiveTab('dados');
       setBirdHistory([]);
       setIsAddingHistory(false);
       setEditingHistoryItem(null);
+      setCornPrice(0);
+      setCornGrams(0);
     }
   }, [editingBird, recipes]);
 
@@ -250,6 +258,8 @@ export default function Plantel() {
     const costPerKg = recipe?.price_per_kg || 0;
     const monthlyCost = (monthlyGramsStorage / 1000) * costPerKg;
     const status = formData.get('status') as string;
+    const cornDailyGrams = parseFloat(formData.get('cornDailyGrams') as string) || 0;
+    const cornPricePerKg = parseFloat(formData.get('cornPricePerKg') as string) || 0;
 
     const birdData: any = {
       id: editingBird?.id,
@@ -265,6 +275,8 @@ export default function Plantel() {
       monthly_feed_grams: monthlyGramsStorage,
       feed_recipe_id: recipeId || null,
       monthly_feed_cost: monthlyCost,
+      corn_daily_grams: cornDailyGrams,
+      corn_price_per_kg: cornPricePerKg,
       img_url: imagePreview || editingBird?.img_url || IMAGES.bird1,
       gender: formData.get('gender') as 'Macho' | 'Fêmea' || undefined,
       baia: formData.get('baia') as string || null,
@@ -298,6 +310,8 @@ export default function Plantel() {
       setBirdOrigin('Própria');
       setSelectedRecipePrice(0);
       setMonthlyGrams(0);
+      setCornPrice(0);
+      setCornGrams(0);
       setFormStatus('Active');
       setImagePreview(null);
       setFeedRecipeId('');
@@ -331,6 +345,12 @@ export default function Plantel() {
   const totalBirds = activeBirds.length;
   const totalMonthlyWeight = activeBirds.reduce((acc, b) => acc + (b.monthly_feed_grams || 0), 0);
   const totalMonthlyCost = activeBirds.reduce((acc, b) => acc + (b.monthly_feed_cost || 0), 0);
+  const totalMonthlyCorn = activeBirds.reduce((acc, b) => acc + ((b.corn_daily_grams || 0) * 30), 0);
+  const totalMonthlyCornCost = activeBirds.reduce((acc, b) => {
+    const monthlyCornGrams = (b.corn_daily_grams || 0) * 30;
+    const cornCost = (monthlyCornGrams / 1000) * (b.corn_price_per_kg || 0);
+    return acc + cornCost;
+  }, 0);
 
   if (loading) {
     return (
@@ -411,20 +431,35 @@ export default function Plantel() {
           <div className="bg-[#DCFCE7] p-4 rounded-2xl border border-[#BBF7D0] shrink-0">
             <Info className="text-[#16A34A]" size={24} />
           </div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Consumo Ração (Total)</p>
-            <div className="flex flex-col mt-0.5">
-              <div className="flex items-baseline gap-1 text-slate-500 text-xs font-bold uppercase">
-                <span>Dia:</span>
-                <span className="text-[#1F2937] font-black text-sm">
-                  {(totalMonthlyWeight / 30) >= 1000 ? `${(totalMonthlyWeight / 30 / 1000).toFixed(2)} kg` : `${(totalMonthlyWeight / 30).toFixed(0)} g`}
-                </span>
+          <div className="w-full">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Consumo Alimento (Total)</p>
+            <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-xs">
+              <div></div>
+              <div className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Dia</div>
+              <div className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Mês</div>
+              
+              <div className="text-slate-500 font-semibold">Ração:</div>
+              <div className="font-bold text-[#1F2937]">
+                {(totalMonthlyWeight / 30) >= 1000 ? `${(totalMonthlyWeight / 30 / 1000).toFixed(2)} kg` : `${(totalMonthlyWeight / 30).toFixed(0)} g`}
               </div>
-              <div className="flex items-baseline gap-1 text-slate-500 text-xs font-bold uppercase">
-                <span>Mês:</span>
-                <span className="text-[#1F2937] font-black text-sm">
-                  {totalMonthlyWeight >= 1000 ? `${(totalMonthlyWeight / 1000).toFixed(2)} kg` : `${totalMonthlyWeight} g`}
-                </span>
+              <div className="font-bold text-[#1F2937]">
+                {totalMonthlyWeight >= 1000 ? `${(totalMonthlyWeight / 1000).toFixed(2)} kg` : `${totalMonthlyWeight} g`}
+              </div>
+              
+              <div className="text-slate-500 font-semibold">Milho:</div>
+              <div className="font-bold text-[#1F2937]">
+                {(totalMonthlyCorn / 30) >= 1000 ? `${(totalMonthlyCorn / 30 / 1000).toFixed(2)} kg` : `${(totalMonthlyCorn / 30).toFixed(0)} g`}
+              </div>
+              <div className="font-bold text-[#1F2937]">
+                {totalMonthlyCorn >= 1000 ? `${(totalMonthlyCorn / 1000).toFixed(2)} kg` : `${totalMonthlyCorn} g`}
+              </div>
+
+              <div className="text-slate-500 font-bold border-t border-slate-100 pt-1 mt-0.5">Total:</div>
+              <div className="font-black text-[#2563EB] border-t border-slate-100 pt-1 mt-0.5">
+                {((totalMonthlyWeight + totalMonthlyCorn) / 30) >= 1000 ? `${((totalMonthlyWeight + totalMonthlyCorn) / 30 / 1000).toFixed(2)} kg` : `${((totalMonthlyWeight + totalMonthlyCorn) / 30).toFixed(0)} g`}
+              </div>
+              <div className="font-black text-[#2563EB] border-t border-slate-100 pt-1 mt-0.5">
+                {(totalMonthlyWeight + totalMonthlyCorn) >= 1000 ? `${((totalMonthlyWeight + totalMonthlyCorn) / 1000).toFixed(2)} kg` : `${(totalMonthlyWeight + totalMonthlyCorn)} g`}
               </div>
             </div>
           </div>
@@ -434,20 +469,35 @@ export default function Plantel() {
           <div className="bg-[#DCFCE7] p-4 rounded-2xl border border-[#BBF7D0] shrink-0">
             <span className="text-[#16A34A] font-black text-xl">R$</span>
           </div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Custo Ração (Total)</p>
-            <div className="flex flex-col mt-0.5">
-              <div className="flex items-baseline gap-1 text-[#16A34A] text-xs font-bold uppercase">
-                <span className="text-slate-500 font-bold">Dia:</span>
-                <span className="font-black text-sm">
-                  R$ {(totalMonthlyCost / 30).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+          <div className="w-full">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Custo Alimento (Total)</p>
+            <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-xs">
+              <div></div>
+              <div className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Dia</div>
+              <div className="font-bold text-[10px] text-slate-400 uppercase tracking-wider">Mês</div>
+
+              <div className="text-slate-500 font-semibold">Ração:</div>
+              <div className="font-bold text-[#16A34A]">
+                R$ {(totalMonthlyCost / 30).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
-              <div className="flex items-baseline gap-1 text-[#16A34A] text-xs font-bold uppercase">
-                <span className="text-slate-500 font-bold">Mês:</span>
-                <span className="font-black text-sm">
-                  R$ {totalMonthlyCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+              <div className="font-bold text-[#16A34A]">
+                R$ {totalMonthlyCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+
+              <div className="text-slate-500 font-semibold">Milho:</div>
+              <div className="font-bold text-[#16A34A]">
+                R$ {(totalMonthlyCornCost / 30).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <div className="font-bold text-[#16A34A]">
+                R$ {totalMonthlyCornCost.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+
+              <div className="text-slate-500 font-bold border-t border-slate-100 pt-1 mt-0.5">Total:</div>
+              <div className="font-black text-[#16A34A] border-t border-slate-100 pt-1 mt-0.5">
+                R$ {((totalMonthlyCost + totalMonthlyCornCost) / 30).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <div className="font-black text-[#16A34A] border-t border-slate-100 pt-1 mt-0.5">
+                R$ {(totalMonthlyCost + totalMonthlyCornCost).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
           </div>
@@ -572,7 +622,7 @@ export default function Plantel() {
                 <th className="px-6 py-4">Ave</th>
                 <th className="px-6 py-4">Anilha</th>
                 <th className="px-6 py-4">Raça</th>
-                <th className="px-6 py-4">Consumo Ração</th>
+                <th className="px-6 py-4">Alimentação</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Ações</th>
               </tr>
@@ -617,29 +667,63 @@ export default function Plantel() {
                     {bird.raca}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1 text-xs">
-                      <div className="flex items-center gap-1 font-semibold text-slate-700">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Diário:</span>
-                        <span>{((bird.monthly_feed_grams || 0) / 30).toFixed(0)}g</span>
-                      </div>
-                      <div className="flex items-center gap-1 font-semibold text-slate-700">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Mensal:</span>
-                        <span>
-                          {bird.monthly_feed_grams && bird.monthly_feed_grams >= 1000 
-                            ? `${(bird.monthly_feed_grams / 1000).toFixed(2).replace(/\.00$/, '')} kg` 
-                            : `${bird.monthly_feed_grams || 0} g`}
-                        </span>
-                      </div>
-                      {bird.monthly_feed_cost ? (
-                        <div className="flex flex-col gap-0.5 mt-1 border-t border-slate-100 pt-1">
+                    <div className="flex flex-col gap-2 text-xs">
+                      {/* Ração Section */}
+                      <div className="space-y-0.5 border-b border-slate-100 pb-1">
+                        <span className="text-[9px] text-[#2563EB] font-bold uppercase tracking-wider">Ração</span>
+                        <div className="flex items-center gap-1 font-semibold text-slate-700">
+                          <span className="text-[10px] text-slate-400 font-medium">Dia:</span>
+                          <span>{((bird.monthly_feed_grams || 0) / 30).toFixed(0)}g</span>
+                        </div>
+                        <div className="flex items-center gap-1 font-semibold text-slate-700">
+                          <span className="text-[10px] text-slate-400 font-medium">Mês:</span>
+                          <span>
+                            {bird.monthly_feed_grams && bird.monthly_feed_grams >= 1000 
+                              ? `${(bird.monthly_feed_grams / 1000).toFixed(2).replace(/\.00$/, '')} kg` 
+                              : `${bird.monthly_feed_grams || 0} g`}
+                          </span>
+                        </div>
+                        {bird.monthly_feed_cost ? (
                           <div className="text-[10px] font-bold text-[#16A34A] flex items-center gap-1">
-                            <span className="text-[9px] text-slate-450 uppercase tracking-wider font-semibold">Custo/Dia:</span>
-                            <span>R$ {(bird.monthly_feed_cost / 30).toFixed(2)}</span>
+                            <span className="text-[9px] text-slate-400 font-medium">Custo:</span>
+                            <span>R$ {bird.monthly_feed_cost.toFixed(2)}/mês</span>
                           </div>
+                        ) : null}
+                      </div>
+
+                      {/* Milho Section */}
+                      <div className="space-y-0.5">
+                        <span className="text-[9px] text-[#D97706] font-bold uppercase tracking-wider">Milho</span>
+                        <div className="flex items-center gap-1 font-semibold text-slate-700">
+                          <span className="text-[10px] text-slate-400 font-medium">Dia:</span>
+                          <span>{(bird.corn_daily_grams || 0).toFixed(0)}g</span>
+                        </div>
+                        <div className="flex items-center gap-1 font-semibold text-slate-700">
+                          <span className="text-[10px] text-slate-400 font-medium">Mês:</span>
+                          <span>
+                            {((bird.corn_daily_grams || 0) * 30) >= 1000 
+                              ? `${(((bird.corn_daily_grams || 0) * 30) / 1000).toFixed(2).replace(/\.00$/, '')} kg` 
+                              : `${((bird.corn_daily_grams || 0) * 30)} g`}
+                          </span>
+                        </div>
+                        {bird.corn_price_per_kg && bird.corn_daily_grams ? (
                           <div className="text-[10px] font-bold text-[#16A34A] flex items-center gap-1">
-                            <span className="text-[9px] text-slate-450 uppercase tracking-wider font-semibold">Custo/Mês:</span>
-                            <span>R$ {bird.monthly_feed_cost.toFixed(2)}</span>
+                            <span className="text-[9px] text-slate-400 font-medium">Custo:</span>
+                            <span>R$ {(((bird.corn_daily_grams * 30) / 1000) * bird.corn_price_per_kg).toFixed(2)}/mês</span>
                           </div>
+                        ) : null}
+                      </div>
+
+                      {/* Total cost for this bird */}
+                      {(bird.monthly_feed_cost || (bird.corn_price_per_kg && bird.corn_daily_grams)) ? (
+                        <div className="border-t border-slate-200 pt-1 mt-1 font-black text-[#16A34A] text-xs flex justify-between">
+                          <span className="text-slate-400 uppercase tracking-widest text-[9px] font-bold">Total:</span>
+                          <span>
+                            R$ {(
+                              (bird.monthly_feed_cost || 0) + 
+                              (((bird.corn_daily_grams || 0) * 30 / 1000) * (bird.corn_price_per_kg || 0))
+                            ).toFixed(2)}/mês
+                          </span>
                         </div>
                       ) : null}
                     </div>
@@ -737,28 +821,59 @@ export default function Plantel() {
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Raça</p>
                   <p className="text-sm font-bold text-[#1F2937] truncate">{bird.raca}</p>
                 </div>
+
+                {/* Ração Card */}
                 <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-center">
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Consumo Diário</p>
-                  <p className="text-xs font-bold text-[#1F2937]">
-                    {((bird.monthly_feed_grams || 0) / 30).toFixed(0)} g
-                  </p>
+                  <p className="text-[9px] font-bold text-[#2563EB] uppercase tracking-widest mb-1">Ração</p>
+                  <div className="space-y-0.5 text-xs text-[#1F2937] font-semibold">
+                    <div>Dia: <span className="font-bold">{((bird.monthly_feed_grams || 0) / 30).toFixed(0)}g</span></div>
+                    <div>Mês: <span className="font-bold">
+                      {bird.monthly_feed_grams && bird.monthly_feed_grams >= 1000 
+                        ? `${(bird.monthly_feed_grams / 1000).toFixed(2).replace(/\.00$/, '')} kg` 
+                        : `${bird.monthly_feed_grams || 0} g`}
+                    </span></div>
+                    {bird.monthly_feed_cost ? <div className="text-[10px] text-[#16A34A] font-bold">R$ {bird.monthly_feed_cost.toFixed(2)}/mês</div> : null}
+                  </div>
                 </div>
+
+                {/* Milho Card */}
                 <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-center">
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Consumo Mensal</p>
-                  <p className="text-xs font-bold text-[#1F2937]">
-                    {bird.monthly_feed_grams && bird.monthly_feed_grams >= 1000 
-                      ? `${(bird.monthly_feed_grams / 1000).toFixed(2).replace(/\.00$/, '')} kg` 
-                      : `${bird.monthly_feed_grams || 0} g`}
-                  </p>
+                  <p className="text-[9px] font-bold text-[#D97706] uppercase tracking-widest mb-1">Milho</p>
+                  <div className="space-y-0.5 text-xs text-[#1F2937] font-semibold">
+                    <div>Dia: <span className="font-bold">{(bird.corn_daily_grams || 0).toFixed(0)}g</span></div>
+                    <div>Mês: <span className="font-bold">
+                      {((bird.corn_daily_grams || 0) * 30) >= 1000 
+                        ? `${(((bird.corn_daily_grams || 0) * 30) / 1000).toFixed(2).replace(/\.00$/, '')} kg` 
+                        : `${((bird.corn_daily_grams || 0) * 30)} g`}
+                    </span></div>
+                    {bird.corn_price_per_kg && bird.corn_daily_grams ? (
+                      <div className="text-[10px] text-[#16A34A] font-bold">
+                        R$ {(((bird.corn_daily_grams * 30) / 1000) * bird.corn_price_per_kg).toFixed(2)}/mês
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-center border-l-4 border-l-[#16A34A]">
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Custo Diário</p>
-                  <p className="text-sm font-bold text-[#16A34A]">R$ {((bird.monthly_feed_cost || 0) / 30).toFixed(2)}</p>
-                </div>
-                <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-center border-l-4 border-l-[#16A34A]">
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Custo Mensal</p>
-                  <p className="text-sm font-bold text-[#16A34A]">R$ {(bird.monthly_feed_cost || 0).toFixed(2)}</p>
-                </div>
+
+                {/* Combined Total Feed Cost Card */}
+                {(bird.monthly_feed_cost || (bird.corn_price_per_kg && bird.corn_daily_grams)) ? (
+                  <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex justify-between items-center col-span-2 border-l-4 border-l-[#16A34A]">
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Custo Total de Alimentação</p>
+                      <p className="text-[10px] text-slate-500 font-bold">
+                        Dia: R$ {(
+                          ((bird.monthly_feed_cost || 0) / 30) + 
+                          (((bird.corn_daily_grams || 0) / 1000) * (bird.corn_price_per_kg || 0))
+                        ).toFixed(2)}
+                      </p>
+                    </div>
+                    <p className="text-sm font-black text-[#16A34A]">
+                      R$ {(
+                        (bird.monthly_feed_cost || 0) + 
+                        (((bird.corn_daily_grams || 0) * 30 / 1000) * (bird.corn_price_per_kg || 0))
+                      ).toFixed(2)} <span className="text-[10px] font-bold text-slate-400">/ MÊS</span>
+                    </p>
+                  </div>
+                ) : null}
               </div>
             </div>
           ))}
@@ -1135,7 +1250,7 @@ export default function Plantel() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Consumo Diário (gramas)</label>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Consumo Diário Ração (gramas)</label>
                       <input 
                         name="dailyFeedGrams" 
                         defaultValue={editingBird ? (editingBird.monthly_feed_grams || 0) / 30 : ''}
@@ -1147,15 +1262,73 @@ export default function Plantel() {
                       />
                     </div>
                   </div>
-                  {monthlyGrams > 0 && selectedRecipePrice > 0 && (
-                    <div className="bg-[#EFF6FF] px-4 py-3 rounded-2xl border border-[#DBEAFE] flex flex-col gap-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-[#2563EB] uppercase tracking-widest">Consumo Mensal Estimado:</span>
-                        <span className="text-sm font-black text-[#1F2937]">{(monthlyGrams).toFixed(0)}g</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-[#2563EB] uppercase tracking-widest">Custo Mensal Estimado:</span>
-                        <span className="text-sm font-black text-[#16A34A]">R$ {((monthlyGrams / 1000) * selectedRecipePrice).toFixed(2)}</span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Preço do Milho por KG (R$)</label>
+                      <input 
+                        name="cornPricePerKg" 
+                        defaultValue={editingBird?.corn_price_per_kg ?? ''}
+                        type="number" 
+                        step="any"
+                        placeholder="Ex: 2.50" 
+                        onChange={(e) => setCornPrice(parseFloat(e.target.value) || 0)}
+                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Consumo Diário Milho (gramas)</label>
+                      <input 
+                        name="cornDailyGrams" 
+                        defaultValue={editingBird?.corn_daily_grams ?? ''}
+                        type="number" 
+                        step="any"
+                        placeholder="Ex: 20" 
+                        onChange={(e) => setCornGrams(parseFloat(e.target.value) || 0)}
+                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                      />
+                    </div>
+                  </div>
+
+                  {((monthlyGrams > 0 && selectedRecipePrice > 0) || (cornGrams > 0 && cornPrice > 0)) && (
+                    <div className="bg-[#EFF6FF] px-4 py-3 rounded-2xl border border-[#DBEAFE] flex flex-col gap-2 text-xs">
+                      {monthlyGrams > 0 && selectedRecipePrice > 0 && (
+                        <div className="border-b border-[#DBEAFE]/60 pb-1.5 space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-[#2563EB] uppercase tracking-widest text-[10px]">Ração Mensal:</span>
+                            <span className="font-black text-[#1F2937]">{monthlyGrams.toFixed(0)}g</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-[#2563EB] uppercase tracking-widest text-[10px]">Ração Custo:</span>
+                            <span className="font-black text-[#16A34A]">R$ {((monthlyGrams / 1000) * selectedRecipePrice).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {cornGrams > 0 && cornPrice > 0 && (
+                        <div className="border-b border-[#DBEAFE]/60 pb-1.5 space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-[#2563EB] uppercase tracking-widest text-[10px]">Milho Mensal:</span>
+                            <span className="font-black text-[#1F2937]">{((cornGrams * 30)).toFixed(0)}g</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-[#2563EB] uppercase tracking-widest text-[10px]">Milho Custo:</span>
+                            <span className="font-black text-[#16A34A]">R$ {(((cornGrams * 30) / 1000) * cornPrice).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-1 font-bold">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[#2563EB] uppercase tracking-widest text-[10px]">Consumo Total:</span>
+                          <span className="text-[#1F2937] font-black">{((monthlyGrams + (cornGrams * 30))).toFixed(0)}g</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[#2563EB] uppercase tracking-widest text-[10px]">Custo Total:</span>
+                          <span className="text-[#16A34A] font-black">
+                            R$ {(((monthlyGrams / 1000) * selectedRecipePrice) + (((cornGrams * 30) / 1000) * cornPrice)).toFixed(2)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   )}
