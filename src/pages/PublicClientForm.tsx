@@ -123,7 +123,7 @@ export default function PublicClientForm() {
           postal_code: postalCode.replace(/\D/g, ''),
           address: address.trim(),
           number: number.trim(),
-          complement: complement.trim() || null,
+          complemento: complement.trim() || null,
           district: district.trim(),
           city: city.trim(),
           state: state.trim().toUpperCase(),
