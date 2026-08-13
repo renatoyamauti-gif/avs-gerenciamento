@@ -16,7 +16,9 @@ import {
   Lock, 
   Plus, 
   X,
-  Edit2
+  Edit2,
+  Link,
+  Share2
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { supabase } from '../lib/supabaseClient';
@@ -473,18 +475,63 @@ export default function Settings() {
                 </div>
 
                 {profile?.role !== 'tratador' && (
-                  <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Termos e Condições de Envio</label>
-                    <textarea 
-                      name="shipping_terms" 
-                      rows={5}
-                      defaultValue={profile?.shipping_terms || ''}
-                      placeholder="Descreva as condições de envio do seu criatório. Esse texto será exibido para seus clientes no formulário público."
-                      className="w-full bg-[#F8FAFC] dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-[#1F2937] dark:text-slate-100 font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none text-sm leading-relaxed" 
-                    />
-                    <p className="text-xs text-slate-400 mt-1 font-medium ml-1">
-                      Estes termos serão exibidos na página de cadastro público que você envia para os seus clientes.
-                    </p>
+                  <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Termos e Condições de Envio</label>
+                      <textarea 
+                        name="shipping_terms" 
+                        rows={5}
+                        defaultValue={profile?.shipping_terms || ''}
+                        placeholder="Descreva as condições de envio do seu criatório. Esse texto será exibido para seus clientes no formulário público."
+                        className="w-full bg-[#F8FAFC] dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-[#1F2937] dark:text-slate-100 font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none text-sm leading-relaxed" 
+                      />
+                      <p className="text-xs text-slate-400 mt-1 font-medium ml-1">
+                        Estes termos serão exibidos na página de cadastro público que você envia para os seus clientes.
+                      </p>
+                    </div>
+
+                    <div className="p-5 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100/50 dark:border-blue-900/30 rounded-2xl space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Link size={16} className="text-[#2563EB] dark:text-blue-400" />
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Formulário Público de Cadastro</span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                        Use o link abaixo para que seus clientes preencham os próprios dados de endereço e aceitem as condições de envio descritas acima. Os dados serão salvos automaticamente na sua conta.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                        <input 
+                          readOnly
+                          type="text" 
+                          value={`${window.location.protocol}//${window.location.host}/cadastro-cliente/${profile?.id}`}
+                          className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-4 py-2.5 text-xs text-slate-600 dark:text-slate-350 focus:outline-none flex-1 font-mono select-all shadow-sm"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const url = `${window.location.protocol}//${window.location.host}/cadastro-cliente/${profile?.id}`;
+                              navigator.clipboard.writeText(url);
+                              alert('Link copiado para a área de transferência!');
+                            }}
+                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm flex-1 sm:flex-initial text-center"
+                          >
+                            Copiar Link
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const url = `${window.location.protocol}//${window.location.host}/cadastro-cliente/${profile?.id}`;
+                              const text = `Olá! Por favor, clique no link abaixo para preencher os seus dados de endereço de entrega e aceitar as condições de envio:\n\n${url}`;
+                              const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+                              window.open(whatsappUrl, '_blank');
+                            }}
+                            className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm flex-1 sm:flex-initial text-center flex items-center justify-center gap-1.5"
+                          >
+                            <Share2 size={12} /> WhatsApp
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
