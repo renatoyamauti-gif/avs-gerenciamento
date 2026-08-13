@@ -29,7 +29,9 @@ import {
   Check,
   ClipboardList,
   Tag,
-  Download
+  Download,
+  Link,
+  Share2
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { calculateEggStock, normalizeBreed, normalizeBaia } from '../lib/stockHelper';
@@ -2091,26 +2093,61 @@ export default function Remessas() {
               className="w-full max-w-md bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-sm text-[#1F2937] outline-none focus:border-[#2563EB]/50 focus:bg-white focus:ring-4 focus:ring-[#2563EB]/5 transition-all"
             />
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setClientName('');
-              setClientCpf('');
-              setClientPhone('');
-              setClientEmail('');
-              setClientPostalCode('');
-              setClientAddress('');
-              setClientNumber('');
-              setClientDistrict('');
-              setClientCity('');
-              setClientState('');
-              setEditingClient(null);
-              setIsAddingClient(true);
-            }}
-            className="bg-[#2563EB] text-white py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-sm hover:bg-[#1D4ED8] active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            <Plus size={14} /> Cadastrar Cliente
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (!profile?.id) {
+                  alert('Carregando informações do perfil. Tente novamente em instantes.');
+                  return;
+                }
+                const url = `${window.location.protocol}//${window.location.host}/cadastro-cliente/${profile.id}`;
+                navigator.clipboard.writeText(url);
+                alert('Link do formulário copiado para a área de transferência!');
+              }}
+              className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-350 border border-slate-200 dark:border-slate-800 py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+              title="Copiar link para o cliente preencher o endereço"
+            >
+              <Link size={14} /> Copiar Link
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!profile?.id) {
+                  alert('Carregando informações do perfil. Tente novamente em instantes.');
+                  return;
+                }
+                const url = `${window.location.protocol}//${window.location.host}/cadastro-cliente/${profile.id}`;
+                const text = `Olá! Por favor, clique no link abaixo para preencher os seus dados de endereço de entrega e aceitar as condições de envio:\n\n${url}`;
+                const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+                window.open(whatsappUrl, '_blank');
+              }}
+              className="bg-[#EFF6FF] text-[#2563EB] dark:bg-blue-950/30 dark:text-blue-400 border border-[#DBEAFE] dark:border-blue-900/30 py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-[#DBEAFE] dark:hover:bg-blue-950/50 transition-all flex items-center justify-center gap-2"
+              title="Compartilhar link de cadastro no WhatsApp"
+            >
+              <Share2 size={14} /> WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setClientName('');
+                setClientCpf('');
+                setClientPhone('');
+                setClientEmail('');
+                setClientPostalCode('');
+                setClientAddress('');
+                setClientNumber('');
+                setClientDistrict('');
+                setClientCity('');
+                setClientState('');
+                setEditingClient(null);
+                setIsAddingClient(true);
+              }}
+              className="bg-[#2563EB] text-white py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-sm hover:bg-[#1D4ED8] active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <Plus size={14} /> Cadastrar Cliente
+            </button>
+          </div>
         </div>
 
         {filteredClients.length === 0 ? (
@@ -2128,6 +2165,7 @@ export default function Remessas() {
                     <th scope="col" className="px-6 py-4">Contato</th>
                     <th scope="col" className="px-6 py-4">CPF / CNPJ</th>
                     <th scope="col" className="px-6 py-4">Endereço de Entrega</th>
+                    <th scope="col" className="px-6 py-4">Termos</th>
                     <th scope="col" className="px-6 py-4 text-right">Ações</th>
                   </tr>
                 </thead>
@@ -2143,6 +2181,22 @@ export default function Remessas() {
                       <td className="px-6 py-4 text-xs text-slate-600 leading-normal">
                         <div>{client.address}, {client.number}</div>
                         <div className="text-[10px] text-slate-400">{client.district} - {client.city}/{client.state} - CEP: {client.postal_code}</div>
+                      </td>
+                      <td className="px-6 py-4 text-xs">
+                        {client.terms_accepted ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="inline-flex items-center gap-1 font-bold text-green-600 dark:text-green-400">
+                              <CheckCircle2 size={12} className="stroke-[2.5]" /> Aceitou Termos
+                            </span>
+                            {client.terms_accepted_at && (
+                              <span className="text-[9px] font-medium text-slate-400 dark:text-slate-500">
+                                {new Date(client.terms_accepted_at).toLocaleDateString('pt-BR')} {new Date(client.terms_accepted_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-500 font-semibold italic">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">

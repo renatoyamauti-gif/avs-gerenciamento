@@ -6,3 +6,11 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Scratch and test files
+scratch/
+test_*.js
+test_*.ts
+
+# Supabase temporary files
+supabase/.temp/

@@ -22,6 +22,7 @@ import SettingsPage from './pages/Settings';
 import Chat from './pages/Chat';
 import Subscription from './pages/Subscription';
 import BreedingLineage from './pages/BreedingLineage';
+import PublicClientForm from './pages/PublicClientForm';
 import Auth from './components/Auth';
 import BottomNav from './components/BottomNav';
 import { supabase } from './lib/supabaseClient';
@@ -125,7 +126,9 @@ export default function App() {
     );
   }
 
-  if (!session) {
+  const isPublicRoute = window.location.pathname.startsWith('/cadastro-cliente');
+
+  if (!session && !isPublicRoute) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex items-center justify-center p-4 transition-colors">
         <Auth />
@@ -142,11 +145,11 @@ export default function App() {
   return (
     <Router>
       <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex flex-col lg:flex-row pb-16 lg:pb-0 transition-colors duration-200">
-        {!isLocked && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} profile={profile} />}
+        {!isPublicRoute && !isLocked && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} profile={profile} />}
         
-        <main className={`flex-1 min-h-screen relative transition-all ${!isLocked ? 'lg:ml-64' : ''}`}>
+        <main className={`flex-1 min-h-screen relative transition-all ${(!isLocked && !isPublicRoute) ? 'lg:ml-64' : ''}`}>
           {/* Mobile Header */}
-          {!isLocked && (
+          {!isPublicRoute && !isLocked && (
             <div className="lg:hidden fixed top-0 left-0 w-full bg-[#2563EB] h-16 z-40 flex items-center justify-between px-6 shadow-md">
               <div className="text-2xl font-black text-white font-headline tracking-tighter italic">
                 AVS <span className="text-[8px] text-[#DBEAFE] tracking-[0.2em] uppercase">GERENCIAMENTO</span>
@@ -170,15 +173,15 @@ export default function App() {
           )}
 
           {/* Desktop Header is imported here */}
-          {!isLocked && (
+          {!isPublicRoute && !isLocked && (
             <div className="hidden lg:block">
               <Header />
             </div>
           )}
-          <div className={`pb-12 px-4 sm:px-6 lg:px-10 max-w-7xl mx-auto ${!isLocked ? 'pt-24 lg:pt-28' : 'pt-10'}`}>
+          <div className={`pb-12 px-4 sm:px-6 lg:px-10 max-w-7xl mx-auto ${(!isLocked && !isPublicRoute) ? 'pt-24 lg:pt-28' : 'pt-10'}`}>
             
             {/* Banner de Trial */}
-            {!isLocked && isTrialActive && plan === 'free' && (
+            {!isPublicRoute && !isLocked && isTrialActive && plan === 'free' && (
               <div className="mb-6 bg-gradient-to-r from-amber-400 to-amber-600 text-white p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg shadow-amber-500/20">
                 <div className="flex items-center gap-3">
                   <div className="bg-white/20 p-2 rounded-full">
@@ -201,7 +204,7 @@ export default function App() {
             )}
             
             {/* Boas-vindas Simplificado conforme solicitado no mockup */}
-            {!isLocked && (
+            {!isPublicRoute && !isLocked && (
             <motion.div 
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -230,7 +233,12 @@ export default function App() {
             )}
 
             <AnimatePresence mode="wait">
-              {isLocked ? (
+              {isPublicRoute ? (
+                <Routes>
+                  <Route path="/cadastro-cliente/:userId" element={<PublicClientForm />} />
+                  <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+              ) : isLocked ? (
                 <Routes>
                   <Route path="/subscription" element={<Subscription />} />
                   <Route path="*" element={<Navigate to="/subscription" />} />
@@ -255,19 +263,21 @@ export default function App() {
               )}
             </AnimatePresence>
 
-            <footer className="pt-12 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center text-[10px] sm:text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-[0.1em] mt-20 gap-4 text-center sm:text-left mb-6 transition-colors duration-200">
-              <div>2026  AVS GERENCIAMENTO, CRIADO E DESENVOLVIDO POR CRIATÓRIO SITIEIRO - TODOS OS DIREITOS RESERVADOS.</div>
-              <div className="flex flex-wrap justify-center gap-4 sm:gap-8">
-                <a href="#" className="hover:text-[#2563EB] transition-colors">Política de Privacidade</a>
-                <a href="#" className="hover:text-[#2563EB] transition-colors">Termos de Uso</a>
-                <a href="#" className="hover:text-[#2563EB] transition-colors">Suporte</a>
-              </div>
-            </footer>
+            {!isPublicRoute && (
+              <footer className="pt-12 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center text-[10px] sm:text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-[0.1em] mt-20 gap-4 text-center sm:text-left mb-6 transition-colors duration-200">
+                <div>2026  AVS GERENCIAMENTO, CRIADO E DESENVOLVIDO POR CRIATÓRIO SITIEIRO - TODOS OS DIREITOS RESERVADOS.</div>
+                <div className="flex flex-wrap justify-center gap-4 sm:gap-8">
+                  <a href="#" className="hover:text-[#2563EB] transition-colors">Política de Privacidade</a>
+                  <a href="#" className="hover:text-[#2563EB] transition-colors">Termos de Uso</a>
+                  <a href="#" className="hover:text-[#2563EB] transition-colors">Suporte</a>
+                </div>
+              </footer>
+            )}
           </div>
         </main>
         
         {/* Bottom Navigation for Mobile */}
-        {!isLocked && <BottomNav onOpenMenu={() => setIsSidebarOpen(true)} profile={profile} />}
+        {!isPublicRoute && !isLocked && <BottomNav onOpenMenu={() => setIsSidebarOpen(true)} profile={profile} />}
       </div>
     </Router>
   );
