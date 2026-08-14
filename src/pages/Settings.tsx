@@ -515,9 +515,20 @@ export default function Settings() {
                               setCopied(true);
                               setTimeout(() => setCopied(false), 2000);
                             }}
-                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm flex-1 sm:flex-initial text-center"
+                            className={`font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm flex-1 sm:flex-initial text-center flex items-center justify-center gap-1.5 border ${
+                              copied
+                                ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900/30 text-green-600 dark:text-green-400'
+                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                            }`}
                           >
-                            Copiar Link
+                            {copied ? (
+                              <>
+                                <CheckCircle2 size={12} className="stroke-[2.5]" />
+                                Copiado!
+                              </>
+                            ) : (
+                              'Copiar Link'
+                            )}
                           </button>
                           <button
                             type="button"

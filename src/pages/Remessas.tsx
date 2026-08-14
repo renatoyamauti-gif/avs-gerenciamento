@@ -56,7 +56,8 @@ interface ShippingOption {
 export default function Remessas() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [copiedClients, setCopiedClients] = useState(false);
+  const [copiedOrders, setCopiedOrders] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   
   // Settings State - Melhor Envio
@@ -2104,13 +2105,25 @@ export default function Remessas() {
                 }
                 const url = `${window.location.protocol}//${window.location.host}/cadastro-cliente/${profile.id}`;
                 navigator.clipboard.writeText(url);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
+                setCopiedClients(true);
+                setTimeout(() => setCopiedClients(false), 2000);
               }}
-              className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-350 border border-slate-200 dark:border-slate-800 py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+              className={`py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 border ${
+                copiedClients
+                  ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900/30 text-green-600 dark:text-green-400 font-extrabold scale-[1.01]'
+                  : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-350 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
               title="Copiar link para o cliente preencher o endereço"
             >
-              <Link size={14} /> Copiar Link
+              {copiedClients ? (
+                <>
+                  <CheckCircle2 size={14} className="stroke-[2.5]" /> Copiado!
+                </>
+              ) : (
+                <>
+                  <Link size={14} /> Copiar Link
+                </>
+              )}
             </button>
             <button
               type="button"
@@ -2756,13 +2769,25 @@ export default function Remessas() {
                 }
                 const url = `${window.location.protocol}//${window.location.host}/cadastro-cliente/${profile.id}`;
                 navigator.clipboard.writeText(url);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
+                setCopiedOrders(true);
+                setTimeout(() => setCopiedOrders(false), 2000);
               }}
-              className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-350 border border-slate-200 dark:border-slate-800 py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className={`py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 border cursor-pointer ${
+                copiedOrders
+                  ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900/30 text-green-600 dark:text-green-400 font-extrabold scale-[1.01]'
+                  : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-350 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`}
               title="Copiar link para o cliente preencher o endereço"
             >
-              <Link size={14} /> Copiar Link
+              {copiedOrders ? (
+                <>
+                  <CheckCircle2 size={14} className="stroke-[2.5]" /> Copiado!
+                </>
+              ) : (
+                <>
+                  <Link size={14} /> Copiar Link
+                </>
+              )}
             </button>
             <button
               type="button"
@@ -4728,19 +4753,6 @@ export default function Remessas() {
       ) : (
         renderOrdersClients()
       )}
-      <AnimatePresence>
-        {copied && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 bg-[#1F2937] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-700/50 z-50 text-xs font-bold uppercase tracking-wider"
-          >
-            <CheckCircle2 size={16} className="text-green-500" />
-            <span>Link copiado!</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }
