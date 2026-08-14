@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Settings as SettingsIcon, 
   User, 
@@ -25,6 +25,7 @@ import { supabase } from '../lib/supabaseClient';
 
 export default function Settings() {
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [userEmail, setUserEmail] = useState<string>('');
@@ -511,7 +512,8 @@ export default function Settings() {
                             onClick={() => {
                               const url = `${window.location.protocol}//${window.location.host}/cadastro-cliente/${profile?.id}`;
                               navigator.clipboard.writeText(url);
-                              alert('Link copiado para a área de transferência!');
+                              setCopied(true);
+                              setTimeout(() => setCopied(false), 2000);
                             }}
                             className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm flex-1 sm:flex-initial text-center"
                           >
@@ -904,6 +906,19 @@ export default function Settings() {
           )}
         </div>
       )}
+      <AnimatePresence>
+        {copied && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 right-6 bg-[#1F2937] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-slate-700/50 z-50 text-xs font-bold uppercase tracking-wider"
+          >
+            <CheckCircle2 size={16} className="text-green-500" />
+            <span>Link copiado!</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
