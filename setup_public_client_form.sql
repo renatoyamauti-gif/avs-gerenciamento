@@ -20,10 +20,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 4. Habilitar política de inserção pública na tabela de clientes com validação do criador
+-- 4. Criar função segura para validar existência do criador ignorando RLS
+CREATE OR REPLACE FUNCTION public.is_valid_creator(creator_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (SELECT 1 FROM public.profiles WHERE id = creator_id);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 5. Habilitar política de inserção pública na tabela de clientes com validação do criador
 DROP POLICY IF EXISTS "Allow public insert of clients" ON public.clients;
 CREATE POLICY "Allow public insert of clients" ON public.clients FOR INSERT
   WITH CHECK (
     user_id IS NOT NULL AND 
-    EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = clients.user_id)
+    public.is_valid_creator(user_id)
   );
+
