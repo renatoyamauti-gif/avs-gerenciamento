@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Egg, Plus, Trash2, Clock, AlertCircle, CheckCircle2, Thermometer, Droplets, Loader2, X, Lock } from 'lucide-react';
+import { Egg, Plus, Trash2, Clock, AlertCircle, CheckCircle2, Thermometer, Droplets, Loader2, X, Lock, Baby } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { useSubscription } from '../hooks/useSubscription';
 
@@ -23,6 +23,7 @@ interface Batch {
   dead_in_shell: number;
   baia_details?: Record<string, number>;
   raca_details?: Record<string, number | BreedStats>;
+  added_to_maternity?: boolean;
 }
 
 interface Incubator {
@@ -40,6 +41,7 @@ export default function Chocadeira() {
   const [isAddingIncubator, setIsAddingIncubator] = useState(false);
   const [isAddingBatch, setIsAddingBatch] = useState<string | null>(null);
   const [isEditingBatch, setIsEditingBatch] = useState<{ incubatorId: string, batch: Batch } | null>(null);
+  const [addingToMaternityId, setAddingToMaternityId] = useState<string | null>(null);
   const { isFreePlan, limits } = useSubscription();
 
   const [uniqueBaias, setUniqueBaias] = useState<string[]>([]);
@@ -316,6 +318,83 @@ export default function Chocadeira() {
     }
   };
 
+  const handleAddToMaternity = async (batch: Batch) => {
+    if (batch.added_to_maternity) return;
+    
+    const hatchedCount = batch.hatched || 0;
+    if (hatchedCount <= 0) {
+      alert('Nenhum ovo marcado como "Nasceu" neste lote.');
+      return;
+    }
+
+    if (!confirm(`Deseja adicionar os ${hatchedCount} filhotes nascidos deste lote à maternidade?`)) {
+      return;
+    }
+
+    setAddingToMaternityId(batch.id);
+    try {
+      const chicksToAdd: { raca: string; quantity: number }[] = [];
+
+      if (batch.raca_details && Object.keys(batch.raca_details).length > 0) {
+        Object.entries(batch.raca_details).forEach(([racaName, val]) => {
+          if (typeof val === 'object' && val !== null) {
+            const hatched = (val as any).hatched || 0;
+            if (hatched > 0) {
+              chicksToAdd.push({ raca: racaName, quantity: hatched });
+            }
+          }
+        });
+      }
+
+      if (chicksToAdd.length === 0 && batch.hatched > 0) {
+        const breedNames = batch.raca_details ? Object.keys(batch.raca_details) : [];
+        if (breedNames.length === 1) {
+          chicksToAdd.push({ raca: breedNames[0], quantity: batch.hatched });
+        } else {
+          chicksToAdd.push({ raca: 'Não especificada', quantity: batch.hatched });
+        }
+      }
+
+      // Default birth date: start_date + 21 days or today, whichever is older/smaller
+      const hatchDate = new Date(new Date(batch.start_date).getTime() + 21 * 24 * 60 * 60 * 1000);
+      const today = new Date();
+      const birthDate = (hatchDate > today ? today : hatchDate).toISOString().split('T')[0];
+
+      for (const item of chicksToAdd) {
+        for (let i = 1; i <= item.quantity; i++) {
+          let identifier = '';
+          if (item.raca === 'Não especificada') {
+            identifier = `${batch.name}${item.quantity > 1 ? ` - ${String(i).padStart(2, '0')}` : ''}`;
+          } else {
+            identifier = `${batch.name} - ${item.raca}${item.quantity > 1 ? ` - ${String(i).padStart(2, '0')}` : ''}`;
+          }
+
+          const recordData = {
+            identifier,
+            raca: item.raca === 'Não especificada' ? '' : item.raca,
+            birth_date: birthDate,
+            status: 'Berçário',
+            notes: `Adicionado automaticamente a partir do lote de incubação "${batch.name}".`
+          };
+          await dbService.saveMaternityRecord(recordData);
+        }
+      }
+
+      // Update batch in db
+      const updatedBatch = {
+        ...batch,
+        added_to_maternity: true
+      };
+      await dbService.saveBatch(updatedBatch);
+      await loadIncubators();
+      alert('Nascimentos adicionados à maternidade com sucesso!');
+    } catch (error) {
+      alert('Erro ao adicionar à maternidade: ' + error);
+    } finally {
+      setAddingToMaternityId(null);
+    }
+  };
+
   const getCountdown = (startDate: string) => {
     const start = new Date(startDate).getTime();
     const end = start + INCUBATION_DAYS * 24 * 60 * 60 * 1000;
@@ -524,6 +603,35 @@ export default function Chocadeira() {
                             />
                           </div>
                         </div>
+
+                        {batch.hatched > 0 && (
+                          <div className="pt-4 border-t border-dashed border-slate-100 mt-4 flex justify-end">
+                            {batch.added_to_maternity ? (
+                              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-200">
+                                <CheckCircle2 size={14} />
+                                Adicionado à Maternidade
+                              </span>
+                            ) : (
+                              <button
+                                disabled={addingToMaternityId === batch.id}
+                                onClick={() => handleAddToMaternity(batch)}
+                                className="flex items-center gap-2 px-4 py-2 bg-[#10B981] hover:bg-[#059669] text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-sm transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                              >
+                                {addingToMaternityId === batch.id ? (
+                                  <>
+                                    <Loader2 className="animate-spin" size={14} />
+                                    Adicionando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Baby size={14} />
+                                    Mandar para Maternidade
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

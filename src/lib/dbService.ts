@@ -356,6 +356,7 @@ export const dbService = {
   },
 
   async updateBirdsBaia(birdIds: string[], baiaName: string | null) {
+    const birds = getOfflineFallback('birds') || [];
     invalidateCache('birds');
     if (navigator.onLine) {
       try {
@@ -365,26 +366,25 @@ export const dbService = {
           .in('id', birdIds);
         if (error) handleSupabaseError(error, 'update', 'birds');
         
-        const birds = getOfflineFallback('birds') || [];
         const updated = birds.map((b: any) => birdIds.includes(b.id) ? { ...b, baia: baiaName } : b);
         setCachedData('birds', updated);
         
         syncOfflineQueue().catch(console.error);
       } catch (err) {
         if (isNetworkError(err)) {
-          this.updateBirdsBaiaOffline(birdIds, baiaName);
+          this.updateBirdsBaiaOffline(birdIds, baiaName, birds);
           return;
         }
         throw err;
       }
     } else {
-      this.updateBirdsBaiaOffline(birdIds, baiaName);
+      this.updateBirdsBaiaOffline(birdIds, baiaName, birds);
     }
   },
 
-  updateBirdsBaiaOffline(birdIds: string[], baiaName: string | null) {
+  updateBirdsBaiaOffline(birdIds: string[], baiaName: string | null, preLoadedBirds?: any[]) {
     addToOfflineQueue('birds', 'custom', { birdIds, baiaName }, 'updateBirdsBaia');
-    const birds = getOfflineFallback('birds') || [];
+    const birds = preLoadedBirds || getOfflineFallback('birds') || [];
     const updated = birds.map((b: any) => birdIds.includes(b.id) ? { ...b, baia: baiaName } : b);
     setCachedData('birds', updated);
   },
@@ -622,6 +622,8 @@ export const dbService = {
     );
 
     if (oldName && oldName !== baia.name) {
+      const birds = getOfflineFallback('birds') || [];
+      const eggLogs = getOfflineFallback('egg_logs') || [];
       invalidateCache('birds');
       invalidateCache('egg_logs');
       if (navigator.onLine) {
@@ -640,11 +642,9 @@ export const dbService = {
         addToOfflineQueue('birds', 'custom', { oldName, newName: baia.name }, 'cascadeRenameBaia');
       }
 
-      const birds = getOfflineFallback('birds') || [];
       const updatedBirds = birds.map((b: any) => b.baia === oldName ? { ...b, baia: baia.name } : b);
       setCachedData('birds', updatedBirds);
 
-      const eggLogs = getOfflineFallback('egg_logs') || [];
       const updatedEggLogs = eggLogs.map((e: any) => e.baia === oldName ? { ...e, baia: baia.name } : e);
       setCachedData('egg_logs', updatedEggLogs);
     }
@@ -653,6 +653,7 @@ export const dbService = {
   },
 
   async deleteBaia(id: string | null, name?: string) {
+    const birds = getOfflineFallback('birds') || [];
     invalidateCache('baias');
     invalidateCache('birds');
     
@@ -671,28 +672,27 @@ export const dbService = {
         
         if (id) applyLocalWriteToCache('baias', 'delete', id);
         if (name) {
-          const birds = getOfflineFallback('birds') || [];
           const updated = birds.map((b: any) => b.baia === name ? { ...b, baia: null } : b);
           setCachedData('birds', updated);
         }
         syncOfflineQueue().catch(console.error);
       } catch (err) {
         if (isNetworkError(err)) {
-          this.deleteBaiaOffline(id, name);
+          this.deleteBaiaOffline(id, name, birds);
           return;
         }
         throw err;
       }
     } else {
-      this.deleteBaiaOffline(id, name);
+      this.deleteBaiaOffline(id, name, birds);
     }
   },
 
-  deleteBaiaOffline(id: string | null, name?: string) {
+  deleteBaiaOffline(id: string | null, name?: string, preLoadedBirds?: any[]) {
     addToOfflineQueue('baias', 'custom', { id, name }, 'deleteBaia');
     if (id) applyLocalWriteToCache('baias', 'delete', id);
     if (name) {
-      const birds = getOfflineFallback('birds') || [];
+      const birds = preLoadedBirds || getOfflineFallback('birds') || [];
       const updated = birds.map((b: any) => b.baia === name ? { ...b, baia: null } : b);
       setCachedData('birds', updated);
     }
@@ -1178,6 +1178,7 @@ export const dbService = {
   },
 
   async saveBatch(batch: any) {
+    const incubators = getOfflineFallback('incubators') || [];
     invalidateCache('incubators');
     const ownerId = await this.getOwnerId().catch(() => null) || batch.user_id;
     const batchData = { ...batch, user_id: ownerId };
@@ -1208,7 +1209,6 @@ export const dbService = {
       }
     );
 
-    const incubators = getOfflineFallback('incubators') || [];
     const updatedIncubators = incubators.map((inc: any) => {
       if (inc.id === batch.incubator_id) {
         let batches = inc.incubator_batches || [];
@@ -1227,10 +1227,10 @@ export const dbService = {
   },
 
   async deleteBatch(id: string) {
+    const incubators = getOfflineFallback('incubators') || [];
     invalidateCache('incubators');
     
     let incubatorId: string | null = null;
-    const incubators = getOfflineFallback('incubators') || [];
     for (const inc of incubators) {
       if (inc.incubator_batches?.some((b: any) => b.id === id)) {
         incubatorId = inc.id;
