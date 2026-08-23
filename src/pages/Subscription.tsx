@@ -8,9 +8,9 @@ const plans = [
   {
     id: 'free',
     name: 'Teste Grátis',
-    description: '30 dias de teste grátis com acesso total a todas as ferramentas.',
+    description: '7 dias de teste grátis com acesso total a todas as ferramentas.',
     price: 'Grátis',
-    period: '/30 dias',
+    period: '/7 dias',
     features: [
       'Aves ilimitadas',
       'Múltiplas chocadeiras e lotes',
