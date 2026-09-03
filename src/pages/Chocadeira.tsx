@@ -468,7 +468,7 @@ export default function Chocadeira() {
         <button 
           onClick={() => {
             if (isFreePlan && incubators.length >= limits.incubators) {
-              alert(`Você atingiu o limite de ${limits.incubators} chocadeira do plano Iniciante. Acesse o menu Assinatura para fazer o upgrade!`);
+              alert(`Você atingiu o limite de ${limits.incubators} chocadeira do plano Teste Grátis. Acesse o menu Assinatura para fazer o upgrade!`);
               return;
             }
             setIsAddingIncubator(true);

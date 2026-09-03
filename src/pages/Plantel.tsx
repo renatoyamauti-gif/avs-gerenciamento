@@ -381,7 +381,7 @@ export default function Plantel() {
           <button 
             onClick={() => {
               if (isFreePlan && birds.length >= limits.birds) {
-                alert(`Você atingiu o limite de ${limits.birds} aves do plano Iniciante. Acesse o menu Assinatura para fazer o upgrade!`);
+                alert(`Você atingiu o limite de ${limits.birds} aves do plano Teste Grátis. Acesse o menu Assinatura para fazer o upgrade!`);
                 return;
               }
               setEditingBird(null);
@@ -898,7 +898,7 @@ export default function Plantel() {
                   <button
                     onClick={() => {
                       if (isFreePlan && birds.length >= limits.birds) {
-                        alert(`Você atingiu o limite de ${limits.birds} aves do plano Iniciante. Acesse o menu Assinatura para fazer o upgrade!`);
+                        alert(`Você atingiu o limite de ${limits.birds} aves do plano Teste Grátis. Acesse o menu Assinatura para fazer o upgrade!`);
                         return;
                       }
                       setEditingBird(null);
@@ -1643,7 +1643,7 @@ export default function Plantel() {
                   onClick={() => {
                     setIsAddingBirdToBaia(false);
                     if (isFreePlan && birds.length >= limits.birds) {
-                      alert(`Você atingiu o limite de ${limits.birds} aves do plano Iniciante. Acesse o menu Assinatura para fazer o upgrade!`);
+                      alert(`Você atingiu o limite de ${limits.birds} aves do plano Teste Grátis. Acesse o menu Assinatura para fazer o upgrade!`);
                       return;
                     }
                     setEditingBird(null);

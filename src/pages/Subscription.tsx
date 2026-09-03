@@ -20,7 +20,7 @@ const plans = [
       'Exportação de relatórios',
       'Módulo de Remessas (Melhor Envio)'
     ],
-    buttonText: 'Plano Atual',
+    buttonText: 'Teste Grátis',
     isPopular: false,
     icon: <Star size={24} className="text-slate-400" />,
     gradient: 'from-slate-100 to-slate-50',
@@ -223,7 +223,7 @@ export default function Subscription() {
               onClick={(e) => { if (isCurrentPlan) e.preventDefault(); }}
               className={`
                 w-full py-4 rounded-2xl text-sm font-bold uppercase tracking-widest text-center transition-all duration-300 mb-8 block shadow-sm hover:scale-[1.02] active:scale-95
-                ${isCurrentPlan
+                ${isCurrentPlan && !(plan.id === 'free' && isTrialExpired)
                   ? 'bg-[#DCFCE7] text-[#16A34A] cursor-default'
                   : plan.isPopular
                     ? 'bg-[#F59E0B] text-white hover:bg-[#D97706]'
@@ -233,7 +233,9 @@ export default function Subscription() {
                 }
               `}
             >
-              {isCurrentPlan ? 'Plano Atual' : plan.buttonText}
+              {isCurrentPlan
+                ? (plan.id === 'free' && isTrialExpired ? 'Teste Expirado' : 'Plano Atual')
+                : plan.buttonText}
             </a>
 
             <div className="space-y-4 flex-1">
