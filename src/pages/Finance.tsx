@@ -266,7 +266,7 @@ export default function Finance() {
           </div>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 bg-[#EF4444] dark:bg-red-500 rounded-full" />
-            <p className="text-xs font-bold uppercase tracking-widest text-[#EF4444] dark:text-red-400">Saídas</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-[#EF4444] dark:text-red-400 notranslate" translate="no">Saídas</p>
           </div>
           <p className="text-4xl font-black text-[#1F2937] dark:text-slate-100 mt-4 tracking-tight">
             <span className="text-slate-400 dark:text-slate-500 mr-2 text-xl">R$</span>{totalExpense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -367,7 +367,9 @@ export default function Finance() {
                 onClick={() => setFilterType(type as any)}
                 className={`px-4 py-2 rounded-full transition-colors whitespace-nowrap cursor-pointer ${filterType === type ? 'bg-[#2563EB] text-white' : 'bg-[#F8FAFC] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
               >
-                {type === 'All' ? 'Todas' : type}
+                <span translate="no" className="notranslate">
+                  {type === 'All' ? 'Todas' : type === 'Saída' ? 'Saída' : type}
+                </span>
               </button>
             ))}
           </div>
@@ -686,7 +688,7 @@ export default function Finance() {
                     />
                     <div className="flex items-center justify-center gap-2 py-4 rounded-2xl border-2 border-slate-100 peer-checked:bg-[#FEE2E2] peer-checked:border-[#EF4444] peer-checked:text-[#EF4444] text-slate-400 font-bold transition-all">
                       <ArrowDownCircle size={20} />
-                      <span className="text-sm uppercase tracking-widest">Saída</span>
+                      <span className="text-sm uppercase tracking-widest notranslate" translate="no">Saída</span>
                     </div>
                   </label>
                 </div>
