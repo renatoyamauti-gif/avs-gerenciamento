@@ -355,11 +355,19 @@ export default function Ration() {
                 <div className="bg-[#DCFCE7] p-3 rounded-xl border border-[#BBF7D0] text-[#16A34A]">
                   <Wheat size={20} />
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => setIsEditingIngredient(ing)} className="p-2 text-slate-400 hover:text-[#16A34A] bg-slate-50 hover:bg-[#DCFCE7] rounded-lg">
+                <div className="flex gap-1.5">
+                  <button 
+                    onClick={() => setIsEditingIngredient(ing)} 
+                    className="p-2 text-slate-400 hover:text-[#16A34A] bg-slate-50 hover:bg-[#DCFCE7] rounded-xl transition-colors cursor-pointer"
+                    title="Editar Ingrediente"
+                  >
                     <Edit3 size={16} />
                   </button>
-                  <button onClick={() => removeIngredient(ing.id)} className="p-2 text-slate-400 hover:text-[#EF4444] bg-slate-50 hover:bg-[#FEF2F2] rounded-lg">
+                  <button 
+                    onClick={() => removeIngredient(ing.id)} 
+                    className="p-2 text-slate-400 hover:text-[#EF4444] bg-slate-50 hover:bg-[#FEF2F2] rounded-xl transition-colors cursor-pointer"
+                    title="Excluir Ingrediente"
+                  >
                     <Trash2 size={16} />
                   </button>
                 </div>
