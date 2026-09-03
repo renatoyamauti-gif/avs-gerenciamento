@@ -247,16 +247,18 @@ export default function Ration() {
         ) : activeTab === 'recipes' ? (
           <button 
             onClick={() => setIsAddingRecipe(true)}
-            className="flex items-center gap-2 bg-[#2563EB] text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all"
+            className="flex items-center gap-2 bg-[#2563EB] text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all notranslate"
+            translate="no"
           >
             <Plus size={20} /> Desenvolver Ração
           </button>
         ) : (
           <button 
             onClick={() => setIsAddingIngredient(true)}
-            className="flex items-center gap-2 bg-[#16A34A] text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#15803D] hover:scale-[1.02] active:scale-95 transition-all"
+            className="flex items-center gap-2 bg-[#16A34A] text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#15803D] hover:scale-[1.02] active:scale-95 transition-all notranslate"
+            translate="no"
           >
-            <Plus size={20} /> Cadastrar Ingrediente
+            <Plus size={20} /> Adicionar Ingredientes
           </button>
         )}
       </header>
@@ -461,7 +463,7 @@ export default function Ration() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setIsAddingIngredient(false); setIsEditingIngredient(null); }} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
             <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-md bg-white border border-slate-100 p-8 sm:p-10 rounded-[32px] shadow-2xl">
-              <h3 className="text-2xl font-bold text-[#1F2937] tracking-tight mb-8">{isEditingIngredient ? 'Editar Ingrediente' : 'Novo Ingrediente'}</h3>
+              <h3 className="text-2xl font-bold text-[#1F2937] tracking-tight mb-8">{isEditingIngredient ? 'Editar Ingrediente' : 'Adicionar Ingrediente'}</h3>
               <form onSubmit={handleSaveIngredient} className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nome do Ingrediente</label>
