@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Egg, Plus, Trash2, Clock, AlertCircle, CheckCircle2, Thermometer, Droplets, Loader2, X, Lock, Baby } from 'lucide-react';
+import { Egg, Plus, Trash2, Pencil, Clock, AlertCircle, CheckCircle2, Thermometer, Droplets, Loader2, X, Lock, Baby } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { useSubscription } from '../hooks/useSubscription';
 
@@ -14,6 +14,7 @@ interface BreedStats {
 
 interface Batch {
   id: string;
+  incubator_id?: string;
   name: string;
   count: number;
   start_date: string;
@@ -39,6 +40,7 @@ export default function Chocadeira() {
   const [incubators, setIncubators] = useState<Incubator[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddingIncubator, setIsAddingIncubator] = useState(false);
+  const [isEditingIncubator, setIsEditingIncubator] = useState<Incubator | null>(null);
   const [isAddingBatch, setIsAddingBatch] = useState<string | null>(null);
   const [isEditingBatch, setIsEditingBatch] = useState<{ incubatorId: string, batch: Batch } | null>(null);
   const [addingToMaternityId, setAddingToMaternityId] = useState<string | null>(null);
@@ -194,6 +196,26 @@ export default function Chocadeira() {
     }
   };
 
+  const handleEditIncubator = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!isEditingIncubator) return;
+    const formData = new FormData(e.currentTarget);
+    const incubatorData = {
+      id: isEditingIncubator.id,
+      name: formData.get('name') as string,
+      capacity: parseInt(formData.get('capacity') as string),
+      incubator_batches: isEditingIncubator.incubator_batches,
+    };
+
+    try {
+      await dbService.saveIncubator(incubatorData);
+      await loadIncubators();
+      setIsEditingIncubator(null);
+    } catch (error) {
+      alert('Erro ao salvar chocadeira: ' + error);
+    }
+  };
+
   const handleAddBatch = async (e: React.FormEvent<HTMLFormElement>, incubatorId: string) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -247,12 +269,20 @@ export default function Chocadeira() {
     const formData = new FormData(e.currentTarget);
     
     const startDateStr = formData.get('start_date') as string;
-    let newStartDate = isEditingBatch.batch.start_date;
+    let newStartDate = isEditingBatch.batch.start_date || new Date().toISOString();
     if (startDateStr) {
-      const [year, month, day] = startDateStr.split('-');
-      const d = new Date(isEditingBatch.batch.start_date);
-      d.setFullYear(parseInt(year), parseInt(month) - 1, parseInt(day));
-      newStartDate = d.toISOString();
+      try {
+        const [year, month, day] = startDateStr.split('-');
+        const d = new Date(isEditingBatch.batch.start_date || new Date());
+        if (isNaN(d.getTime())) {
+          newStartDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0).toISOString();
+        } else {
+          d.setFullYear(parseInt(year), parseInt(month) - 1, parseInt(day));
+          newStartDate = d.toISOString();
+        }
+      } catch {
+        newStartDate = new Date(startDateStr).toISOString();
+      }
     }
 
     const baia_details: Record<string, number> = {};
@@ -286,7 +316,8 @@ export default function Chocadeira() {
       dead_in_shell: modalRacas.length > 0 ? sumRacaStats.dead_in_shell : (parseInt(formData.get('dead_in_shell') as string) || 0),
       start_date: newStartDate,
       baia_details,
-      raca_details
+      raca_details,
+      added_to_maternity: isEditingBatch.batch.added_to_maternity ?? false
     };
 
     try {
@@ -318,7 +349,7 @@ export default function Chocadeira() {
     }
   };
 
-  const handleAddToMaternity = async (batch: Batch) => {
+  const handleAddToMaternity = async (batch: Batch, incubatorId?: string) => {
     if (batch.added_to_maternity) return;
     
     const hatchedCount = batch.hatched || 0;
@@ -383,6 +414,7 @@ export default function Chocadeira() {
       // Update batch in db
       const updatedBatch = {
         ...batch,
+        incubator_id: batch.incubator_id || incubatorId,
         added_to_maternity: true
       };
       await dbService.saveBatch(updatedBatch);
@@ -453,7 +485,7 @@ export default function Chocadeira() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {incubators.map((inc) => {
-          const currentTotal = (inc.incubator_batches || []).reduce((acc, b) => acc + b.count, 0);
+          const currentTotal = (inc.incubator_batches || []).reduce((acc, b) => acc + (b?.count || 0), 0);
           return (
             <motion.div 
               key={inc.id}
@@ -470,12 +502,22 @@ export default function Chocadeira() {
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Capacidade: {currentTotal} / {inc.capacity} Ovos</p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => removeIncubator(inc.id)}
-                  className="text-slate-400 hover:text-[#EF4444] transition-colors p-2 hover:bg-[#FEF2F2] rounded-xl"
-                >
-                  <Trash2 size={20} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={() => setIsEditingIncubator(inc)}
+                    title="Editar Chocadeira"
+                    className="text-slate-400 hover:text-[#2563EB] transition-colors p-2 hover:bg-[#EFF6FF] rounded-xl"
+                  >
+                    <Pencil size={18} />
+                  </button>
+                  <button 
+                    onClick={() => removeIncubator(inc.id)}
+                    title="Excluir Chocadeira"
+                    className="text-slate-400 hover:text-[#EF4444] transition-colors p-2 hover:bg-[#FEF2F2] rounded-xl"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -516,8 +558,8 @@ export default function Chocadeira() {
                       <p className="text-sm font-semibold text-slate-400 mt-2">Chocadeira Vazia</p>
                     </div>
                   )}
-                  {(inc.incubator_batches || []).map(batch => {
-                    const status = getCountdown(batch.start_date);
+                  {(inc.incubator_batches || []).filter(Boolean).map(batch => {
+                    const status = getCountdown(batch.start_date || new Date().toISOString());
                     return (
                       <div key={batch.id} className="bg-white p-5 rounded-2xl border border-slate-100 group hover:border-[#2563EB]/30 shadow-sm transition-all">
                         <div className="flex justify-between items-start mb-4">
@@ -528,13 +570,13 @@ export default function Chocadeira() {
                             <div>
                               <p className="text-sm font-bold text-[#1F2937] tracking-tight">{batch.name}</p>
                               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                <span className="text-xs text-slate-500 font-bold uppercase">{batch.count} UNIDADES</span>
-                                {batch.baia_details && Object.entries(batch.baia_details).map(([baia, qty]) => (
+                                <span className="text-xs text-slate-500 font-bold uppercase">{batch.count || 0} UNIDADES</span>
+                                {batch.baia_details && typeof batch.baia_details === 'object' && Object.entries(batch.baia_details).map(([baia, qty]) => (
                                   <span key={baia} className="bg-[#EFF6FF] text-[#2563EB] text-[10px] font-bold px-2 py-0.5 rounded-md border border-[#DBEAFE] uppercase">
                                     {baia}: {qty} ovos
                                   </span>
                                 ))}
-                                {batch.raca_details && Object.entries(batch.raca_details).map(([raca, val]) => {
+                                {batch.raca_details && typeof batch.raca_details === 'object' && Object.entries(batch.raca_details).map(([raca, val]) => {
                                   const qty = typeof val === 'object' && val !== null ? (val as any).quantity : val;
                                   const stats = typeof val === 'object' && val !== null ? (val as any) : null;
                                   const hasStats = stats && (stats.fertile > 0 || stats.infertile > 0 || stats.hatched > 0 || stats.dead_in_shell > 0);
@@ -614,7 +656,7 @@ export default function Chocadeira() {
                             ) : (
                               <button
                                 disabled={addingToMaternityId === batch.id}
-                                onClick={() => handleAddToMaternity(batch)}
+                                onClick={() => handleAddToMaternity(batch, inc.id)}
                                 className="flex items-center gap-2 px-4 py-2 bg-[#10B981] hover:bg-[#059669] text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-sm transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
                               >
                                 {addingToMaternityId === batch.id ? (
@@ -662,6 +704,29 @@ export default function Chocadeira() {
                   <input required name="capacity" type="number" placeholder="Ex: 24" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                 </div>
                 <button type="submit" className="w-full py-4 bg-[#2563EB] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all">Salvar Chocadeira</button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
+        {isEditingIncubator && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsEditingIncubator(null)} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl">
+              <div className="flex justify-between items-center mb-8">
+                <h3 className="text-2xl font-bold text-[#1F2937]">Editar Chocadeira</h3>
+                <button onClick={() => setIsEditingIncubator(null)} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"><X size={20} /></button>
+              </div>
+              <form onSubmit={handleEditIncubator} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Identificação da Máquina</label>
+                  <input required name="name" defaultValue={isEditingIncubator.name} type="text" placeholder="Ex: Master Hatch 500" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Capacidade Total (Ovos)</label>
+                  <input required name="capacity" defaultValue={isEditingIncubator.capacity} type="number" placeholder="Ex: 24" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                </div>
+                <button type="submit" className="w-full py-4 bg-[#2563EB] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all">Salvar Alterações</button>
               </form>
             </motion.div>
           </div>

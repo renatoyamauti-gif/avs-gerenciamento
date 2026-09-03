@@ -1135,7 +1135,7 @@ export const dbService = {
     const savedBatches = incData.incubator_batches;
     delete incData.incubator_batches;
 
-    return this.handleWriteOperation(
+    const result = await this.handleWriteOperation(
       'incubators',
       'incubators',
       incubator.id,
@@ -1148,7 +1148,7 @@ export const dbService = {
             .eq('id', incubator.id)
             .select();
           if (error) handleSupabaseError(error, 'update', 'incubators');
-          return { ...data[0], incubator_batches: savedBatches || [] };
+          return { ...(data?.[0] || incData), incubator_batches: savedBatches || [] };
         } else {
           const { id, ...insertData } = incData;
           const { data, error } = await supabase
@@ -1156,14 +1156,19 @@ export const dbService = {
             .insert([insertData])
             .select();
           if (error) handleSupabaseError(error, 'create', 'incubators');
-          return { ...data[0], incubator_batches: [] };
+          return { ...(data?.[0] || insertData), incubator_batches: [] };
         }
       }
     );
+
+    if (navigator.onLine) {
+      invalidateCache('incubators');
+    }
+    return result;
   },
 
   async deleteIncubator(id: string) {
-    return this.handleDeleteOperation(
+    const result = await this.handleDeleteOperation(
       'incubators',
       'incubators',
       id,
@@ -1175,11 +1180,14 @@ export const dbService = {
         if (error) handleSupabaseError(error, 'delete', 'incubators');
       }
     );
+
+    if (navigator.onLine) {
+      invalidateCache('incubators');
+    }
+    return result;
   },
 
   async saveBatch(batch: any) {
-    const incubators = getOfflineFallback('incubators') || [];
-    invalidateCache('incubators');
     const ownerId = await this.getOwnerId().catch(() => null) || batch.user_id;
     const batchData = { ...batch, user_id: ownerId };
 
@@ -1196,7 +1204,7 @@ export const dbService = {
             .eq('id', batch.id)
             .select();
           if (error) handleSupabaseError(error, 'update', 'incubator_batches');
-          return data[0];
+          return data?.[0] || batchData;
         } else {
           const { id, ...insertData } = batchData;
           const { data, error } = await supabase
@@ -1204,33 +1212,36 @@ export const dbService = {
             .insert([insertData])
             .select();
           if (error) handleSupabaseError(error, 'create', 'incubator_batches');
-          return data[0];
+          return data?.[0] || { ...insertData, id: batch.id || generateUUID() };
         }
       }
     );
 
-    const updatedIncubators = incubators.map((inc: any) => {
-      if (inc.id === batch.incubator_id) {
-        let batches = inc.incubator_batches || [];
-        if (batch.id && batches.some((b: any) => b.id === batch.id)) {
-          batches = batches.map((b: any) => b.id === batch.id ? result : b);
-        } else {
-          batches = [...batches, result];
+    if (navigator.onLine) {
+      invalidateCache('incubators');
+    } else {
+      const incubators = getOfflineFallback('incubators') || [];
+      const updatedIncubators = incubators.map((inc: any) => {
+        if (inc.id === batch.incubator_id) {
+          let batches = inc.incubator_batches || [];
+          if (batch.id && batches.some((b: any) => b.id === batch.id)) {
+            batches = batches.map((b: any) => b.id === batch.id ? result : b);
+          } else {
+            batches = [...batches, result];
+          }
+          return { ...inc, incubator_batches: batches };
         }
-        return { ...inc, incubator_batches: batches };
-      }
-      return inc;
-    });
-    setCachedData('incubators', updatedIncubators);
+        return inc;
+      });
+      setCachedData('incubators', updatedIncubators);
+    }
 
     return result;
   },
 
   async deleteBatch(id: string) {
-    const incubators = getOfflineFallback('incubators') || [];
-    invalidateCache('incubators');
-    
     let incubatorId: string | null = null;
+    const incubators = getOfflineFallback('incubators') || [];
     for (const inc of incubators) {
       if (inc.incubator_batches?.some((b: any) => b.id === id)) {
         incubatorId = inc.id;
@@ -1251,7 +1262,9 @@ export const dbService = {
       }
     );
 
-    if (incubatorId) {
+    if (navigator.onLine) {
+      invalidateCache('incubators');
+    } else if (incubatorId) {
       const updatedIncubators = incubators.map((inc: any) => {
         if (inc.id === incubatorId) {
           const batches = (inc.incubator_batches || []).filter((b: any) => b.id !== id);
