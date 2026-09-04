@@ -31,7 +31,7 @@ function isNetworkError(error: any): boolean {
 
 function getCachedData(key: string) {
   const cached = _queryCache[key];
-  if (cached && Date.now() - cached.timestamp < 15000) { // 15 seconds memory TTL
+  if (cached && Date.now() - cached.timestamp < 120000) { // 2 minutes memory TTL
     return cached.data;
   }
   return null;

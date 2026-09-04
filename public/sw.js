@@ -1,4 +1,4 @@
-const CACHE_NAME = 'avs-pwa-cache-v9';
+const CACHE_NAME = 'avs-pwa-cache-v10';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -43,7 +43,28 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
-  // Network-First strategy (try network, fallback to cache)
+  // Cache-First strategy for hashed assets (instant load, 0 network latency)
+  if (url.pathname.startsWith('/assets/') || url.pathname.match(/\.(js|css|svg|png|jpg|webp|woff2?)$/)) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return fetch(event.request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return networkResponse;
+        });
+      })
+    );
+    return;
+  }
+
+  // Network-First strategy for HTML navigation with cache fallback
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {

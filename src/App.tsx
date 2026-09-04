@@ -3,26 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Plus, LogOut, Heart, Menu, Sun, Moon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import Dashboard from './pages/Dashboard';
-import Plantel from './pages/Plantel';
-import EggCollection from './pages/EggCollection';
-import Chocadeira from './pages/Chocadeira';
-import Maternity from './pages/Maternity';
-import Remessas from './pages/Remessas';
-import Products from './pages/Products';
-import Finance from './pages/Finance';
-import Ration from './pages/Ration';
-import SettingsPage from './pages/Settings';
-import Chat from './pages/Chat';
-import Subscription from './pages/Subscription';
-import BreedingLineage from './pages/BreedingLineage';
-import PublicClientForm from './pages/PublicClientForm';
 import Auth from './components/Auth';
 import BottomNav from './components/BottomNav';
 import { supabase } from './lib/supabaseClient';
@@ -30,6 +16,29 @@ import { Session } from '@supabase/supabase-js';
 import { dbService } from './lib/dbService';
 import { useSubscription } from './hooks/useSubscription';
 import { useTheme } from './contexts/ThemeContext';
+
+// Code splitting com React.lazy para navegação fluida e bundle ultra leve
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Plantel = lazy(() => import('./pages/Plantel'));
+const EggCollection = lazy(() => import('./pages/EggCollection'));
+const Chocadeira = lazy(() => import('./pages/Chocadeira'));
+const Maternity = lazy(() => import('./pages/Maternity'));
+const Remessas = lazy(() => import('./pages/Remessas'));
+const Products = lazy(() => import('./pages/Products'));
+const Finance = lazy(() => import('./pages/Finance'));
+const Ration = lazy(() => import('./pages/Ration'));
+const SettingsPage = lazy(() => import('./pages/Settings'));
+const Chat = lazy(() => import('./pages/Chat'));
+const Subscription = lazy(() => import('./pages/Subscription'));
+const BreedingLineage = lazy(() => import('./pages/BreedingLineage'));
+const PublicClientForm = lazy(() => import('./pages/PublicClientForm'));
+
+const PageLoader = () => (
+  <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3">
+    <div className="w-8 h-8 border-3 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
+    <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Carregando...</span>
+  </div>
+);
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -232,36 +241,38 @@ export default function App() {
             </motion.div>
             )}
 
-            <AnimatePresence mode="wait">
-              {isPublicRoute ? (
-                <Routes>
-                  <Route path="/cadastro-cliente/:userId" element={<PublicClientForm />} />
-                  <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
-              ) : isLocked ? (
-                <Routes>
-                  <Route path="/subscription" element={<Subscription />} />
-                  <Route path="*" element={<Navigate to="/subscription" />} />
-                </Routes>
-              ) : (
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/birds" element={hasPermission('birds') ? <Plantel /> : <Navigate to="/" />} />
-                  <Route path="/birds/lineage/:id" element={hasPermission('birds') ? <BreedingLineage /> : <Navigate to="/" />} />
-                  <Route path="/breeding" element={hasPermission('breeding') ? <Chocadeira /> : <Navigate to="/" />} />
-                  <Route path="/maternity" element={hasPermission('maternity') ? <Maternity /> : <Navigate to="/" />} />
-                  <Route path="/eggs" element={hasPermission('eggs') ? <EggCollection /> : <Navigate to="/" />} />
-                  <Route path="/shipping" element={hasPermission('shipping') ? <Remessas /> : <Navigate to="/" />} />
-                  <Route path="/products" element={hasPermission('shipping') ? <Products /> : <Navigate to="/" />} />
-                  <Route path="/ration" element={hasPermission('ration') ? <Ration /> : <Navigate to="/" />} />
-                  <Route path="/finance" element={hasPermission('finance') ? <Finance /> : <Navigate to="/" />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/chat" element={hasPermission('chat') ? <Chat /> : <Navigate to="/" />} />
-                  <Route path="/subscription" element={profile?.role !== 'tratador' ? <Subscription /> : <Navigate to="/" />} />
-                  <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
-              )}
-            </AnimatePresence>
+            <Suspense fallback={<PageLoader />}>
+              <AnimatePresence>
+                {isPublicRoute ? (
+                  <Routes>
+                    <Route path="/cadastro-cliente/:userId" element={<PublicClientForm />} />
+                    <Route path="*" element={<Navigate to="/" />} />
+                  </Routes>
+                ) : isLocked ? (
+                  <Routes>
+                    <Route path="/subscription" element={<Subscription />} />
+                    <Route path="*" element={<Navigate to="/subscription" />} />
+                  </Routes>
+                ) : (
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/birds" element={hasPermission('birds') ? <Plantel /> : <Navigate to="/" />} />
+                    <Route path="/birds/lineage/:id" element={hasPermission('birds') ? <BreedingLineage /> : <Navigate to="/" />} />
+                    <Route path="/breeding" element={hasPermission('breeding') ? <Chocadeira /> : <Navigate to="/" />} />
+                    <Route path="/maternity" element={hasPermission('maternity') ? <Maternity /> : <Navigate to="/" />} />
+                    <Route path="/eggs" element={hasPermission('eggs') ? <EggCollection /> : <Navigate to="/" />} />
+                    <Route path="/shipping" element={hasPermission('shipping') ? <Remessas /> : <Navigate to="/" />} />
+                    <Route path="/products" element={hasPermission('shipping') ? <Products /> : <Navigate to="/" />} />
+                    <Route path="/ration" element={hasPermission('ration') ? <Ration /> : <Navigate to="/" />} />
+                    <Route path="/finance" element={hasPermission('finance') ? <Finance /> : <Navigate to="/" />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/chat" element={hasPermission('chat') ? <Chat /> : <Navigate to="/" />} />
+                    <Route path="/subscription" element={profile?.role !== 'tratador' ? <Subscription /> : <Navigate to="/" />} />
+                    <Route path="*" element={<Navigate to="/" />} />
+                  </Routes>
+                )}
+              </AnimatePresence>
+            </Suspense>
 
             {!isPublicRoute && (
               <footer className="pt-12 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center text-[10px] sm:text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-[0.1em] mt-20 gap-4 text-center sm:text-left mb-6 transition-colors duration-200">
