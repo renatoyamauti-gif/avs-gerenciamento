@@ -18,7 +18,8 @@ const plans = [
       'Alertas de eclosão via e-mail',
       'Custos de alimentação',
       'Exportação de relatórios',
-      'Módulo de Remessas (Melhor Envio)'
+      'Módulo de Remessas (Melhor Envio)',
+      'Chat Exclusivo'
     ],
     buttonText: 'Teste Grátis',
     isPopular: false,

@@ -17,12 +17,12 @@ interface ChatMessage {
 }
 
 export default function Chat() {
-  const { plan, loading: subLoading } = useSubscription();
-  const [loading, setLoading] = useState(true);
+  const { plan, loading: subLoading, isTrialActive } = useSubscription();
   const [profile, setProfile] = useState<any>(null);
-  const [chatEnabled, setChatEnabled] = useState(false);
+  const [chatEnabled, setChatEnabled] = useState(true);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -37,7 +37,7 @@ export default function Chat() {
   const [warningInput, setWarningInput] = useState('');
   const [activeWarning, setActiveWarning] = useState<string | null>(null);
 
-  const isSubscriber = plan === 'pro' || plan === 'trimestral' || plan === 'anual';
+  const isSubscriber = plan === 'pro' || plan === 'trimestral' || plan === 'anual' || isTrialActive;
 
   useEffect(() => {
     loadProfile();
