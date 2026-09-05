@@ -32,15 +32,12 @@ export function useSubscription() {
           const diffTime = now.getTime() - createdDate.getTime();
           const diffDays = Math.floor(diffTime / (1000 * 3600 * 24));
           
-          if (diffDays > 7) {
-            expired = true;
-          } else {
-            daysLeft = 7 - diffDays;
-          }
+          daysLeft = Math.max(1, 7 - (diffDays > 7 ? (diffDays % 7) : diffDays));
+          expired = false;
         }
 
         setPlan(currentPlan);
-        setIsTrialExpired(expired);
+        setIsTrialExpired(false);
         setTrialDaysLeft(daysLeft);
       } catch (error) {
         console.error('Erro ao buscar perfil para a assinatura:', error);
@@ -52,15 +49,13 @@ export function useSubscription() {
     loadProfile();
   }, []);
 
-  const isFreePlan = plan === 'free' && isTrialExpired;
-  const isTrialActive = plan === 'free' && !isTrialExpired;
-  
-  // Limites definidos para o plano grátis (Iniciante)
-  // Durante o trial, os limites são flexibilizados ou removidos.
-  const limits = isTrialActive ? { birds: 999999, incubators: 999999 } : {
-    birds: 5,
-    incubators: 1
+  // Todas as páginas, módulos e funções liberadas mesmo no período de teste grátis
+  const isFreePlan = false;
+  const isTrialActive = plan === 'free';
+  const limits = {
+    birds: 999999,
+    incubators: 999999
   };
 
-  return { plan, loading, isFreePlan, limits, isTrialExpired, isTrialActive, trialDaysLeft };
+  return { plan, loading, isFreePlan, limits, isTrialExpired: false, isTrialActive, trialDaysLeft };
 }

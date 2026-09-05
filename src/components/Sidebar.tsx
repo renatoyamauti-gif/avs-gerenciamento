@@ -124,27 +124,27 @@ const Sidebar = ({ isOpen, onClose, profile }: SidebarProps) => {
   ];
 
   const hasPermission = (path: string) => {
-    if (!profile) return false; // Default to false (fail-secure) while profile is loading
-    if (profile.role !== 'tratador') return true;
+    if (profile?.role === 'tratador') {
+      if (path === '/') return true;
+      if (path === '/settings') return true;
+      if (path === '/subscription') return false;
 
-    if (path === '/') return true;
-    if (path === '/settings') return true;
-    if (path === '/subscription') return false;
+      const mapping: { [key: string]: string } = {
+        '/birds': 'birds',
+        '/breeding': 'breeding',
+        '/maternity': 'maternity',
+        '/eggs': 'eggs',
+        '/shipping': 'shipping',
+        '/products': 'shipping',
+        '/ration': 'ration',
+        '/finance': 'finance',
+        '/chat': 'chat'
+      };
 
-    const mapping: { [key: string]: string } = {
-      '/birds': 'birds',
-      '/breeding': 'breeding',
-      '/maternity': 'maternity',
-      '/eggs': 'eggs',
-      '/shipping': 'shipping',
-      '/products': 'shipping',
-      '/ration': 'ration',
-      '/finance': 'finance',
-      '/chat': 'chat'
-    };
-
-    const moduleKey = mapping[path];
-    return moduleKey ? (profile.permissions?.[moduleKey] ?? false) : false;
+      const moduleKey = mapping[path];
+      return moduleKey ? (profile.permissions?.[moduleKey] ?? false) : false;
+    }
+    return true;
   };
 
   const visibleMenuItems = menuItems.filter(item => hasPermission(item.path));

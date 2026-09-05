@@ -37,7 +37,8 @@ export default function Chat() {
   const [warningInput, setWarningInput] = useState('');
   const [activeWarning, setActiveWarning] = useState<string | null>(null);
 
-  const isSubscriber = plan === 'pro' || plan === 'trimestral' || plan === 'anual' || isTrialActive;
+  // Liberado para teste grátis e assinantes
+  const isSubscriber = true;
 
   useEffect(() => {
     loadProfile();

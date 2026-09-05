@@ -118,8 +118,8 @@ export default function App() {
     return 'CRIATÓRIO NÃO CADASTRADO';
   };
 
-  // Define se o sistema deve ser bloqueado totalmente (apenas se o período de testes grátis expirou)
-  const isLocked = isFreePlan;
+  // Todas as páginas e funções liberadas mesmo no teste grátis
+  const isLocked = false;
 
   if (loading || subLoading) {
     return (
@@ -146,9 +146,10 @@ export default function App() {
   }
 
   const hasPermission = (moduleName: string) => {
-    if (!profile) return false; // Default to false (fail-secure) while profile is loading
-    if (profile.role !== 'tratador') return true;
-    return profile.permissions?.[moduleName] ?? false;
+    if (profile?.role === 'tratador') {
+      return profile.permissions?.[moduleName] ?? false;
+    }
+    return true;
   };
 
   return (

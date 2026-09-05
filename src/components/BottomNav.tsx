@@ -17,19 +17,19 @@ const BottomNav = ({ onOpenMenu, profile }: BottomNavProps) => {
   ];
 
   const hasPermission = (path: string) => {
-    if (!profile) return false; // Default to false (fail-secure) while profile is loading
-    if (profile.role !== 'tratador') return true;
+    if (profile?.role === 'tratador') {
+      if (path === '/') return true;
 
-    if (path === '/') return true;
+      const mapping: { [key: string]: string } = {
+        '/eggs': 'eggs',
+        '/breeding': 'breeding',
+        '/birds': 'birds',
+      };
 
-    const mapping: { [key: string]: string } = {
-      '/eggs': 'eggs',
-      '/breeding': 'breeding',
-      '/birds': 'birds',
-    };
-
-    const moduleKey = mapping[path];
-    return moduleKey ? (profile.permissions?.[moduleKey] ?? false) : false;
+      const moduleKey = mapping[path];
+      return moduleKey ? (profile.permissions?.[moduleKey] ?? false) : false;
+    }
+    return true;
   };
 
   const visibleNavItems = navItems.filter((item) => hasPermission(item.path));
