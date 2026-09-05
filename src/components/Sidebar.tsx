@@ -160,24 +160,25 @@ const Sidebar = ({ isOpen, onClose, profile }: SidebarProps) => {
       )}
 
       <aside className={`
-        fixed left-0 top-0 h-full w-64 z-[70] bg-white dark:bg-slate-900 flex flex-col p-6 space-y-2 border-r border-slate-200 dark:border-slate-800
-        transition-all duration-300 ease-in-out lg:translate-x-0
+        fixed left-0 top-0 h-full w-72 sm:w-80 max-w-[85vw] z-[70] bg-white dark:bg-slate-900 flex flex-col p-6 space-y-2 border-r border-slate-200 dark:border-slate-800
+        transition-all duration-300 ease-in-out lg:translate-x-0 overflow-y-auto max-h-screen
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-6 shrink-0">
           <div className="text-4xl font-black text-[#2563EB] dark:text-blue-500 font-headline tracking-tighter italic flex flex-col">
             AVS
             <span className="text-sm font-black tracking-[0.4em] text-[#3B82F6] dark:text-blue-400 uppercase -mt-1 leading-none">GERENCIAMENTO</span>
           </div>
           <button 
             onClick={onClose}
-            className="lg:hidden text-slate-400 hover:text-slate-650 transition-colors"
+            className="lg:hidden p-2 text-slate-400 hover:text-slate-650 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            aria-label="Fechar menu"
           >
             <X size={24} />
           </button>
         </div>
         
-        <nav className="flex-1 space-y-1">
+        <nav className="flex-1 space-y-1 min-h-0 pb-16">
           {visibleMenuItems.map((item) => {
             const isActive = location.pathname === item.path;
             const theme = colorThemes[item.path] || colorThemes['/'];
@@ -207,7 +208,7 @@ const Sidebar = ({ isOpen, onClose, profile }: SidebarProps) => {
             );
           })}
         </nav>
-        <div className="mt-auto pt-6 border-t border-slate-200 dark:border-slate-800 opacity-80 flex items-center justify-center">
+        <div className="mt-auto pt-4 pb-6 border-t border-slate-200 dark:border-slate-800 opacity-80 flex items-center justify-center shrink-0">
           <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">AVS OS v1.0.5</p>
         </div>
       </aside>

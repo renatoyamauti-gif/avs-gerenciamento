@@ -200,7 +200,7 @@ export default function Finance() {
           <h2 className="text-3xl font-headline font-bold text-[#1F2937] dark:text-slate-100 tracking-tight">Financeiro</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium">Controle de receitas e despesas</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
           {!isFreePlan && (
             <>
               <button 

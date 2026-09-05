@@ -804,15 +804,16 @@ export default function Plantel() {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5 sm:gap-2">
                   <Link 
                     to={`/birds/lineage/${bird.id}`}
-                    className="p-2.5 bg-white rounded-xl text-slate-500 border border-slate-200 hover:scale-105 shadow-sm transition-all flex items-center justify-center"
+                    className="p-2.5 bg-white rounded-xl text-slate-500 border border-slate-200 hover:scale-105 shadow-sm transition-all flex items-center justify-center cursor-pointer"
                     title="Ver Linhagem / Pedigree"
                   >
                     <GitBranch size={18} />
                   </Link>
-                  <button onClick={() => { setEditingBird(bird); setIsAdding(true); }} className="p-2.5 bg-white rounded-xl text-[#2563EB] border border-slate-200 hover:scale-105 shadow-sm transition-all"><MoreVertical size={18} /></button>
+                  <button onClick={() => { setEditingBird(bird); setIsAdding(true); }} className="p-2.5 bg-white rounded-xl text-[#2563EB] border border-slate-200 hover:scale-105 shadow-sm transition-all cursor-pointer" title="Editar Ave"><MoreVertical size={18} /></button>
+                  <button onClick={() => removeBird(bird.id)} className="p-2.5 bg-white rounded-xl text-slate-400 hover:text-[#EF4444] border border-slate-200 hover:scale-105 shadow-sm transition-all cursor-pointer" title="Excluir Ave"><Trash2 size={18} /></button>
                 </div>
               </div>
               

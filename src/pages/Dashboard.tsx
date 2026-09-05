@@ -1,6 +1,28 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Bird, Egg, Wallet, Hash, Thermometer, TrendingUp, TrendingDown, Activity, Loader2, CheckCircle2, Baby } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { 
+  Bird, 
+  Egg, 
+  Wallet, 
+  Hash, 
+  Thermometer, 
+  TrendingUp, 
+  TrendingDown, 
+  Activity, 
+  Loader2, 
+  CheckCircle2, 
+  Baby,
+  Truck,
+  Tag,
+  ArrowRight,
+  MessageSquare,
+  Settings,
+  CreditCard,
+  Plus,
+  ChevronRight,
+  LayoutDashboard
+} from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, LabelList } from 'recharts';
 import { dbService } from '../lib/dbService';
 import { calculateEggStock } from '../lib/stockHelper';
@@ -26,9 +48,8 @@ export default function Dashboard() {
   const [deliveredOrders, setDeliveredOrders] = useState<any[]>([]);
 
   const showSection = (moduleName: string) => {
-    if (role === 'admin') return true;
     if (role === 'tratador') return permissions?.[moduleName] ?? false;
-    return false; // Fail-secure default if role is not loaded yet
+    return true;
   };
 
   useEffect(() => {
@@ -50,12 +71,12 @@ export default function Dashboard() {
         setPermissions(currentPermissions);
       }
 
-      const hasBirds = currentRole === 'admin' || (currentPermissions?.birds ?? false);
-      const hasEggs = currentRole === 'admin' || (currentPermissions?.eggs ?? false);
-      const hasMaternity = currentRole === 'admin' || (currentPermissions?.maternity ?? false);
-      const hasBreeding = currentRole === 'admin' || (currentPermissions?.breeding ?? false);
-      const hasFinance = currentRole === 'admin' || (currentPermissions?.finance ?? false);
-      const hasShipping = currentRole === 'admin' || (currentPermissions?.shipping ?? false);
+      const hasBirds = currentRole !== 'tratador' || (currentPermissions?.birds ?? false);
+      const hasEggs = currentRole !== 'tratador' || (currentPermissions?.eggs ?? false);
+      const hasMaternity = currentRole !== 'tratador' || (currentPermissions?.maternity ?? false);
+      const hasBreeding = currentRole !== 'tratador' || (currentPermissions?.breeding ?? false);
+      const hasFinance = currentRole !== 'tratador' || (currentPermissions?.finance ?? false);
+      const hasShipping = currentRole !== 'tratador' || (currentPermissions?.shipping ?? false);
 
       // Load all authorized data in parallel
       const [birds, eggLogs, maternityRecords, incubators, transactions, orders, products, racasData] = await Promise.all([
@@ -241,9 +262,9 @@ export default function Dashboard() {
           
           {/* Estoque de Ovos */}
           {eggVis && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+            <Link to="/eggs" className="block bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)] hover:border-amber-400/40 active:scale-[0.98]">
               <div className="flex items-center gap-4 mb-4">
-                <div className="bg-[#FFF7ED] dark:bg-amber-955/20 p-3 rounded-full">
+                <div className="bg-[#FFF7ED] dark:bg-amber-955/20 p-3 rounded-full group-hover:scale-110 transition-transform">
                   <Egg size={24} className="text-[#F59E0B] dark:text-amber-500" />
                 </div>
                 <div>
@@ -254,14 +275,14 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           )}
 
           {/* Em Incubação */}
           {breedVis && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+            <Link to="/breeding" className="block bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)] hover:border-red-400/40 active:scale-[0.98]">
               <div className="flex items-center gap-4 mb-4">
-                <div className="bg-[#FEF2F2] dark:bg-red-955/20 p-3 rounded-full">
+                <div className="bg-[#FEF2F2] dark:bg-red-955/20 p-3 rounded-full group-hover:scale-110 transition-transform">
                   <Activity size={24} className="text-[#EF4444] dark:text-red-400" />
                 </div>
                 <div>
@@ -272,14 +293,14 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           )}
 
           {/* Saldo Atual */}
           {finVis && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+            <Link to="/finance" className="block bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)] hover:border-green-400/40 active:scale-[0.98]">
               <div className="flex items-center gap-4 mb-4">
-                <div className="bg-[#DCFCE7] dark:bg-green-955/20 p-3 rounded-full">
+                <div className="bg-[#DCFCE7] dark:bg-green-955/20 p-3 rounded-full group-hover:scale-110 transition-transform">
                   <Wallet size={24} className="text-[#16A34A] dark:text-green-500" />
                 </div>
                 <div>
@@ -290,14 +311,14 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           )}
 
           {/* Maternidade (Pintinhos) */}
           {matVis && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+            <Link to="/maternity" className="block bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)] hover:border-blue-400/40 active:scale-[0.98]">
               <div className="flex items-center gap-4 mb-4">
-                <div className="bg-[#EFF6FF] dark:bg-blue-955/20 p-3 rounded-full">
+                <div className="bg-[#EFF6FF] dark:bg-blue-955/20 p-3 rounded-full group-hover:scale-110 transition-transform">
                   <Baby size={24} className="text-[#2563EB] dark:text-blue-400" />
                 </div>
                 <div>
@@ -308,14 +329,14 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           )}
 
           {/* Plantel Total */}
           {birdVis && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)]">
+            <Link to="/birds" className="block bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 rounded-3xl relative overflow-hidden group shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_30px_rgba(37,99,235,0.08)] hover:border-indigo-400/40 active:scale-[0.98]">
               <div className="flex items-center gap-4 mb-4">
-                <div className="bg-[#DBEAFE] dark:bg-blue-900/30 p-3 rounded-full">
+                <div className="bg-[#DBEAFE] dark:bg-blue-900/30 p-3 rounded-full group-hover:scale-110 transition-transform">
                   <Bird size={24} className="text-[#2563EB] dark:text-blue-400" />
                 </div>
                 <div>
@@ -326,11 +347,132 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           )}
 
         </div>
       )}
+
+      {/* Central de Módulos e Funcionalidades - Acesso Rápido para Mobile e Desktop */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-[#1F2937] dark:text-slate-100 font-headline uppercase tracking-tight flex items-center gap-2">
+            <LayoutDashboard size={20} className="text-[#2563EB]" />
+            Módulos e Funcionalidades
+          </h3>
+          <span className="text-xs font-semibold text-slate-400">Acesso Rápido</span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          {showSection('birds') && (
+            <Link to="/birds" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-indigo-500/40 hover:shadow-md transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+                <Bird size={20} />
+              </div>
+              <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Gestão de Aves</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Plantel e Matrizes</span>
+            </Link>
+          )}
+
+          {showSection('breeding') && (
+            <Link to="/breeding" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-amber-500/40 hover:shadow-md transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+                <Thermometer size={20} />
+              </div>
+              <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Chocadeira</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Incubação e Lotes</span>
+            </Link>
+          )}
+
+          {showSection('maternity') && (
+            <Link to="/maternity" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-rose-500/40 hover:shadow-md transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+                <Baby size={20} />
+              </div>
+              <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Maternidade</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Filhotes e Nascimentos</span>
+            </Link>
+          )}
+
+          {showSection('eggs') && (
+            <Link to="/eggs" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-sky-500/40 hover:shadow-md transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+                <Egg size={20} />
+              </div>
+              <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Coleta de Ovos</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Estoque Diário</span>
+            </Link>
+          )}
+
+          {showSection('shipping') && (
+            <Link to="/shipping" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-emerald-500/40 hover:shadow-md transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+                <Truck size={20} />
+              </div>
+              <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Remessas</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Envios e Fretes</span>
+            </Link>
+          )}
+
+          {showSection('shipping') && (
+            <Link to="/products" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-purple-500/40 hover:shadow-md transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+                <Tag size={20} />
+              </div>
+              <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Produtos</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Catálogo Comercial</span>
+            </Link>
+          )}
+
+          {showSection('ration') && (
+            <Link to="/ration" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-teal-500/40 hover:shadow-md transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+                <ArrowRight size={20} />
+              </div>
+              <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Ração</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Fórmulas e Ingredientes</span>
+            </Link>
+          )}
+
+          {showSection('finance') && (
+            <Link to="/finance" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-green-500/40 hover:shadow-md transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+                <Wallet size={20} />
+              </div>
+              <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Financeiro</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Fluxo de Caixa</span>
+            </Link>
+          )}
+
+          {showSection('chat') && (
+            <Link to="/chat" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-violet-500/40 hover:shadow-md transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+                <MessageSquare size={20} />
+              </div>
+              <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Chat Exclusivo</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Comunidade Criadores</span>
+            </Link>
+          )}
+
+          <Link to="/settings" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-slate-500/40 hover:shadow-md transition-all group">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+              <Settings size={20} />
+            </div>
+            <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Configurações</span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Criatório e Equipe</span>
+          </Link>
+
+          {role !== 'tratador' && (
+            <Link to="/subscription" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-pink-500/40 hover:shadow-md transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+                <CreditCard size={20} />
+              </div>
+              <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Assinatura</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Planos e Teste</span>
+            </Link>
+          )}
+        </div>
+      </section>
        {/* Charts / Alerts Section */}
       {(showSection('finance') || showSection('breeding') || (showSection('shipping') && deliveredOrders.length > 0)) && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
