@@ -319,23 +319,43 @@ export const dbService = {
       bird.id,
       birdData,
       async () => {
-        if (bird.id && bird.id.length > 15) {
-          const { data, error } = await supabase
-            .from('birds')
-            .update(birdData)
-            .eq('id', bird.id)
-            .select();
-          if (error) handleSupabaseError(error, 'update', 'birds');
-          return data[0];
-        } else {
-          const { id, ...insertData } = birdData;
-          const { data, error } = await supabase
-            .from('birds')
-            .insert([insertData])
-            .select();
-          if (error) handleSupabaseError(error, 'create', 'birds');
-          return data[0];
+        let currentData = { ...birdData };
+
+        const executeSupabase = async (payload: any) => {
+          if (payload.id && payload.id.length > 15) {
+            return await supabase
+              .from('birds')
+              .update(payload)
+              .eq('id', payload.id)
+              .select();
+          } else {
+            const { id, ...insertData } = payload;
+            return await supabase
+              .from('birds')
+              .insert([insertData])
+              .select();
+          }
+        };
+
+        let { data, error } = await executeSupabase(currentData);
+
+        // Se uma coluna não existir no banco (ex: corn_daily_grams ou corn_price_per_kg),
+        // remove a coluna do payload e tenta salvar novamente para não travar o cadastro
+        while (error && error.message && error.message.includes('in the schema cache')) {
+          const match = error.message.match(/Could not find the '([^']+)' column/);
+          if (match && match[1] && currentData[match[1]] !== undefined) {
+            console.warn(`Coluna '${match[1]}' ausente na tabela 'birds' do Supabase. Removendo do payload para salvar:`, error.message);
+            delete currentData[match[1]];
+            const retry = await executeSupabase(currentData);
+            data = retry.data;
+            error = retry.error;
+          } else {
+            break;
+          }
         }
+
+        if (error) handleSupabaseError(error, bird.id && bird.id.length > 15 ? 'update' : 'create', 'birds');
+        return data[0];
       }
     );
   },
