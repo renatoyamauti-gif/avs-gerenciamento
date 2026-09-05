@@ -123,29 +123,8 @@ const Sidebar = ({ isOpen, onClose, profile }: SidebarProps) => {
     { path: '/subscription', label: "Assinatura", icon: <CreditCard size={18} /> },
   ];
 
-  const hasPermission = (path: string) => {
-    if (profile?.role === 'tratador') {
-      if (path === '/') return true;
-      if (path === '/settings') return true;
-      if (path === '/subscription') return false;
-
-      const mapping: { [key: string]: string } = {
-        '/birds': 'birds',
-        '/breeding': 'breeding',
-        '/maternity': 'maternity',
-        '/eggs': 'eggs',
-        '/shipping': 'shipping',
-        '/products': 'shipping',
-        '/ration': 'ration',
-        '/finance': 'finance',
-        '/chat': 'chat'
-      };
-
-      const moduleKey = mapping[path];
-      return moduleKey ? (profile.permissions?.[moduleKey] ?? false) : false;
-    }
-    return true;
-  };
+  // Todas as páginas liberadas
+  const hasPermission = (_path: string) => true;
 
   const visibleMenuItems = menuItems.filter(item => hasPermission(item.path));
 

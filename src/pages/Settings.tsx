@@ -142,10 +142,8 @@ export default function Settings() {
       phone: formData.get('phone'),
     };
 
-    if (profile?.role !== 'tratador') {
-      updates.criatorio_name = formData.get('criatorio_name');
-      updates.shipping_terms = formData.get('shipping_terms');
-    }
+    updates.criatorio_name = formData.get('criatorio_name');
+    updates.shipping_terms = formData.get('shipping_terms');
 
     try {
       await dbService.updateProfile(updates);
@@ -402,19 +400,17 @@ export default function Settings() {
         >
           <User size={16} /> Meu Perfil
         </button>
-        {profile?.role !== 'tratador' && (
-          <button
-            type="button"
-            onClick={() => { setActiveTab('team'); loadTeam(); }}
-            className={`pb-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all ${
-              activeTab === 'team'
-                ? 'border-[#2563EB] text-[#2563EB]'
-                : 'border-transparent text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Users size={16} /> Equipe / Tratadores
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => { setActiveTab('team'); loadTeam(); }}
+          className={`pb-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all ${
+            activeTab === 'team'
+              ? 'border-[#2563EB] text-[#2563EB]'
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <Users size={16} /> Equipe / Tratadores
+        </button>
       </div>
 
       {activeTab === 'profile' ? (
@@ -447,9 +443,8 @@ export default function Settings() {
                       name="criatorio_name" 
                       type="text" 
                       defaultValue={profile?.criatorio_name || ''}
-                      disabled={profile?.role === 'tratador'}
-                      placeholder={profile?.role === 'tratador' ? "Não disponível para tratador" : "Ex: Criatório AVS"}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none disabled:opacity-60 disabled:cursor-not-allowed" 
+                      placeholder="Ex: Criatório AVS"
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none" 
                     />
                   </div>
 
@@ -475,14 +470,13 @@ export default function Settings() {
                   <p className="text-xs text-slate-400 mt-1 font-medium ml-1">O e-mail é gerenciado pelo sistema de autenticação.</p>
                 </div>
 
-                {profile?.role !== 'tratador' && (
-                  <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Termos e Condições de Envio</label>
-                      <textarea 
-                        name="shipping_terms" 
-                        rows={5}
-                        defaultValue={profile?.shipping_terms || ''}
+                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Termos e Condições de Envio</label>
+                    <textarea 
+                      name="shipping_terms" 
+                      rows={5}
+                      defaultValue={profile?.shipping_terms || ''}
                         placeholder="Descreva as condições de envio do seu criatório. Esse texto será exibido para seus clientes no formulário público."
                         className="w-full bg-[#F8FAFC] dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-[#1F2937] dark:text-slate-100 font-medium focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 transition-all outline-none text-sm leading-relaxed" 
                       />
@@ -546,7 +540,6 @@ export default function Settings() {
                       </div>
                     </div>
                   </div>
-                )}
 
                 {message && (
                   <div className={`p-4 rounded-2xl text-sm font-bold flex items-center gap-2 ${message.type === 'success' ? 'bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]' : 'bg-[#FEF2F2] text-[#EF4444] border border-[#FECACA]'}`}>

@@ -47,10 +47,7 @@ export default function Dashboard() {
   const [racaEstimates, setRacaEstimates] = useState<{ name: string; estimativa: number }[]>([]);
   const [deliveredOrders, setDeliveredOrders] = useState<any[]>([]);
 
-  const showSection = (moduleName: string) => {
-    if (role === 'tratador') return permissions?.[moduleName] ?? false;
-    return true;
-  };
+  const showSection = (_moduleName: string) => true;
 
   useEffect(() => {
     loadDashboardData();
@@ -71,12 +68,12 @@ export default function Dashboard() {
         setPermissions(currentPermissions);
       }
 
-      const hasBirds = currentRole !== 'tratador' || (currentPermissions?.birds ?? false);
-      const hasEggs = currentRole !== 'tratador' || (currentPermissions?.eggs ?? false);
-      const hasMaternity = currentRole !== 'tratador' || (currentPermissions?.maternity ?? false);
-      const hasBreeding = currentRole !== 'tratador' || (currentPermissions?.breeding ?? false);
-      const hasFinance = currentRole !== 'tratador' || (currentPermissions?.finance ?? false);
-      const hasShipping = currentRole !== 'tratador' || (currentPermissions?.shipping ?? false);
+      const hasBirds = true;
+      const hasEggs = true;
+      const hasMaternity = true;
+      const hasBreeding = true;
+      const hasFinance = true;
+      const hasShipping = true;
 
       // Load all authorized data in parallel
       const [birds, eggLogs, maternityRecords, incubators, transactions, orders, products, racasData] = await Promise.all([
@@ -462,15 +459,13 @@ export default function Dashboard() {
             <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Criatório e Equipe</span>
           </Link>
 
-          {role !== 'tratador' && (
-            <Link to="/subscription" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-pink-500/40 hover:shadow-md transition-all group">
-              <div className="w-10 h-10 rounded-xl bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
-                <CreditCard size={20} />
-              </div>
-              <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Assinatura</span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Planos e Teste</span>
-            </Link>
-          )}
+          <Link to="/subscription" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-pink-500/40 hover:shadow-md transition-all group">
+            <div className="w-10 h-10 rounded-xl bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+              <CreditCard size={20} />
+            </div>
+            <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Assinatura</span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Planos e Teste</span>
+          </Link>
         </div>
       </section>
        {/* Charts / Alerts Section */}

@@ -145,12 +145,8 @@ export default function App() {
     );
   }
 
-  const hasPermission = (moduleName: string) => {
-    if (profile?.role === 'tratador') {
-      return profile.permissions?.[moduleName] ?? false;
-    }
-    return true;
-  };
+  // Todas as rotas liberadas
+  const hasPermission = (_moduleName: string) => true;
 
   return (
     <Router>
@@ -268,7 +264,7 @@ export default function App() {
                     <Route path="/finance" element={hasPermission('finance') ? <Finance /> : <Navigate to="/" />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/chat" element={hasPermission('chat') ? <Chat /> : <Navigate to="/" />} />
-                    <Route path="/subscription" element={profile?.role !== 'tratador' ? <Subscription /> : <Navigate to="/" />} />
+                    <Route path="/subscription" element={<Subscription />} />
                     <Route path="*" element={<Navigate to="/" />} />
                   </Routes>
                 )}
