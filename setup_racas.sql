@@ -32,27 +32,22 @@ CREATE TABLE IF NOT EXISTS public.racas (
 -- 4. Habilitar RLS (Row Level Security) na tabela 'racas'
 ALTER TABLE public.racas ENABLE ROW LEVEL SECURITY;
 
--- 5. Criar política de segurança RLS compatível com Donos e Tratadores (Equipe)
+-- 5. Criar política de segurança RLS estrita por criatório/equipe
 DROP POLICY IF EXISTS "Users can manage their own racas" ON public.racas;
+DROP POLICY IF EXISTS "Allow authenticated users to manage racas" ON public.racas;
 
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM pg_proc WHERE proname = 'get_effective_user_id'
-  ) THEN
-    EXECUTE '
-      CREATE POLICY "Users can manage their own racas" ON public.racas FOR ALL
-        USING (user_id = public.get_effective_user_id() OR auth.uid() = user_id)
-        WITH CHECK (user_id = public.get_effective_user_id() OR auth.uid() = user_id);
-    ';
-  ELSE
-    EXECUTE '
-      CREATE POLICY "Users can manage their own racas" ON public.racas FOR ALL
-        USING (auth.uid() = user_id)
-        WITH CHECK (auth.uid() = user_id);
-    ';
-  END IF;
-END $$;
+CREATE OR REPLACE FUNCTION public.get_effective_user_id()
+RETURNS UUID AS $$
+  SELECT COALESCE(
+    (SELECT parent_user_id FROM public.profiles WHERE id = auth.uid()),
+    auth.uid()
+  );
+$$ LANGUAGE sql SECURITY DEFINER;
+
+CREATE POLICY "Users can manage their own racas" ON public.racas
+  FOR ALL
+  USING (user_id = public.get_effective_user_id())
+  WITH CHECK (user_id = public.get_effective_user_id());
 
 -- 6. Recarregar o cache de schema do PostgREST
 NOTIFY pgrst, 'reload schema';

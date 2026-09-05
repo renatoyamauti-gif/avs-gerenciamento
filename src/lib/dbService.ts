@@ -700,26 +700,38 @@ export const dbService = {
 
   // Racas
   async getRacas() {
-    const cached = getCachedData('racas');
-    if (cached) return cached;
+    let ownerId: string | null = null;
     try {
-      let { data, error } = await supabase
-        .from('racas')
-        .select('*')
-        .order('name');
+      ownerId = await this.getOwnerId();
+    } catch {
+      const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+      ownerId = session?.user?.id || null;
+    }
 
-      if (error) {
-        console.warn('Busca de racas com cliente padrão falhou, aplicando fallback via supabaseAdmin:', error);
-        let ownerId = await this.getOwnerId().catch(() => null);
-        if (!ownerId) {
-          const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
-          ownerId = session?.user?.id;
-        }
-        let query = supabaseAdmin.from('racas').select('*').order('name');
-        if (ownerId) {
-          query = query.or(`user_id.eq.${ownerId},user_id.is.null`);
-        }
-        const adminRes = await query;
+    const cacheKey = ownerId ? `racas_${ownerId}` : 'racas';
+    const cached = getCachedData(cacheKey);
+    if (cached) return cached;
+
+    try {
+      let query = supabase
+        .from('racas')
+        .select('*');
+
+      // Filtra estritamente pelo usuário autenticado (ou dono da equipe)
+      if (ownerId) {
+        query = query.eq('user_id', ownerId);
+      }
+      query = query.order('name');
+
+      let { data, error } = await query;
+
+      if (error && ownerId) {
+        console.warn('Busca de racas com cliente padrão falhou, aplicando fallback isolado via supabaseAdmin:', error);
+        const adminRes = await supabaseAdmin
+          .from('racas')
+          .select('*')
+          .eq('user_id', ownerId)
+          .order('name');
         if (!adminRes.error && adminRes.data) {
           data = adminRes.data;
           error = null;
@@ -727,11 +739,12 @@ export const dbService = {
       }
 
       if (error) handleSupabaseError(error, 'list', 'racas');
-      setCachedData('racas', data);
-      return data;
+      const result = data || [];
+      setCachedData(cacheKey, result);
+      return result;
     } catch (err) {
       if (isNetworkError(err)) {
-        const fallback = getOfflineFallback('racas');
+        const fallback = getOfflineFallback(cacheKey);
         if (fallback) return fallback;
       }
       throw err;
@@ -739,27 +752,29 @@ export const dbService = {
   },
 
   async saveRaca(raca: any) {
-    let ownerId = await this.getOwnerId().catch(() => null);
-    if (!ownerId) {
+    let ownerId: string | null = null;
+    try {
+      ownerId = await this.getOwnerId();
+    } catch {
       const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
-      ownerId = session?.user?.id;
+      ownerId = session?.user?.id || raca.user_id || null;
     }
+
     if (!ownerId) {
       const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
-      ownerId = user?.id || raca.user_id;
+      ownerId = user?.id || raca.user_id || null;
     }
-    const racaData: any = { ...raca };
-    if (ownerId) {
-      racaData.user_id = ownerId;
-    } else if (raca.user_id) {
-      racaData.user_id = raca.user_id;
-    } else {
-      delete racaData.user_id;
+
+    if (!ownerId) {
+      throw new Error('Usuário não autenticado. Faça login para cadastrar raças.');
     }
+
+    const cacheKey = `racas_${ownerId}`;
+    const racaData = { ...raca, user_id: ownerId };
 
     return this.handleWriteOperation(
       'racas',
-      'racas',
+      cacheKey,
       raca.id,
       racaData,
       async () => {
@@ -768,14 +783,16 @@ export const dbService = {
             .from('racas')
             .update(racaData)
             .eq('id', raca.id)
+            .eq('user_id', ownerId)
             .select();
 
           if (error) {
-            console.warn('Atualização de raca com cliente padrão falhou, aplicando fallback via supabaseAdmin:', error);
+            console.warn('Atualização de raca falhou no cliente padrão, aplicando fallback via supabaseAdmin:', error);
             const adminRes = await supabaseAdmin
               .from('racas')
               .update(racaData)
               .eq('id', raca.id)
+              .eq('user_id', ownerId)
               .select();
             if (!adminRes.error && adminRes.data) {
               data = adminRes.data;
@@ -793,7 +810,7 @@ export const dbService = {
             .select();
 
           if (error) {
-            console.warn('Inserção de raca com cliente padrão falhou, aplicando fallback via supabaseAdmin:', error);
+            console.warn('Inserção de raca falhou no cliente padrão, aplicando fallback via supabaseAdmin:', error);
             const adminRes = await supabaseAdmin
               .from('racas')
               .insert([insertData])
@@ -812,22 +829,33 @@ export const dbService = {
   },
 
   async deleteRaca(id: string) {
+    let ownerId: string | null = null;
+    try {
+      ownerId = await this.getOwnerId();
+    } catch {
+      const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+      ownerId = session?.user?.id || null;
+    }
+    const cacheKey = ownerId ? `racas_${ownerId}` : 'racas';
+
     return this.handleDeleteOperation(
       'racas',
-      'racas',
+      cacheKey,
       id,
       async () => {
-        let { error } = await supabase
-          .from('racas')
-          .delete()
-          .eq('id', id);
+        let query = supabase.from('racas').delete().eq('id', id);
+        if (ownerId) {
+          query = query.eq('user_id', ownerId);
+        }
+        let { error } = await query;
 
-        if (error) {
-          console.warn('Exclusão de raca com cliente padrão falhou, aplicando fallback via supabaseAdmin:', error);
+        if (error && ownerId) {
+          console.warn('Exclusão de raca falhou no cliente padrão, aplicando fallback via supabaseAdmin:', error);
           const adminRes = await supabaseAdmin
             .from('racas')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('user_id', ownerId);
           if (!adminRes.error) {
             error = null;
           }
@@ -2270,6 +2298,19 @@ export const dbService = {
   clearCache() {
     _cachedProfile = null;
     Object.keys(_queryCache).forEach(key => delete _queryCache[key]);
+    try {
+      localStorage.removeItem('avs_cached_profile');
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('avs_cache_') || k === 'avs_cached_profile')) {
+          keysToRemove.push(k);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch (e) {
+      console.error("Erro ao limpar cache local:", e);
+    }
   },
 
   async getCollectors() {
