@@ -57,35 +57,23 @@ export default function Dashboard() {
     try {
       setLoading(true);
 
-      const profile = await dbService.getProfile();
-      let currentRole = 'admin';
-      let currentPermissions: any = null;
+      // Load profile and all authorized data in parallel
+      const [profile, birds, eggLogs, maternityRecords, incubators, transactions, orders, products, racasData] = await Promise.all([
+        dbService.getProfile().catch(() => null),
+        dbService.getBirds().catch(() => []),
+        dbService.getEggLogs().catch(() => []),
+        dbService.getMaternityRecords().catch(() => []),
+        dbService.getIncubators().catch(() => []),
+        dbService.getTransactions().catch(() => []),
+        dbService.getOrders().catch(() => []),
+        dbService.getProducts().catch(() => []),
+        dbService.getRacas().catch(() => [])
+      ]);
 
       if (profile) {
-        currentRole = profile.role || 'admin';
-        currentPermissions = profile.permissions || null;
-        setRole(currentRole);
-        setPermissions(currentPermissions);
+        setRole(profile.role || 'admin');
+        setPermissions(profile.permissions || null);
       }
-
-      const hasBirds = true;
-      const hasEggs = true;
-      const hasMaternity = true;
-      const hasBreeding = true;
-      const hasFinance = true;
-      const hasShipping = true;
-
-      // Load all authorized data in parallel
-      const [birds, eggLogs, maternityRecords, incubators, transactions, orders, products, racasData] = await Promise.all([
-        hasBirds ? dbService.getBirds() : Promise.resolve([]),
-        hasEggs ? dbService.getEggLogs() : Promise.resolve([]),
-        hasMaternity ? dbService.getMaternityRecords() : Promise.resolve([]),
-        hasBreeding ? dbService.getIncubators() : Promise.resolve([]),
-        hasFinance ? dbService.getTransactions() : Promise.resolve([]),
-        hasShipping ? dbService.getOrders() : Promise.resolve([]),
-        hasShipping ? dbService.getProducts() : Promise.resolve([]),
-        hasEggs ? dbService.getRacas() : Promise.resolve([])
-      ]);
 
       const activeBirds = (birds || []).filter(b => b.status !== 'Vendida' && b.status !== 'Óbito' && b.status !== 'Reservada');
       setBirdCount(activeBirds.length);

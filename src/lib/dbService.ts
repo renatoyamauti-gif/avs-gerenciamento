@@ -29,11 +29,25 @@ function isNetworkError(error: any): boolean {
   return false;
 }
 
-function getCachedData(key: string) {
-  const cached = _queryCache[key];
-  if (cached && Date.now() - cached.timestamp < 120000) { // 2 minutes memory TTL
-    return cached.data;
+function getCachedData(key: string, maxAgeMs = 300000) { // 5 minutes TTL
+  const mem = _queryCache[key];
+  if (mem && Date.now() - mem.timestamp < maxAgeMs) {
+    return mem.data;
   }
+
+  try {
+    const stored = localStorage.getItem(`avs_cache_${key}`);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed && parsed.data !== undefined && (Date.now() - (parsed.timestamp || 0) < maxAgeMs)) {
+        _queryCache[key] = parsed;
+        return parsed.data;
+      }
+    }
+  } catch (e) {
+    console.error(`Error reading cache for ${key}:`, e);
+  }
+
   return null;
 }
 
@@ -209,7 +223,7 @@ async function syncOfflineQueue() {
   _isSyncing = false;
 
   if (remainingQueue.length === 0) {
-    dbService.clearCache();
+    dbService.clearCache(false);
     window.dispatchEvent(new CustomEvent('profileUpdated'));
   }
 }
@@ -1414,7 +1428,12 @@ export const dbService = {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+      let user = session?.user;
+      if (!user) {
+        const { data: { user: remoteUser } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+        user = remoteUser;
+      }
       if (!user) return null;
 
       const { data, error } = await supabase
@@ -1540,6 +1559,15 @@ export const dbService = {
 
   async getOwnerId() {
     // 1. Check cache first.
+    if (!_cachedProfile) {
+      try {
+        const stored = localStorage.getItem('avs_cached_profile');
+        if (stored) {
+          _cachedProfile = JSON.parse(stored);
+        }
+      } catch {}
+    }
+
     if (_cachedProfile) {
       if (_cachedProfile.parent_user_id) {
         return _cachedProfile.parent_user_id;
@@ -1549,7 +1577,12 @@ export const dbService = {
       }
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+    let user = session?.user;
+    if (!user) {
+      const { data: { user: remoteUser } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+      user = remoteUser;
+    }
     if (!user) throw new Error('Não autenticado');
 
     // 2. Fetch parent_user_id directly from public.profiles table
@@ -2315,21 +2348,23 @@ export const dbService = {
     );
   },
 
-  clearCache() {
+  clearCache(clearLocalStorage = true) {
     _cachedProfile = null;
     Object.keys(_queryCache).forEach(key => delete _queryCache[key]);
-    try {
-      localStorage.removeItem('avs_cached_profile');
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && (k.startsWith('avs_cache_') || k === 'avs_cached_profile')) {
-          keysToRemove.push(k);
+    if (clearLocalStorage) {
+      try {
+        localStorage.removeItem('avs_cached_profile');
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (k.startsWith('avs_cache_') || k === 'avs_cached_profile')) {
+            keysToRemove.push(k);
+          }
         }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+      } catch (e) {
+        console.error("Erro ao limpar cache local:", e);
       }
-      keysToRemove.forEach(k => localStorage.removeItem(k));
-    } catch (e) {
-      console.error("Erro ao limpar cache local:", e);
     }
   },
 

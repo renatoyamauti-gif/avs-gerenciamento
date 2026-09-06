@@ -1,4 +1,4 @@
-const CACHE_NAME = 'avs-pwa-cache-v19';
+const CACHE_NAME = 'avs-pwa-cache-v20';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -64,27 +64,28 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-First strategy for HTML navigation with cache fallback
-  event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-        }
-        return networkResponse;
+  // Stale-While-Revalidate strategy for HTML navigation (instant display + background update)
+  if (event.request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html') {
+    event.respondWith(
+      caches.match('/index.html').then((cachedIndex) => {
+        const fetchPromise = fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put('/index.html', responseToCache);
+              });
+            }
+            return networkResponse;
+          })
+          .catch(() => cachedIndex);
+
+        return cachedIndex || fetchPromise;
       })
-      .catch(() => {
-        // Fallback to cache if network fails (offline)
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) return cachedResponse;
-          // If navigation request and no cache, return index.html fallback
-          if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-        });
-      })
-  );
+    );
+    return;
+  }
+
+  // Default fetch for other requests
+  event.respondWith(fetch(event.request));
 });

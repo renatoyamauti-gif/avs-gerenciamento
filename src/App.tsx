@@ -67,21 +67,37 @@ export default function App() {
 
     initSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      dbService.clearCache(); // Invalidate memory cache on any authentication change
-      setSession(session);
-      if (session) {
-        const userProfile = await dbService.getProfile();
-        setProfile(userProfile);
-        dbService.syncOfflineQueue().catch(console.error);
-      } else {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        dbService.clearCache(true);
+        setSession(null);
         setProfile(null);
+      } else if (event === 'SIGNED_IN') {
+        const prevStored = localStorage.getItem('avs_cached_profile');
+        if (prevStored) {
+          try {
+            const parsed = JSON.parse(prevStored);
+            if (parsed.id && session?.user?.id && parsed.id !== session.user.id) {
+              dbService.clearCache(true);
+            }
+          } catch {}
+        }
+        setSession(session);
+        if (session) {
+          const userProfile = await dbService.getProfile();
+          setProfile(userProfile);
+          dbService.syncOfflineQueue().catch(console.error);
+        }
+      } else if (event === 'USER_UPDATED') {
+        const userProfile = await dbService.getProfile(true);
+        setProfile(userProfile);
+      } else {
+        setSession(session);
       }
     });
 
     const handleProfileUpdate = () => {
-      dbService.clearCache();
-      dbService.getProfile().then(setProfile);
+      dbService.getProfile(true).then(setProfile);
     };
 
     const handleOnline = () => {

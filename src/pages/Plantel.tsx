@@ -113,27 +113,15 @@ export default function Plantel() {
 
   async function loadData() {
     try {
-      const [birdsData, recipesData] = await Promise.all([
-        dbService.getBirds(),
-        dbService.getRations()
+      const [birdsData, recipesData, fetchedBaias, fetchedRacas] = await Promise.all([
+        dbService.getBirds().catch(() => []),
+        dbService.getRations().catch(() => []),
+        dbService.getBaias().catch(() => []),
+        dbService.getRacas().catch(() => [])
       ]);
       setBirds(birdsData || []);
       setRecipes(recipesData || []);
-
-      let fetchedBaias: any[] = [];
-      try {
-        fetchedBaias = await dbService.getBaias();
-      } catch (e) {
-        console.warn('Baias table might not exist yet');
-      }
       setBaiasData(fetchedBaias || []);
-
-      let fetchedRacas: any[] = [];
-      try {
-        fetchedRacas = await dbService.getRacas();
-      } catch (e) {
-        console.warn('Racas table might not exist yet');
-      }
       setRacas(fetchedRacas || []);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);

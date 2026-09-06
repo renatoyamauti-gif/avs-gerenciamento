@@ -13,7 +13,12 @@ export function useSubscription() {
   useEffect(() => {
     async function loadProfile() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+        let user = session?.user;
+        if (!user) {
+          const { data: { user: remoteUser } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+          user = remoteUser;
+        }
         if (!user) {
           setPlan('free');
           setLoading(false);
