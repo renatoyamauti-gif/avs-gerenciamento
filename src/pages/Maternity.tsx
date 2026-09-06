@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Baby, Plus, MoreVertical, X, Trash2, Loader2, Info, History, Calendar, Weight, Activity } from 'lucide-react';
+import { Baby, Plus, MoreVertical, X, Trash2, Loader2, Info, History, Calendar, Weight, Activity, ArrowRightCircle } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 
 interface MaternityRecord {
@@ -29,6 +29,12 @@ export default function Maternity() {
   const [records, setRecords] = useState<MaternityRecord[]>([]);
   const [recipes, setRecipes] = useState<any[]>([]);
   const [racas, setRacas] = useState<any[]>([]);
+  const [baias, setBaias] = useState<{ id?: string; name: string }[]>([]);
+  const [selectedBaia, setSelectedBaia] = useState<string>('');
+  const [currentStatus, setCurrentStatus] = useState<string>('Berçário');
+  const [selectedBatchBaia, setSelectedBatchBaia] = useState<string>('');
+  const [batchStatus, setBatchStatus] = useState<string>('Berçário');
+  const [isAddingBaia, setIsAddingBaia] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [isAddingBatch, setIsAddingBatch] = useState(false);
@@ -46,14 +52,32 @@ export default function Maternity() {
 
   async function loadData() {
     try {
-      const [data, recipesData, racasData] = await Promise.all([
+      const [data, recipesData, racasData, baiasData, birdsData] = await Promise.all([
         dbService.getMaternityRecords(),
         dbService.getRations(),
-        dbService.getRacas()
+        dbService.getRacas(),
+        dbService.getBaias().catch(() => []),
+        dbService.getBirds().catch(() => [])
       ]);
       setRecords(data || []);
       setRecipes(recipesData || []);
       setRacas(racasData || []);
+
+      const allBaiaNames = new Set<string>();
+      (baiasData || []).forEach((b: any) => {
+        if (b.name) allBaiaNames.add(b.name.trim());
+      });
+      (birdsData || []).forEach((b: any) => {
+        if (b.baia) allBaiaNames.add(b.baia.trim());
+      });
+      (data || []).forEach((m: any) => {
+        if (m.baia) allBaiaNames.add(m.baia.trim());
+      });
+
+      const sortedBaias = Array.from(allBaiaNames).sort((a, b) => 
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+      );
+      setBaias(sortedBaias.map(name => ({ name })));
     } catch (error) {
       console.error('Erro ao carregar registros de maternidade:', error);
     } finally {
@@ -74,11 +98,15 @@ export default function Maternity() {
     if (editingRecord) {
       loadHistory(editingRecord.id);
       setImagePreview(editingRecord.img_url || null);
+      setSelectedBaia(editingRecord.baia || '');
+      setCurrentStatus(editingRecord.status || 'Berçário');
     } else {
       setHistory([]);
       setActiveTab('dados');
       setIsAddingHistory(false);
       setImagePreview(null);
+      setSelectedBaia('');
+      setCurrentStatus('Berçário');
     }
   }, [editingRecord]);
 
@@ -97,17 +125,53 @@ export default function Maternity() {
     window.print();
   };
 
+  const handleSaveNewBaia = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const name = (formData.get('name') as string || '').trim();
+    if (!name) {
+      alert('Por favor, informe o nome da baia.');
+      return;
+    }
+
+    const capacity = parseInt(formData.get('capacity') as string) || null;
+    const type = (formData.get('type') as string) || 'Crescimento';
+    const description = (formData.get('description') as string) || '';
+
+    try {
+      await dbService.saveBaia({ name, capacity, type, description });
+      await loadData();
+      if (isAddingBatch) {
+        setSelectedBatchBaia(name);
+      } else {
+        setSelectedBaia(name);
+      }
+      setIsAddingBaia(false);
+    } catch (err: any) {
+      alert('Erro ao salvar baia: ' + (err?.message || err));
+    }
+  };
+
   const handleSaveRecord = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const status = (formData.get('status') as string) || currentStatus;
+    const rawBaia = (formData.get('baia') as string) || selectedBaia || '';
+    const baia = rawBaia.trim();
+
+    if (status === 'Transferido' && !baia) {
+      alert('Para transferir para o plantel, é obrigatório selecionar ou criar a Baia / Grupo de destino.');
+      return;
+    }
+
     const recordData: any = {
       identifier: formData.get('identifier') as string,
       raca: formData.get('raca') as string,
       birth_date: formData.get('birth_date') as string,
-      status: formData.get('status') as string,
+      status,
       initial_weight: parseFloat(formData.get('initial_weight') as string) || null,
       feed_recipe_id: formData.get('feed_recipe_id') as string || null,
-      baia: formData.get('baia') as string || null,
+      baia: baia || null,
       img_url: imagePreview || editingRecord?.img_url || null,
       notes: formData.get('notes') as string,
     };
@@ -118,6 +182,41 @@ export default function Maternity() {
 
     try {
       await dbService.saveMaternityRecord(recordData);
+
+      // Se transferido para o plantel, registra/atualiza ave no Plantel (tabela birds)
+      if (status === 'Transferido' && baia) {
+        try {
+          const existingBirds = await dbService.getBirds().catch(() => []);
+          const existing = existingBirds.find((b: any) => 
+            (b.ring_number && b.ring_number === recordData.identifier) || 
+            (b.name && b.name === recordData.identifier)
+          );
+
+          if (!existing) {
+            await dbService.saveBird({
+              name: recordData.identifier,
+              ring_number: recordData.identifier,
+              breed: recordData.raca,
+              birth_date: recordData.birth_date,
+              status: 'Ativa',
+              baia,
+              weight: recordData.initial_weight,
+              feed_recipe_id: recordData.feed_recipe_id,
+              img_url: recordData.img_url,
+              notes: `Transferido da Maternidade. ${recordData.notes || ''}`.trim()
+            });
+          } else {
+            await dbService.saveBird({
+              ...existing,
+              baia,
+              status: 'Ativa'
+            });
+          }
+        } catch (syncErr) {
+          console.warn('Aviso: erro ao sincronizar ave no Plantel:', syncErr);
+        }
+      }
+
       await loadData();
       setIsAdding(false);
       setEditingRecord(null);
@@ -134,14 +233,20 @@ export default function Maternity() {
     const quantity = parseInt(formData.get('quantity') as string) || 0;
     const raca = formData.get('raca') as string;
     const birth_date = formData.get('birth_date') as string;
-    const status = formData.get('status') as string;
+    const status = (formData.get('status') as string) || batchStatus;
     const initial_weight = parseFloat(formData.get('initial_weight') as string) || null;
     const feed_recipe_id = formData.get('feed_recipe_id') as string || null;
-    const baia = formData.get('baia') as string || null;
+    const rawBaia = (formData.get('baia') as string) || selectedBatchBaia || '';
+    const baia = rawBaia.trim();
     const notes = formData.get('notes') as string;
 
     if (quantity <= 0) {
       alert('A quantidade deve ser maior que zero.');
+      return;
+    }
+
+    if (status === 'Transferido' && !baia) {
+      alert('Para transferir para o plantel, é obrigatório selecionar ou criar a Baia / Grupo de destino.');
       return;
     }
 
@@ -156,10 +261,28 @@ export default function Maternity() {
           status,
           initial_weight,
           feed_recipe_id,
-          baia,
+          baia: baia || null,
           notes
         };
         await dbService.saveMaternityRecord(recordData);
+
+        if (status === 'Transferido' && baia) {
+          try {
+            await dbService.saveBird({
+              name: identifier,
+              ring_number: identifier,
+              breed: raca,
+              birth_date,
+              status: 'Ativa',
+              baia,
+              weight: initial_weight,
+              feed_recipe_id,
+              notes: `Lote transferido da Maternidade. ${notes || ''}`.trim()
+            });
+          } catch (syncErr) {
+            console.warn('Aviso: erro ao sincronizar ave do lote no Plantel:', syncErr);
+          }
+        }
       }
       await loadData();
       setIsAddingBatch(false);
@@ -302,21 +425,43 @@ export default function Maternity() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`
-                        px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest w-fit
-                        ${record.status === 'Berçário' ? 'bg-[#FEF3C7] text-[#D97706]' : 
-                          record.status === 'Crescimento' ? 'bg-[#DCFCE7] text-[#16A34A]' : 
-                          record.status === 'Transferido' ? 'bg-[#DBEAFE] text-[#2563EB]' : 
-                          record.status === 'Óbito' ? 'bg-[#FEE2E2] text-[#EF4444]' :
-                          record.status === 'Vendido' ? 'bg-[#F3E8FF] text-[#7E22CE]' :
-                          record.status === 'Reservado' ? 'bg-[#FCE7F3] text-[#DB2777]' :
-                          'bg-slate-100 text-slate-600'}
-                      `}>
-                        {record.status}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`
+                          px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest w-fit
+                          ${record.status === 'Berçário' ? 'bg-[#FEF3C7] text-[#D97706]' : 
+                            record.status === 'Crescimento' ? 'bg-[#DCFCE7] text-[#16A34A]' : 
+                            record.status === 'Transferido' ? 'bg-[#DBEAFE] text-[#2563EB]' : 
+                            record.status === 'Óbito' ? 'bg-[#FEE2E2] text-[#EF4444]' :
+                            record.status === 'Vendido' ? 'bg-[#F3E8FF] text-[#7E22CE]' :
+                            record.status === 'Reservado' ? 'bg-[#FCE7F3] text-[#DB2777]' :
+                            'bg-slate-100 text-slate-600'}
+                        `}>
+                          {record.status}
+                        </span>
+                        {record.baia && (
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+                            Baia: {record.baia}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 print:hidden">
                       <div className="flex gap-2">
+                        {record.status !== 'Transferido' && (
+                          <button 
+                            onClick={() => {
+                              setEditingRecord(record);
+                              setCurrentStatus('Transferido');
+                              setSelectedBaia(record.baia || '');
+                              setActiveTab('dados');
+                              setIsAdding(true);
+                            }}
+                            className="p-2 hover:bg-[#EFF6FF] rounded-xl transition-colors text-slate-400 hover:text-[#2563EB]"
+                            title="Transferir para Plantel"
+                          >
+                            <ArrowRightCircle size={16} />
+                          </button>
+                        )}
                         <button 
                           onClick={() => {
                             setEditingRecord(record);
@@ -459,7 +604,12 @@ export default function Maternity() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Status Atual</label>
-                      <select name="status" defaultValue={editingRecord?.status || 'Berçário'} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none">
+                      <select 
+                        name="status" 
+                        value={currentStatus} 
+                        onChange={(e) => setCurrentStatus(e.target.value)}
+                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none"
+                      >
                         <option value="Berçário">Berçário</option>
                         <option value="Crescimento">Crescimento</option>
                         <option value="Transferido">Transferido para Plantel</option>
@@ -471,8 +621,55 @@ export default function Maternity() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Baia / Grupo (Opcional)</label>
-                    <input name="baia" defaultValue={editingRecord?.baia} type="text" placeholder="Ex: Baia 01" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                    <div className="flex justify-between items-center ml-1">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        Baia / Grupo de Destino
+                        {currentStatus === 'Transferido' ? (
+                          <span className="text-[#EF4444] font-extrabold">* (Obrigatório para Plantel)</span>
+                        ) : (
+                          <span className="text-slate-400 font-normal">(Opcional)</span>
+                        )}
+                      </label>
+                      {currentStatus === 'Transferido' && (
+                        <span className="text-[10px] font-bold bg-[#EFF6FF] text-[#2563EB] px-2 py-0.5 rounded-md uppercase border border-[#DBEAFE]">
+                          Plantel
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <select 
+                        name="baia" 
+                        required={currentStatus === 'Transferido'}
+                        value={selectedBaia}
+                        onChange={(e) => setSelectedBaia(e.target.value)}
+                        className={`flex-1 min-w-0 bg-[#F8FAFC] border rounded-2xl px-3 sm:px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 transition-all outline-none text-sm appearance-none ${
+                          currentStatus === 'Transferido'
+                            ? 'border-[#2563EB]/60 focus:border-[#2563EB] focus:ring-[#2563EB]/15 ring-1 ring-[#2563EB]/10'
+                            : 'border-slate-200 focus:border-[#2563EB]/50 focus:ring-[#2563EB]/10'
+                        }`}
+                      >
+                        <option value="">{currentStatus === 'Transferido' ? 'Selecione a Baia de destino...' : 'Sem Baia / Não Definida'}</option>
+                        {selectedBaia && !baias.some(b => b.name === selectedBaia) && (
+                          <option value={selectedBaia}>{selectedBaia}</option>
+                        )}
+                        {baias.map(b => (
+                          <option key={b.name} value={b.name}>{b.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingBaia(true)}
+                        className="px-3 sm:px-4 bg-[#2563EB] text-white rounded-2xl font-bold text-xs uppercase tracking-wider hover:bg-[#1D4ED8] transition-colors shadow-sm shrink-0 flex items-center justify-center whitespace-nowrap gap-1"
+                        title="Cadastrar Nova Baia"
+                      >
+                        <Plus size={14} /> Baia
+                      </button>
+                    </div>
+                    {currentStatus === 'Transferido' && !selectedBaia && (
+                      <p className="text-[11px] text-[#EF4444] font-semibold ml-1">
+                        Ao transferir a ave para o plantel, é obrigatório selecionar ou criar a baia onde ela será alojada.
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -632,7 +829,13 @@ export default function Maternity() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Status Atual</label>
-                    <select disabled={batchLoading} name="status" defaultValue="Berçário" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none disabled:opacity-60">
+                    <select 
+                      disabled={batchLoading} 
+                      name="status" 
+                      value={batchStatus} 
+                      onChange={(e) => setBatchStatus(e.target.value)}
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none disabled:opacity-60"
+                    >
                       <option value="Berçário">Berçário</option>
                       <option value="Crescimento">Crescimento</option>
                       <option value="Transferido">Transferido para Plantel</option>
@@ -642,8 +845,57 @@ export default function Maternity() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Baia / Grupo (Opcional)</label>
-                    <input disabled={batchLoading} name="baia" type="text" placeholder="Ex: Baia 01" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none disabled:opacity-60" />
+                    <div className="flex justify-between items-center ml-1">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        Baia / Grupo de Destino
+                        {batchStatus === 'Transferido' ? (
+                          <span className="text-[#EF4444] font-extrabold">* (Obrigatório para Plantel)</span>
+                        ) : (
+                          <span className="text-slate-400 font-normal">(Opcional)</span>
+                        )}
+                      </label>
+                      {batchStatus === 'Transferido' && (
+                        <span className="text-[10px] font-bold bg-[#EFF6FF] text-[#2563EB] px-2 py-0.5 rounded-md uppercase border border-[#DBEAFE]">
+                          Plantel
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <select 
+                        disabled={batchLoading} 
+                        name="baia" 
+                        required={batchStatus === 'Transferido'}
+                        value={selectedBatchBaia}
+                        onChange={(e) => setSelectedBatchBaia(e.target.value)}
+                        className={`flex-1 min-w-0 bg-[#F8FAFC] border rounded-2xl px-3 sm:px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:ring-4 transition-all outline-none text-sm appearance-none disabled:opacity-60 ${
+                          batchStatus === 'Transferido'
+                            ? 'border-[#2563EB]/60 focus:border-[#2563EB] focus:ring-[#2563EB]/15 ring-1 ring-[#2563EB]/10'
+                            : 'border-slate-200 focus:border-[#2563EB]/50 focus:ring-[#2563EB]/10'
+                        }`}
+                      >
+                        <option value="">{batchStatus === 'Transferido' ? 'Selecione a Baia de destino...' : 'Sem Baia / Não Definida'}</option>
+                        {selectedBatchBaia && !baias.some(b => b.name === selectedBatchBaia) && (
+                          <option value={selectedBatchBaia}>{selectedBatchBaia}</option>
+                        )}
+                        {baias.map(b => (
+                          <option key={b.name} value={b.name}>{b.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={batchLoading}
+                        onClick={() => setIsAddingBaia(true)}
+                        className="px-3 sm:px-4 bg-[#2563EB] text-white rounded-2xl font-bold text-xs uppercase tracking-wider hover:bg-[#1D4ED8] transition-colors shadow-sm shrink-0 flex items-center justify-center whitespace-nowrap gap-1 disabled:opacity-60"
+                        title="Cadastrar Nova Baia"
+                      >
+                        <Plus size={14} /> Baia
+                      </button>
+                    </div>
+                    {batchStatus === 'Transferido' && !selectedBatchBaia && (
+                      <p className="text-[11px] text-[#EF4444] font-semibold ml-1">
+                        Ao transferir o lote para o plantel, é obrigatório selecionar ou criar a baia de destino.
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -681,6 +933,104 @@ export default function Maternity() {
                     'Salvar Lote'
                   )}
                 </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Criar Nova Baia */}
+      <AnimatePresence>
+        {isAddingBaia && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setIsAddingBaia(false)} 
+              className="absolute inset-0 bg-[#020617]/50 backdrop-blur-sm" 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-white p-5 sm:p-8 rounded-3xl sm:rounded-[32px] shadow-2xl z-10 max-h-[90vh] overflow-y-auto custom-scrollbar"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-[#1F2937]">Nova Baia / Grupo</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">Cadastre uma baia para alojamento das aves.</p>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setIsAddingBaia(false)}
+                  className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveNewBaia} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nome da Baia</label>
+                  <input 
+                    required 
+                    name="name" 
+                    placeholder="Ex: Baia 05, Piquete 02" 
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none text-sm" 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tipo / Finalidade</label>
+                  <select 
+                    name="type" 
+                    defaultValue="Crescimento" 
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none text-sm"
+                  >
+                    <option value="Reprodução">Reprodução</option>
+                    <option value="Crescimento">Crescimento</option>
+                    <option value="Maternidade">Maternidade</option>
+                    <option value="Isolamento">Isolamento</option>
+                    <option value="Outros">Outros</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Capacidade de Aves (Opcional)</label>
+                  <input 
+                    name="capacity" 
+                    type="number" 
+                    placeholder="Ex: 20" 
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none text-sm" 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Descrição / Localização</label>
+                  <textarea 
+                    name="description" 
+                    rows={2} 
+                    placeholder="Informações adicionais da baia..." 
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none resize-none text-sm" 
+                  />
+                </div>
+
+                <div className="pt-2 flex gap-3">
+                  <button 
+                    type="submit" 
+                    className="flex-1 py-3.5 bg-[#2563EB] text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] transition-all cursor-pointer text-center"
+                  >
+                    Salvar Baia
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsAddingBaia(false)}
+                    className="px-5 py-3.5 bg-slate-100 text-slate-600 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-all cursor-pointer text-center"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </form>
             </motion.div>
           </div>
