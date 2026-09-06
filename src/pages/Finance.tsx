@@ -200,24 +200,24 @@ export default function Finance() {
           <h2 className="text-3xl font-headline font-bold text-[#1F2937] dark:text-slate-100 tracking-tight">Financeiro</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium">Controle de receitas e despesas</p>
         </div>
-        <div className="flex flex-wrap gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
           {!isFreePlan && (
             <>
               <button 
                 onClick={() => exportToCSV(transactions, `lancamentos_${new Date().toISOString().split('T')[0]}`)}
-                className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-2.5 rounded-full text-[#6B7280] dark:text-slate-400 text-sm font-semibold hover:border-[#2563EB] dark:hover:border-blue-500 hover:text-[#2563EB] dark:hover:text-blue-400 transition-colors shadow-sm cursor-pointer"
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-2.5 rounded-full text-[#6B7280] dark:text-slate-400 text-xs sm:text-sm font-semibold hover:border-[#2563EB] dark:hover:border-blue-500 hover:text-[#2563EB] dark:hover:text-blue-400 transition-colors shadow-sm cursor-pointer whitespace-nowrap"
               >
                 <Download size={16} /> Exportar CSV
               </button>
               <button 
                 onClick={() => setIsEditingCategories(true)}
-                className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-2.5 rounded-full text-[#6B7280] dark:text-slate-400 text-sm font-semibold hover:border-[#2563EB] dark:hover:border-blue-500 hover:text-[#2563EB] dark:hover:text-blue-400 transition-colors shadow-sm cursor-pointer"
+                className="flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-2.5 rounded-full text-[#6B7280] dark:text-slate-400 text-xs sm:text-sm font-semibold hover:border-[#2563EB] dark:hover:border-blue-500 hover:text-[#2563EB] dark:hover:text-blue-400 transition-colors shadow-sm cursor-pointer whitespace-nowrap"
               >
                 <Plus size={16} className="text-[#8B5CF6] dark:text-purple-400" /> Categorias
               </button>
               <button 
                 onClick={() => setIsAdding(true)}
-                className="flex items-center gap-2 bg-[#2563EB] text-white px-6 py-2.5 rounded-full text-sm font-bold shadow-md transition-all hover:bg-[#1D4ED8] active:scale-95 cursor-pointer"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#2563EB] text-white px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold shadow-md transition-all hover:bg-[#1D4ED8] active:scale-95 cursor-pointer whitespace-nowrap"
               >
                 <Plus size={16} />
                 Nova Transação
@@ -480,7 +480,7 @@ export default function Finance() {
 
       <AnimatePresence>
         {isEditingCategories && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-6">
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
@@ -492,13 +492,13 @@ export default function Finance() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl flex flex-col max-h-[85vh] z-10"
+              className="relative w-full max-w-md bg-white p-5 sm:p-8 rounded-3xl sm:rounded-[32px] shadow-2xl flex flex-col max-h-[88vh] z-10"
             >
               <div className="flex justify-between items-center mb-6 shrink-0">
                 <h3 className="text-xl font-bold text-[#1F2937]">Gerenciar Categorias</h3>
                 <button 
                   onClick={() => { setIsEditingCategories(false); setCategoryToEdit(null); }} 
-                  className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"
+                  className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors shrink-0"
                 >
                   <X size={20} />
                 </button>
@@ -639,13 +639,13 @@ export default function Finance() {
         )}
 
         {(isAdding || editingTransaction !== null) && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setIsAdding(false); setEditingTransaction(null); }} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-lg bg-white p-8 sm:p-10 rounded-[32px] shadow-2xl"
+              className="relative w-full max-w-lg bg-white p-5 sm:p-10 rounded-3xl sm:rounded-[32px] shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar my-4 sm:my-8"
             >
               <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-100">
                 <div>
@@ -656,7 +656,7 @@ export default function Finance() {
                     {editingTransaction ? 'Atualize os detalhes do lançamento' : 'Registre entradas ou saídas'}
                   </p>
                 </div>
-                <button onClick={() => { setIsAdding(false); setEditingTransaction(null); }} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors">
+                <button onClick={() => { setIsAdding(false); setEditingTransaction(null); }} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors shrink-0">
                   <X size={20} />
                 </button>
               </div>

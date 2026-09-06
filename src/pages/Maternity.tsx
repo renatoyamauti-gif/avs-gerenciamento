@@ -235,18 +235,18 @@ export default function Maternity() {
       exit={{ opacity: 0 }}
       className="space-y-8 pb-10"
     >
-      <section className="flex flex-col md:flex-row justify-between items-center gap-6">
+      <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6">
         <div>
           <h2 className="text-3xl font-headline font-bold text-[#1F2937] tracking-tight">Maternidade</h2>
           <p className="text-slate-500 font-medium text-sm mt-1">Gestão de nascimentos e acompanhamento de crescimento.</p>
         </div>
-        <div className="flex flex-wrap gap-3 print:hidden">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2.5 sm:gap-3 w-full md:w-auto print:hidden">
           <button 
             onClick={() => {
               setEditingRecord(null);
               setIsAdding(true);
             }}
-            className="flex items-center gap-2 px-6 py-2 bg-[#2563EB] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-md transition-all hover:bg-[#1D4ED8] hover:scale-105 active:scale-95"
+            className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 bg-[#2563EB] text-white rounded-xl font-bold text-xs sm:text-sm uppercase tracking-wider shadow-md transition-all hover:bg-[#1D4ED8] hover:scale-105 active:scale-95 w-full sm:w-auto"
           >
             <Plus size={16} /> REGISTRAR NASCIMENTO INDIVIDUAL
           </button>
@@ -254,7 +254,7 @@ export default function Maternity() {
             onClick={() => {
               setIsAddingBatch(true);
             }}
-            className="flex items-center gap-2 px-6 py-2 bg-[#10B981] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-md transition-all hover:bg-[#059669] hover:scale-105 active:scale-95"
+            className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 bg-[#10B981] text-white rounded-xl font-bold text-xs sm:text-sm uppercase tracking-wider shadow-md transition-all hover:bg-[#059669] hover:scale-105 active:scale-95 w-full sm:w-auto"
           >
             <Plus size={16} /> REGISTRAR NASCIMENTO POR LOTE
           </button>
@@ -359,13 +359,13 @@ export default function Maternity() {
 
       <AnimatePresence>
         {isAdding && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAdding(false)} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-2xl bg-white p-8 sm:p-10 rounded-[32px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar"
+              className="relative w-full max-w-2xl bg-white p-5 sm:p-10 rounded-3xl sm:rounded-[32px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar"
             >
               <div className="flex justify-between items-center mb-6">
                 <div>
@@ -574,13 +574,13 @@ export default function Maternity() {
         )}
 
         {isAddingBatch && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !batchLoading && setIsAddingBatch(false)} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-2xl bg-white p-8 sm:p-10 rounded-[32px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar"
+              className="relative w-full max-w-2xl bg-white p-5 sm:p-10 rounded-3xl sm:rounded-[32px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar"
             >
               <div className="flex justify-between items-center mb-6">
                 <div>

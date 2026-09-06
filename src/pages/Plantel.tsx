@@ -363,14 +363,14 @@ export default function Plantel() {
       exit={{ opacity: 0 }}
       className="space-y-8 pb-10"
     >
-      <section className="flex flex-col md:flex-row justify-between items-center gap-6">
+      <section className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6">
         <div>
-          <h2 className="text-3xl font-headline font-bold text-[#1F2937] tracking-tight">Gestão de Aves</h2>
-          <p className="text-slate-500 font-medium text-sm mt-1">Gerenciamento completo das aves do sistema.</p>
+          <h2 className="text-2xl sm:text-3xl font-headline font-bold text-[#1F2937] tracking-tight">Gestão de Aves</h2>
+          <p className="text-slate-500 font-medium text-xs sm:text-sm mt-0.5 sm:mt-1">Gerenciamento completo das aves do sistema.</p>
         </div>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl text-[#6B7280] font-bold text-sm uppercase tracking-widest transition-all hover:bg-slate-50 hover:text-[#2563EB] shadow-sm">
-            <Filter size={16} />
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <button className="flex items-center justify-center gap-1.5 bg-white border border-slate-200 px-3 sm:px-4 py-2.5 rounded-xl text-[#6B7280] font-bold text-xs sm:text-sm uppercase tracking-wider transition-all hover:bg-slate-50 hover:text-[#2563EB] shadow-sm flex-1 sm:flex-initial">
+            <Filter size={15} />
             Filtrar
           </button>
           <button 
@@ -386,15 +386,17 @@ export default function Plantel() {
               setSelectedRecipePrice(0);
               setImagePreview(null);
               setFeedRecipeId('');
+              setSelectedBirdBaia(filterBaia !== 'All' ? filterBaia : '');
+              setSelectedBirdRaca('');
               setIsAdding(true);
             }}
-            className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold text-sm uppercase tracking-widest shadow-md transition-all ${
+            className={`flex items-center justify-center gap-1.5 px-3.5 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm uppercase tracking-wider shadow-md transition-all flex-1 sm:flex-initial ${
               isFreePlan && birds.length >= limits.birds
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                 : 'bg-[#2563EB] text-white hover:bg-[#1D4ED8] hover:scale-105 active:scale-95'
             }`}
           >
-            {isFreePlan && birds.length >= limits.birds ? <Lock size={16} /> : <Plus size={16} />}
+            {isFreePlan && birds.length >= limits.birds ? <Lock size={15} /> : <Plus size={15} />}
             ADICIONAR AVE
           </button>
           <button
@@ -402,9 +404,9 @@ export default function Plantel() {
               setRacaToEdit(null);
               setIsEditingRaca(true);
             }}
-            className="flex items-center gap-2 px-6 py-2 rounded-xl font-bold text-sm uppercase tracking-widest shadow-md transition-all bg-[#8B5CF6] text-white hover:bg-[#7C3AED] hover:scale-105 active:scale-95"
+            className="flex items-center justify-center gap-1.5 px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm uppercase tracking-wider shadow-md transition-all bg-[#8B5CF6] text-white hover:bg-[#7C3AED] hover:scale-105 active:scale-95 w-full sm:w-auto"
           >
-            <Plus size={16} />
+            <Plus size={15} />
             ADICIONAR RAÇA
           </button>
         </div>
@@ -563,7 +565,7 @@ export default function Plantel() {
             </div>
           </div>
           {filterBaia !== 'All' && (
-            <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-white">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4 border-b border-slate-100 bg-white">
               <div className="flex gap-4">
                 <button 
                   onClick={() => setBaiaTab('aves')}
@@ -581,7 +583,7 @@ export default function Plantel() {
                   Histórico
                 </button>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                 {baiaTab === 'aves' && (
                   <button
                     onClick={() => {
@@ -589,7 +591,7 @@ export default function Plantel() {
                       setSearchBirdToAssociate('');
                       setIsAddingBirdToBaia(true);
                     }}
-                    className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-[#1D4ED8] bg-[#2563EB] px-3 py-1.5 rounded-lg border border-transparent transition-colors shadow-sm"
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-[#1D4ED8] bg-[#2563EB] px-3.5 py-2 rounded-xl border border-transparent transition-colors shadow-sm"
                   >
                     <Plus size={14} /> Adicionar Ave
                   </button>
@@ -600,7 +602,7 @@ export default function Plantel() {
                     setBaiaToEdit(bData);
                     setIsEditingBaia(true);
                   }}
-                  className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-[#2563EB] transition-colors bg-[#F8FAFC] px-3 py-1.5 rounded-lg border border-slate-200"
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-[#2563EB] transition-colors bg-[#F8FAFC] px-3.5 py-2 rounded-xl border border-slate-200"
                 >
                   <Settings size={14} /> Editar Baia
                 </button>
@@ -799,16 +801,16 @@ export default function Plantel() {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-1.5 sm:gap-2">
+                <div className="flex gap-1.5 sm:gap-2 shrink-0">
                   <Link 
                     to={`/birds/lineage/${bird.id}`}
-                    className="p-2.5 bg-white rounded-xl text-slate-500 border border-slate-200 hover:scale-105 shadow-sm transition-all flex items-center justify-center cursor-pointer"
+                    className="p-2 sm:p-2.5 bg-white rounded-xl text-slate-500 border border-slate-200 hover:scale-105 shadow-sm transition-all flex items-center justify-center cursor-pointer shrink-0"
                     title="Ver Linhagem / Pedigree"
                   >
-                    <GitBranch size={18} />
+                    <GitBranch size={16} />
                   </Link>
-                  <button onClick={() => { setEditingBird(bird); setIsAdding(true); }} className="p-2.5 bg-white rounded-xl text-[#2563EB] border border-slate-200 hover:scale-105 shadow-sm transition-all cursor-pointer" title="Editar Ave"><MoreVertical size={18} /></button>
-                  <button onClick={() => removeBird(bird.id)} className="p-2.5 bg-white rounded-xl text-slate-400 hover:text-[#EF4444] border border-slate-200 hover:scale-105 shadow-sm transition-all cursor-pointer" title="Excluir Ave"><Trash2 size={18} /></button>
+                  <button onClick={() => { setEditingBird(bird); setIsAdding(true); }} className="p-2 sm:p-2.5 bg-white rounded-xl text-[#2563EB] border border-slate-200 hover:scale-105 shadow-sm transition-all cursor-pointer shrink-0" title="Editar Ave"><MoreVertical size={16} /></button>
+                  <button onClick={() => removeBird(bird.id)} className="p-2 sm:p-2.5 bg-white rounded-xl text-slate-400 hover:text-[#EF4444] border border-slate-200 hover:scale-105 shadow-sm transition-all cursor-pointer shrink-0" title="Excluir Ave"><Trash2 size={16} /></button>
                 </div>
               </div>
               
@@ -880,14 +882,14 @@ export default function Plantel() {
                 <p>Nenhuma ave encontrada.</p>
               </div>
               {filterBaia !== 'All' && (
-                <div className="flex gap-3 mt-2">
+                <div className="flex flex-col sm:flex-row gap-2.5 mt-2 w-full max-w-md px-4">
                   <button
                     onClick={() => {
                       setSelectedBirdsForBaia([]);
                       setSearchBirdToAssociate('');
                       setIsAddingBirdToBaia(true);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-md"
                   >
                     <Plus size={14} /> Associar Ave Existente
                   </button>
@@ -906,7 +908,7 @@ export default function Plantel() {
                       setFeedRecipeId('');
                       setIsAdding(true);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 hover:text-[#2563EB] text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-sm"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 hover:text-[#2563EB] text-xs font-bold uppercase tracking-wider rounded-xl transition-all shadow-sm"
                   >
                     <Plus size={14} /> Cadastrar Nova Ave
                   </button>
@@ -1001,13 +1003,13 @@ export default function Plantel() {
 
       <AnimatePresence>
         {isAdding && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setIsAdding(false); setEditingBird(null); }} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-2xl bg-white p-8 sm:p-10 rounded-[32px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar"
+              className="relative w-full max-w-2xl bg-white p-5 sm:p-10 rounded-3xl sm:rounded-[32px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar"
             >
               <div className="flex justify-between items-center mb-6">
                 <div>
@@ -1054,18 +1056,18 @@ export default function Plantel() {
                   </label>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nome da Ave</label>
-                    <input required name="name" defaultValue={editingBird?.name} type="text" placeholder="Ex: Blue Jewel" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                    <input required name="name" defaultValue={editingBird?.name} type="text" placeholder="Ex: Blue Jewel" className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Número da Anilha (Opcional)</label>
-                    <input name="ringNumber" defaultValue={editingBird?.ring_number} type="text" placeholder="Ex: MC-2024-001" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                    <input name="ringNumber" defaultValue={editingBird?.ring_number} type="text" placeholder="Ex: MC-2024-001" className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Sexo</label>
                     <div className="flex gap-4">
@@ -1090,14 +1092,14 @@ export default function Plantel() {
                       name="weight" 
                       defaultValue={editingBird?.weight || ''} 
                       type="number" 
-                      step="any"
+                      step="any" 
                       placeholder="Ex: 850" 
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                      className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Raça</label>
                     <div className="flex gap-2">
@@ -1106,7 +1108,7 @@ export default function Plantel() {
                         name="raca" 
                         value={selectedBirdRaca}
                         onChange={(e) => setSelectedBirdRaca(e.target.value)}
-                        className="flex-1 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none"
+                        className="flex-1 min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-3 sm:px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none text-sm"
                       >
                         <option value="" disabled>Selecione a Raça</option>
                         {selectedBirdRaca && !racas.some(r => r.name === selectedBirdRaca) && (
@@ -1122,7 +1124,7 @@ export default function Plantel() {
                           setRacaToEdit(null);
                           setIsEditingRaca(true);
                         }}
-                        className="px-4 bg-[#8B5CF6] text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-[#7C3AED] transition-colors shadow-sm shrink-0 flex items-center justify-center"
+                        className="px-3 sm:px-4 bg-[#8B5CF6] text-white rounded-2xl font-bold text-xs uppercase tracking-wider hover:bg-[#7C3AED] transition-colors shadow-sm shrink-0 flex items-center justify-center whitespace-nowrap"
                       >
                         + Nova
                       </button>
@@ -1159,7 +1161,7 @@ export default function Plantel() {
                   </motion.div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Coloração / Mutação</label>
                     <input name="color" defaultValue={editingBird?.color} type="text" placeholder="Ex: Azul e Ouro" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
@@ -1171,7 +1173,7 @@ export default function Plantel() {
                         name="baia" 
                         value={selectedBirdBaia} 
                         onChange={(e) => setSelectedBirdBaia(e.target.value)}
-                        className="flex-1 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none"
+                        className="flex-1 min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-3 sm:px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none text-sm"
                       >
                         <option value="">Sem Baia / Não Definida</option>
                         {selectedBirdBaia && !uniqueBaias.includes(selectedBirdBaia) && (
@@ -1187,7 +1189,7 @@ export default function Plantel() {
                           setBaiaToEdit(null);
                           setIsEditingBaia(true);
                         }}
-                        className="px-4 bg-[#2563EB] text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-[#1D4ED8] transition-colors shadow-sm shrink-0 flex items-center justify-center"
+                        className="px-3 sm:px-4 bg-[#2563EB] text-white rounded-2xl font-bold text-xs uppercase tracking-wider hover:bg-[#1D4ED8] transition-colors shadow-sm shrink-0 flex items-center justify-center whitespace-nowrap"
                         title="Cadastrar Nova Baia"
                       >
                         + Baia
@@ -1196,13 +1198,13 @@ export default function Plantel() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Pai (Genitor)</label>
                     <select 
                       name="fatherId" 
                       defaultValue={editingBird?.father_id || ''}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none"
+                      className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none"
                     >
                       <option value="">Selecione o Pai...</option>
                       {birds
@@ -1218,7 +1220,7 @@ export default function Plantel() {
                     <select 
                       name="motherId" 
                       defaultValue={editingBird?.mother_id || ''}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none"
+                      className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none"
                     >
                       <option value="">Selecione a Mãe...</option>
                       {birds
@@ -1233,7 +1235,7 @@ export default function Plantel() {
 
                 <div className="space-y-4 pt-6 border-t border-slate-100">
                   <h4 className="text-sm font-bold text-[#2563EB] uppercase tracking-widest">Protocolo Alimentar</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tipo de Ração</label>
                       <select 
@@ -1244,7 +1246,7 @@ export default function Plantel() {
                           const recipe = recipes.find(r => r.id === e.target.value);
                           setSelectedRecipePrice(recipe?.price_per_kg || 0);
                         }}
-                        className={`w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none ${recipes.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none appearance-none ${recipes.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                         disabled={recipes.length === 0}
                       >
                         {recipes.length === 0 ? (
@@ -1266,25 +1268,25 @@ export default function Plantel() {
                         name="dailyFeedGrams" 
                         defaultValue={editingBird ? (editingBird.monthly_feed_grams || 0) / 30 : ''}
                         type="number" 
-                        step="any"
+                        step="any" 
                         placeholder="Ex: 50" 
                         onChange={(e) => setMonthlyGrams((parseFloat(e.target.value) || 0) * 30)}
-                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                        className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Preço do Milho por KG (R$)</label>
                       <input 
                         name="cornPricePerKg" 
                         defaultValue={editingBird?.corn_price_per_kg ?? ''}
                         type="number" 
-                        step="any"
+                        step="any" 
                         placeholder="Ex: 2.50" 
                         onChange={(e) => setCornPrice(parseFloat(e.target.value) || 0)}
-                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                        className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
                       />
                     </div>
                     <div className="space-y-2">
@@ -1293,10 +1295,10 @@ export default function Plantel() {
                         name="cornDailyGrams" 
                         defaultValue={editingBird?.corn_daily_grams ?? ''}
                         type="number" 
-                        step="any"
+                        step="any" 
                         placeholder="Ex: 20" 
                         onChange={(e) => setCornGrams(parseFloat(e.target.value) || 0)}
-                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                        className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
                       />
                     </div>
                   </div>
@@ -1509,19 +1511,19 @@ export default function Plantel() {
 
       <AnimatePresence>
         {isEditingBaia && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setIsEditingBaia(false); setBaiaToEdit(null); }} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl"
+              className="relative w-full max-w-md bg-white p-5 sm:p-8 rounded-3xl sm:rounded-[32px] shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar"
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-[#1F2937]">
                   {baiaToEdit?.name ? 'Editar Baia' : 'Nova Baia'}
                 </h3>
-                <button onClick={() => { setIsEditingBaia(false); setBaiaToEdit(null); }} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors">
+                <button onClick={() => { setIsEditingBaia(false); setBaiaToEdit(null); }} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors shrink-0">
                   <X size={20} />
                 </button>
               </div>
@@ -1562,11 +1564,11 @@ export default function Plantel() {
               }} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nome da Baia</label>
-                  <input required name="name" defaultValue={baiaToEdit?.name || ''} placeholder="Ex: Baia Principal" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                  <input required name="name" defaultValue={baiaToEdit?.name || ''} placeholder="Ex: Baia Principal" className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none text-sm" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tipo / Categoria</label>
-                  <select name="type" defaultValue={baiaToEdit?.type || ''} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none">
+                  <select name="type" defaultValue={baiaToEdit?.type || ''} className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none text-sm">
                     <option value="">Selecione...</option>
                     <option value="Reprodução">Reprodução</option>
                     <option value="Crescimento">Crescimento</option>
@@ -1578,15 +1580,15 @@ export default function Plantel() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Capacidade (Aves)</label>
-                    <input name="capacity" type="number" defaultValue={baiaToEdit?.capacity || ''} placeholder="Ex: 50" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                    <input name="capacity" type="number" defaultValue={baiaToEdit?.capacity || ''} placeholder="Ex: 50" className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none text-sm" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Descrição / Notas</label>
-                  <textarea name="description" rows={3} defaultValue={baiaToEdit?.description || ''} placeholder="Informações adicionais..." className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none resize-none" />
+                  <textarea name="description" rows={3} defaultValue={baiaToEdit?.description || ''} placeholder="Informações adicionais..." className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none resize-none text-sm" />
                 </div>
 
-                <div className="pt-4 flex gap-3">
+                <div className="pt-4 flex gap-2 sm:gap-3">
                   {baiaToEdit?.name && (
                     <button type="button" onClick={async () => {
                       if (confirm('Tem certeza que quer excluir/deletar esta baia? Pois será irreversível. As aves ficarão sem baia definida.')) {
@@ -1601,11 +1603,11 @@ export default function Plantel() {
                           alert('Erro ao excluir: ' + e.message);
                         }
                       }
-                    }} className="px-4 py-3 bg-[#FEF2F2] text-[#EF4444] rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-[#FEE2E2] transition-colors">
+                    }} className="px-4 py-3 bg-[#FEF2F2] text-[#EF4444] rounded-xl font-bold text-sm uppercase tracking-wider hover:bg-[#FEE2E2] transition-colors shrink-0">
                       <Trash2 size={18} />
                     </button>
                   )}
-                  <button type="submit" className="flex-1 py-3 bg-[#2563EB] text-white rounded-xl font-bold text-sm uppercase tracking-widest shadow-sm hover:bg-[#1D4ED8] transition-all">
+                  <button type="submit" className="flex-1 py-3 bg-[#2563EB] text-white rounded-xl font-bold text-sm uppercase tracking-wider shadow-sm hover:bg-[#1D4ED8] transition-all">
                     Salvar Baia
                   </button>
                 </div>
@@ -1617,7 +1619,7 @@ export default function Plantel() {
 
       <AnimatePresence>
         {isAddingBirdToBaia && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
@@ -1629,7 +1631,7 @@ export default function Plantel() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-lg bg-white p-8 rounded-[32px] shadow-2xl flex flex-col max-h-[85vh]"
+              className="relative w-full max-w-lg bg-white p-5 sm:p-8 rounded-3xl sm:rounded-[32px] shadow-2xl flex flex-col max-h-[88vh]"
             >
               <div className="flex justify-between items-center mb-4 shrink-0">
                 <div>
@@ -1642,14 +1644,14 @@ export default function Plantel() {
                 </div>
                 <button 
                   onClick={() => setIsAddingBirdToBaia(false)} 
-                  className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"
+                  className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors shrink-0"
                 >
                   <X size={20} />
                 </button>
               </div>
 
               {/* Link to create a new bird directly */}
-              <div className="bg-[#EFF6FF] border border-[#DBEAFE] p-3 rounded-2xl mb-4 text-xs font-semibold text-[#1E40AF] flex justify-between items-center shrink-0">
+              <div className="bg-[#EFF6FF] border border-[#DBEAFE] p-3 rounded-2xl mb-4 text-xs font-semibold text-[#1E40AF] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 shrink-0">
                 <span>Quer cadastrar uma ave totalmente nova nesta baia?</span>
                 <button
                   onClick={() => {
@@ -1667,7 +1669,7 @@ export default function Plantel() {
                     setFeedRecipeId('');
                     setIsAdding(true);
                   }}
-                  className="underline text-[#2563EB] hover:text-[#1D4ED8] font-bold text-left ml-2"
+                  className="underline text-[#2563EB] hover:text-[#1D4ED8] font-bold text-left shrink-0"
                 >
                   Cadastrar Ave
                 </button>
@@ -1681,7 +1683,7 @@ export default function Plantel() {
                   placeholder="Pesquisar ave por nome, anilha ou raça..." 
                   value={searchBirdToAssociate}
                   onChange={(e) => setSearchBirdToAssociate(e.target.value)}
-                  className="w-full bg-[#F8FAFC] text-[#1F2937] rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-[#2563EB]/20 transition-all border border-slate-200 placeholder-slate-400 outline-none"
+                  className="w-full min-w-0 bg-[#F8FAFC] text-[#1F2937] rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-[#2563EB]/20 transition-all border border-slate-200 placeholder-slate-400 outline-none"
                 />
               </div>
 
@@ -1714,21 +1716,21 @@ export default function Plantel() {
                             : 'bg-white border-slate-100 hover:border-slate-200'
                         }`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-100 shrink-0">
                             <img src={bird.img_url} alt={bird.name} className="w-full h-full object-cover" />
                           </div>
-                          <div className="flex flex-col text-left">
-                            <span className="text-sm font-bold text-[#1F2937] flex items-center gap-1">
+                          <div className="flex flex-col text-left min-w-0 truncate">
+                            <span className="text-sm font-bold text-[#1F2937] flex items-center gap-1 truncate">
                               {bird.name}
-                              {bird.gender === 'Macho' && <Mars size={12} className="text-[#2563EB]" />}
-                              {bird.gender === 'Fêmea' && <Venus size={12} className="text-[#EF4444]" />}
+                              {bird.gender === 'Macho' && <Mars size={12} className="text-[#2563EB] shrink-0" />}
+                              {bird.gender === 'Fêmea' && <Venus size={12} className="text-[#EF4444] shrink-0" />}
                             </span>
-                            <span className="text-[11px] text-slate-400 font-medium">
+                            <span className="text-[11px] text-slate-400 font-medium truncate">
                               {bird.ring_number ? `Anilha: ${bird.ring_number}` : 'Sem anilha'} • {bird.raca}
                             </span>
                             {bird.baia && (
-                              <span className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                              <span className="text-[10px] text-slate-500 font-semibold mt-0.5 truncate">
                                 Baia atual: <span className="text-slate-700">{bird.baia}</span>
                               </span>
                             )}
@@ -1736,7 +1738,7 @@ export default function Plantel() {
                         </div>
 
                         {/* Custom checkbox styling */}
-                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
+                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0 ml-2 ${
                           isSelected 
                             ? 'bg-[#2563EB] border-[#2563EB] text-white' 
                             : 'border-slate-300 bg-white'
@@ -1769,11 +1771,11 @@ export default function Plantel() {
               </div>
 
               {/* Actions */}
-              <div className="pt-4 mt-2 border-t border-slate-100 flex gap-3 shrink-0">
+              <div className="pt-4 mt-2 border-t border-slate-100 flex gap-2 sm:gap-3 shrink-0">
                 <button 
                   type="button" 
                   onClick={() => setIsAddingBirdToBaia(false)} 
-                  className="flex-1 py-3 bg-[#F8FAFC] border border-slate-200 text-slate-600 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-slate-100 transition-colors"
+                  className="flex-1 py-3 bg-[#F8FAFC] border border-slate-200 text-slate-600 rounded-xl font-bold text-xs sm:text-sm uppercase tracking-wider hover:bg-slate-100 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -1789,7 +1791,7 @@ export default function Plantel() {
                       alert('Erro ao associar aves: ' + e.message);
                     }
                   }}
-                  className={`flex-1 py-3 rounded-xl font-bold text-sm uppercase tracking-widest shadow-sm transition-all ${
+                  className={`flex-1 py-3 rounded-xl font-bold text-xs sm:text-sm uppercase tracking-wider shadow-sm transition-all ${
                     selectedBirdsForBaia.length === 0
                       ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                       : 'bg-[#2563EB] text-white hover:bg-[#1D4ED8]'
@@ -1805,7 +1807,7 @@ export default function Plantel() {
 
       <AnimatePresence>
         {isEditingRaca && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6">
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
@@ -1817,7 +1819,7 @@ export default function Plantel() {
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl flex flex-col max-h-[85vh]"
+              className="relative w-full max-w-md bg-white p-5 sm:p-8 rounded-3xl sm:rounded-[32px] shadow-2xl flex flex-col max-h-[88vh]"
             >
               <div className="flex justify-between items-center mb-6 shrink-0">
                 <h3 className="text-xl font-bold text-[#1F2937]">
@@ -1825,7 +1827,7 @@ export default function Plantel() {
                 </h3>
                 <button 
                   onClick={() => { setIsEditingRaca(false); setRacaToEdit(null); }} 
-                  className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"
+                  className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors shrink-0"
                 >
                   <X size={20} />
                 </button>
@@ -1868,11 +1870,11 @@ export default function Plantel() {
                       name="raca_name" 
                       defaultValue={racaToEdit?.name || ''} 
                       placeholder="Ex: GSB, Galo Índio" 
-                      className="flex-1 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                      className="flex-1 min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-3 sm:px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none text-sm" 
                     />
                     <button 
                       type="submit" 
-                      className="px-6 bg-[#2563EB] text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-[#1D4ED8] transition-colors shadow-sm shrink-0"
+                      className="px-4 sm:px-6 bg-[#2563EB] text-white rounded-2xl font-bold text-xs uppercase tracking-wider hover:bg-[#1D4ED8] transition-colors shadow-sm shrink-0 whitespace-nowrap"
                     >
                       {racaToEdit ? 'Salvar' : 'Adicionar'}
                     </button>

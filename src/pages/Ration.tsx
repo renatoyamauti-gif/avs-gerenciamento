@@ -247,18 +247,18 @@ export default function Ration() {
         ) : activeTab === 'recipes' ? (
           <button 
             onClick={() => setIsAddingRecipe(true)}
-            className="flex items-center gap-2 bg-[#2563EB] text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all notranslate"
+            className="flex items-center justify-center gap-2 bg-[#2563EB] text-white px-6 py-3.5 rounded-2xl font-bold text-xs sm:text-sm uppercase tracking-wider shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all notranslate w-full sm:w-auto"
             translate="no"
           >
-            <Plus size={20} /> Desenvolver Ração
+            <Plus size={18} /> Desenvolver Ração
           </button>
         ) : (
           <button 
             onClick={() => setIsAddingIngredient(true)}
-            className="flex items-center gap-2 bg-[#16A34A] text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#15803D] hover:scale-[1.02] active:scale-95 transition-all notranslate"
+            className="flex items-center justify-center gap-2 bg-[#16A34A] text-white px-6 py-3.5 rounded-2xl font-bold text-xs sm:text-sm uppercase tracking-wider shadow-md hover:bg-[#15803D] hover:scale-[1.02] active:scale-95 transition-all notranslate w-full sm:w-auto"
             translate="no"
           >
-            <Plus size={20} /> Adicionar Ingredientes
+            <Plus size={18} /> Adicionar Ingredientes
           </button>
         )}
       </header>
@@ -393,12 +393,12 @@ export default function Ration() {
       {/* Modals */}
       <AnimatePresence>
         {(isAddingRecipe || isEditingRecipe) && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setIsAddingRecipe(false); setIsEditingRecipe(null); }} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-2xl bg-white p-8 sm:p-10 rounded-[32px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-2xl bg-white p-5 sm:p-10 rounded-3xl sm:rounded-[32px] shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-bold text-[#1F2937] tracking-tight">{isEditingRecipe ? 'Editar Fórmula' : 'Desenvolver Ração'}</h3>
-                <button type="button" onClick={() => { setIsAddingRecipe(false); setIsEditingRecipe(null); }} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"><X size={20} /></button>
+                <button type="button" onClick={() => { setIsAddingRecipe(false); setIsEditingRecipe(null); }} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors shrink-0"><X size={20} /></button>
               </div>
               <form onSubmit={handleSaveRecipe} className="space-y-8">
                 <div className="space-y-2">
@@ -468,9 +468,9 @@ export default function Ration() {
         )}
 
         {(isAddingIngredient || isEditingIngredient) && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setIsAddingIngredient(false); setIsEditingIngredient(null); }} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-md bg-white border border-slate-100 p-8 sm:p-10 rounded-[32px] shadow-2xl">
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-md bg-white border border-slate-100 p-5 sm:p-8 rounded-3xl sm:rounded-[32px] shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
               <h3 className="text-2xl font-bold text-[#1F2937] tracking-tight mb-8">{isEditingIngredient ? 'Editar Ingrediente' : 'Adicionar Ingrediente'}</h3>
               <form onSubmit={handleSaveIngredient} className="space-y-6">
                 <div className="space-y-2">

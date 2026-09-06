@@ -473,13 +473,13 @@ export default function Chocadeira() {
             }
             setIsAddingIncubator(true);
           }}
-          className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md transition-all ${
+          className={`flex items-center justify-center gap-2 px-6 py-3 rounded-2xl font-bold text-xs sm:text-sm uppercase tracking-wider shadow-md transition-all w-full sm:w-auto ${
             isFreePlan && incubators.length >= limits.incubators
               ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
               : 'bg-[#2563EB] text-white hover:bg-[#1D4ED8] hover:scale-105 active:scale-95'
           }`}
         >
-          {isFreePlan && incubators.length >= limits.incubators ? <Lock size={20} /> : <Plus size={20} />} ADICIONAR CHOCADEIRA
+          {isFreePlan && incubators.length >= limits.incubators ? <Lock size={18} /> : <Plus size={18} />} ADICIONAR CHOCADEIRA
         </button>
       </header>
 
@@ -687,55 +687,55 @@ export default function Chocadeira() {
       {/* Modals */}
       <AnimatePresence>
         {isAddingIncubator && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAddingIncubator(false)} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl">
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-md bg-white p-5 sm:p-8 rounded-3xl sm:rounded-[32px] shadow-2xl">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-bold text-[#1F2937]">Nova Chocadeira</h3>
-                <button onClick={() => setIsAddingIncubator(false)} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"><X size={20} /></button>
+                <button onClick={() => setIsAddingIncubator(false)} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors shrink-0"><X size={20} /></button>
               </div>
               <form onSubmit={handleAddIncubator} className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Identificação da Máquina</label>
-                  <input required name="name" type="text" placeholder="Ex: Master Hatch 500" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                  <input required name="name" type="text" placeholder="Ex: Master Hatch 500" className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Capacidade Total (Ovos)</label>
-                  <input required name="capacity" type="number" placeholder="Ex: 24" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                  <input required name="capacity" type="number" placeholder="Ex: 24" className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                 </div>
-                <button type="submit" className="w-full py-4 bg-[#2563EB] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all">Salvar Chocadeira</button>
+                <button type="submit" className="w-full py-4 bg-[#2563EB] text-white rounded-2xl font-bold text-sm uppercase tracking-wider shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all">Salvar Chocadeira</button>
               </form>
             </motion.div>
           </div>
         )}
 
         {isEditingIncubator && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsEditingIncubator(null)} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-md bg-white p-8 rounded-[32px] shadow-2xl">
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-md bg-white p-5 sm:p-8 rounded-3xl sm:rounded-[32px] shadow-2xl">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-bold text-[#1F2937]">Editar Chocadeira</h3>
-                <button onClick={() => setIsEditingIncubator(null)} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"><X size={20} /></button>
+                <button onClick={() => setIsEditingIncubator(null)} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors shrink-0"><X size={20} /></button>
               </div>
               <form onSubmit={handleEditIncubator} className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Identificação da Máquina</label>
-                  <input required name="name" defaultValue={isEditingIncubator.name} type="text" placeholder="Ex: Master Hatch 500" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                  <input required name="name" defaultValue={isEditingIncubator.name} type="text" placeholder="Ex: Master Hatch 500" className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Capacidade Total (Ovos)</label>
-                  <input required name="capacity" defaultValue={isEditingIncubator.capacity} type="number" placeholder="Ex: 24" className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                  <input required name="capacity" defaultValue={isEditingIncubator.capacity} type="number" placeholder="Ex: 24" className="w-full min-w-0 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                 </div>
-                <button type="submit" className="w-full py-4 bg-[#2563EB] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all">Salvar Alterações</button>
+                <button type="submit" className="w-full py-4 bg-[#2563EB] text-white rounded-2xl font-bold text-sm uppercase tracking-wider shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all">Salvar Alterações</button>
               </form>
             </motion.div>
           </div>
         )}
 
         {isAddingBatch && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0 overflow-y-auto">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAddingBatch(null)} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-lg bg-white p-8 rounded-[32px] shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar my-8">
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-lg bg-white p-5 sm:p-8 rounded-3xl sm:rounded-[32px] shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar my-4 sm:my-8">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-bold text-[#1F2937]">Novo Lote de Ovos</h3>
                 <button onClick={() => setIsAddingBatch(null)} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"><X size={20} /></button>
@@ -892,12 +892,12 @@ export default function Chocadeira() {
         )}
 
         {isEditingBatch && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0 overflow-y-auto">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsEditingBatch(null)} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-lg bg-white p-8 rounded-[32px] shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar my-8">
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-lg bg-white p-5 sm:p-8 rounded-3xl sm:rounded-[32px] shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar my-4 sm:my-8">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-2xl font-bold text-[#1F2937]">Atualizar Lote</h3>
-                <button onClick={() => setIsEditingBatch(null)} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"><X size={20} /></button>
+                <button onClick={() => setIsEditingBatch(null)} className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors shrink-0"><X size={20} /></button>
               </div>
               <form onSubmit={handleUpdateBatch} className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -1364,19 +1364,19 @@ export default function EggCollection() {
       {/* Modal de Detalhamento por Baia/Raça */}
       <AnimatePresence>
         {selectedFilter !== null && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedFilter(null)}
-              className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm"
-            ></motion.div>
+              exit={{ opacity: 0 }} 
+              onClick={() => setSelectedFilter(null)} 
+              className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" 
+            />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-white dark:bg-slate-900 p-8 rounded-[32px] shadow-2xl z-10 flex flex-col max-h-[80vh]"
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-3xl sm:rounded-[32px] shadow-2xl z-10 flex flex-col max-h-[88vh]"
             >
               <div className="flex justify-between items-center mb-6">
                 <div>
