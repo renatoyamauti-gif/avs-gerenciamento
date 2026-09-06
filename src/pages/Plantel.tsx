@@ -91,6 +91,9 @@ export default function Plantel() {
   const [isEditingRaca, setIsEditingRaca] = useState(false);
   const [racaToEdit, setRacaToEdit] = useState<any>(null);
 
+  const [selectedBirdBaia, setSelectedBirdBaia] = useState<string>('');
+  const [selectedBirdRaca, setSelectedBirdRaca] = useState<string>('');
+
   useEffect(() => {
     setBaiaTab('aves');
   }, [filterBaia]);
@@ -150,6 +153,8 @@ export default function Plantel() {
       setSelectedRecipePrice(recipe?.price_per_kg || 0);
       setCornPrice(editingBird.corn_price_per_kg || 0);
       setCornGrams(editingBird.corn_daily_grams || 0);
+      setSelectedBirdBaia(editingBird.baia || '');
+      setSelectedBirdRaca(editingBird.raca || '');
       loadBirdHistory(editingBird.id);
     } else {
       setActiveTab('dados');
@@ -158,6 +163,8 @@ export default function Plantel() {
       setEditingHistoryItem(null);
       setCornPrice(0);
       setCornGrams(0);
+      setSelectedBirdBaia(filterBaia !== 'All' ? filterBaia : '');
+      setSelectedBirdRaca('');
     }
   }, [editingBird, recipes]);
 
@@ -1109,12 +1116,13 @@ export default function Plantel() {
                       <select 
                         required 
                         name="raca" 
-                        defaultValue={editingBird?.raca || ""} 
+                        value={selectedBirdRaca}
+                        onChange={(e) => setSelectedBirdRaca(e.target.value)}
                         className="flex-1 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none"
                       >
                         <option value="" disabled>Selecione a Raça</option>
-                        {editingBird?.raca && !racas.some(r => r.name === editingBird.raca) && (
-                          <option value={editingBird.raca}>{editingBird.raca}</option>
+                        {selectedBirdRaca && !racas.some(r => r.name === selectedBirdRaca) && (
+                          <option value={selectedBirdRaca}>{selectedBirdRaca}</option>
                         )}
                         {racas.map(r => (
                           <option key={r.id} value={r.name}>{r.name}</option>
@@ -1170,19 +1178,33 @@ export default function Plantel() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Baia / Grupo</label>
-                    <input 
-                      name="baia" 
-                      list="baias-list"
-                      defaultValue={editingBird ? editingBird.baia : (filterBaia !== 'All' ? filterBaia : '')} 
-                      type="text" 
-                      placeholder="Ex: Baia 01" 
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
-                    />
-                    <datalist id="baias-list">
-                      {uniqueBaias.map(baia => (
-                        <option key={baia} value={baia} />
-                      ))}
-                    </datalist>
+                    <div className="flex gap-2">
+                      <select 
+                        name="baia" 
+                        value={selectedBirdBaia} 
+                        onChange={(e) => setSelectedBirdBaia(e.target.value)}
+                        className="flex-1 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none"
+                      >
+                        <option value="">Sem Baia / Não Definida</option>
+                        {selectedBirdBaia && !uniqueBaias.includes(selectedBirdBaia) && (
+                          <option value={selectedBirdBaia}>{selectedBirdBaia}</option>
+                        )}
+                        {uniqueBaias.map(baia => (
+                          <option key={baia} value={baia}>{baia}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBaiaToEdit(null);
+                          setIsEditingBaia(true);
+                        }}
+                        className="px-4 bg-[#2563EB] text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-[#1D4ED8] transition-colors shadow-sm shrink-0 flex items-center justify-center"
+                        title="Cadastrar Nova Baia"
+                      >
+                        + Nova
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -1499,7 +1521,7 @@ export default function Plantel() {
 
       <AnimatePresence>
         {isEditingBaia && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 sm:p-0">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setIsEditingBaia(false); setBaiaToEdit(null); }} className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm" />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -1539,8 +1561,9 @@ export default function Plantel() {
                     setExtraBaias(prev => prev.filter(b => b !== baiaToEdit.name));
                   }
                   
-                  // If new baia, set filter to it
+                  // If new baia, set filter to it and select it for current bird form
                   setFilterBaia(newName);
+                  setSelectedBirdBaia(newName);
                   
                   await loadData();
                   setIsEditingBaia(false);
@@ -1794,7 +1817,7 @@ export default function Plantel() {
 
       <AnimatePresence>
         {isEditingRaca && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-0">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 sm:p-0">
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
@@ -1837,6 +1860,7 @@ export default function Plantel() {
                     }
                     await dbService.saveRaca(rData);
                     await loadData();
+                    setSelectedBirdRaca(name);
                     setRacaToEdit(null);
                     form.reset();
                   } catch (err: any) {
