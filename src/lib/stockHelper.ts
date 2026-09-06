@@ -166,7 +166,7 @@ export function calculateEggStock({
     return allBaias;
   };
 
-  // 1. Process Egg Logs (Collected)
+  // 1. Process Egg Logs (Collected) - Separados estritamente por Baia ou por Raça
   (eggLogs || []).forEach(log => {
     const qty = Number(log.count) || 0;
     if (qty <= 0) return;
@@ -175,36 +175,24 @@ export function calculateEggStock({
     const logBaias = log.baia ? log.baia.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
     const logRacas = log.raca ? log.raca.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
 
+    // Se foi registrado por baia, contabiliza unicamente na Baia
     logBaias.forEach((b: string) => {
       const activeB = initBaia(b);
       baiaMap[activeB].collected += qty;
       if (!baiaDays[activeB]) baiaDays[activeB] = new Set();
       baiaDays[activeB].add(dateKey);
-
-      getRacasForBaia(b).forEach(r => {
-        const normR = initRaca(r);
-        racaMap[normR].collected += qty;
-        if (!racaDays[normR]) racaDays[normR] = new Set();
-        racaDays[normR].add(dateKey);
-      });
     });
 
+    // Se foi registrado por raça, contabiliza unicamente na Raça
     logRacas.forEach((r: string) => {
       const normR = initRaca(r);
       racaMap[normR].collected += qty;
       if (!racaDays[normR]) racaDays[normR] = new Set();
       racaDays[normR].add(dateKey);
-
-      getBaiasForRaca(normR).forEach(b => {
-        const activeB = initBaia(b);
-        baiaMap[activeB].collected += qty;
-        if (!baiaDays[activeB]) baiaDays[activeB] = new Set();
-        baiaDays[activeB].add(dateKey);
-      });
     });
   });
 
-  // 2. Subtract incubated eggs
+  // 2. Subtract incubated eggs - Dedução estrita sem cruzar estoques
   (incubators || []).forEach(inc => {
     (inc.incubator_batches || []).forEach((batch: any) => {
       if (batch.baia_details) {
@@ -213,11 +201,6 @@ export function calculateEggStock({
           if (qty <= 0) return;
           const activeB = initBaia(bName);
           baiaMap[activeB].incubated += qty;
-
-          getRacasForBaia(bName).forEach(r => {
-            const normR = initRaca(r);
-            racaMap[normR].incubated += qty;
-          });
         });
       }
       if (batch.raca_details) {
@@ -226,22 +209,17 @@ export function calculateEggStock({
           if (qty <= 0) return;
           const normR = initRaca(breed);
           racaMap[normR].incubated += qty;
-
-          getBaiasForRaca(normR).forEach(b => {
-            const activeB = initBaia(b);
-            baiaMap[activeB].incubated += qty;
-          });
         });
       }
     });
   });
 
-  // 3. Subtract sold eggs (from orders)
+  // 3. Subtract sold eggs (from orders) - Dedução estrita por tipo de origem
   (orders || []).forEach(ord => {
     if (ord.status !== 'Cancelado') {
       const orderItems = ord.items && Array.isArray(ord.items) && ord.items.length > 0
         ? ord.items
-        : [{ origem_type: ord.origem_type || 'raca', raca: ord.raca || '', baia: ord.baia || '', quantity: ord.quantity || 0 }];
+        : [{ origem_type: ord.origem_type || (ord.baia ? 'baia' : 'raca'), raca: ord.raca || '', baia: ord.baia || '', quantity: ord.quantity || 0 }];
 
       orderItems.forEach((item: any) => {
         if (item.origem_type === 'embalagem') return;
@@ -252,21 +230,11 @@ export function calculateEggStock({
           const normR = initRaca(item.raca);
           const totalEggsSold = (qty * 12) + (Number(item.gift_eggs) || 0);
           racaMap[normR].sold += totalEggsSold;
-
-          getBaiasForRaca(normR).forEach(b => {
-            const activeB = initBaia(b);
-            baiaMap[activeB].sold += totalEggsSold;
-          });
         } else if (item.origem_type === 'baia' && item.baia) {
           const bName = item.baia;
           const activeB = initBaia(bName);
           const totalEggsSold = (qty * 12) + (Number(item.gift_eggs) || 0);
           baiaMap[activeB].sold += totalEggsSold;
-
-          getRacasForBaia(bName).forEach(r => {
-            const normR = initRaca(r);
-            racaMap[normR].sold += totalEggsSold;
-          });
         } else if (item.origem_type === 'produto' && item.product_id) {
           const prod = (products || []).find((p: any) => p.id === item.product_id);
           if (prod) {
@@ -277,21 +245,10 @@ export function calculateEggStock({
             if (prod.egg_raca) {
               const normR = initRaca(prod.egg_raca);
               racaMap[normR].sold += totalEggsSold;
-
-              getBaiasForRaca(normR).forEach(b => {
-                const activeB = initBaia(b);
-                baiaMap[activeB].sold += totalEggsSold;
-              });
-            }
-            if (prod.egg_baia) {
+            } else if (prod.egg_baia) {
               const bName = prod.egg_baia;
               const activeB = initBaia(bName);
               baiaMap[activeB].sold += totalEggsSold;
-
-              getRacasForBaia(bName).forEach(r => {
-                const normR = initRaca(r);
-                racaMap[normR].sold += totalEggsSold;
-              });
             }
           }
         }

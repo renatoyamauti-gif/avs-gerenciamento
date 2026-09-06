@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Egg, Trash2, X, Loader2, Edit2, QrCode, Printer, Camera, MapPin, TrendingUp, MoreHorizontal } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Egg, Trash2, X, Loader2, Edit2, QrCode, Printer, Camera, MapPin, TrendingUp, MoreHorizontal, Layers, Compass } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { calculateEggStock, normalizeBaia, normalizeBreed } from '../lib/stockHelper';
 import QRScannerModal from '../components/QRScannerModal';
@@ -51,6 +51,7 @@ export default function EggCollection() {
   const [isPrintingQR, setIsPrintingQR] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<{ type: 'baia' | 'raca'; name: string } | null>(null);
+  const [viewFilter, setViewFilter] = useState<'all' | 'baia' | 'raca'>('all');
 
   const countInputRef = useRef<HTMLInputElement>(null);
   
@@ -69,19 +70,61 @@ export default function EggCollection() {
     });
   }, [logs, incubators, orders, products, birds, dbRacas, dbBaias]);
 
+  // Logs do mês atual
+  const currentMonthLogs = useMemo(() => {
+    return logs.filter(l => l.month === viewDate.getMonth() + 1 && l.year === viewDate.getFullYear());
+  }, [logs, viewDate]);
+
+  // Totais mensais estritamente separados
+  const totalMonthlyAll = useMemo(() => {
+    return currentMonthLogs.reduce((acc, curr) => acc + curr.count, 0);
+  }, [currentMonthLogs]);
+
+  const totalMonthlyBaia = useMemo(() => {
+    return currentMonthLogs.filter(l => Boolean(l.baia)).reduce((acc, curr) => acc + curr.count, 0);
+  }, [currentMonthLogs]);
+
+  const totalMonthlyRaca = useMemo(() => {
+    return currentMonthLogs.filter(l => Boolean(l.raca)).reduce((acc, curr) => acc + curr.count, 0);
+  }, [currentMonthLogs]);
+
+  const activeTotalMonthly = useMemo(() => {
+    if (viewFilter === 'baia') return totalMonthlyBaia;
+    if (viewFilter === 'raca') return totalMonthlyRaca;
+    return totalMonthlyAll;
+  }, [viewFilter, totalMonthlyBaia, totalMonthlyRaca, totalMonthlyAll]);
+
+  // Logs filtrados pela visão selecionada (todas, baia ou raça)
+  const displayedLogs = useMemo(() => {
+    if (viewFilter === 'baia') return logs.filter(l => Boolean(l.baia));
+    if (viewFilter === 'raca') return logs.filter(l => Boolean(l.raca));
+    return logs;
+  }, [logs, viewFilter]);
+
   const { eggsByBaia, eggsByRaca, baiaEstimates, racaEstimates, racaEntries, baiaEntries } = useMemo(() => {
-    const ebBaia = Object.entries(eggStock.baias).map(([name, item]: any) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count);
-    const ebRaca = Object.entries(eggStock.racas).map(([name, item]: any) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count);
+    const ebBaia = Object.entries(eggStock.baias)
+      .filter(([_, item]: any) => item.collected > 0)
+      .map(([name, item]: any) => ({ name, count: item.collected }))
+      .sort((a, b) => b.count - a.count);
 
-    const bEst = Object.entries(eggStock.baias).map(([name, item]: any) => {
-      const monthlyEst = Math.round(item.dailyAvg * 30);
-      return { name, estimativa: monthlyEst };
-    }).sort((a, b) => b.estimativa - a.estimativa);
+    const ebRaca = Object.entries(eggStock.racas)
+      .filter(([_, item]: any) => item.collected > 0)
+      .map(([name, item]: any) => ({ name, count: item.collected }))
+      .sort((a, b) => b.count - a.count);
 
-    const rEst = Object.entries(eggStock.racas).map(([name, item]: any) => {
-      const monthlyEst = Math.round(item.dailyAvg * 30);
-      return { name, estimativa: monthlyEst };
-    }).sort((a, b) => b.estimativa - a.estimativa);
+    const bEst = Object.entries(eggStock.baias)
+      .filter(([_, item]: any) => item.collected > 0)
+      .map(([name, item]: any) => {
+        const monthlyEst = Math.round(item.dailyAvg * 30);
+        return { name, estimativa: monthlyEst };
+      }).sort((a, b) => b.estimativa - a.estimativa);
+
+    const rEst = Object.entries(eggStock.racas)
+      .filter(([_, item]: any) => item.collected > 0)
+      .map(([name, item]: any) => {
+        const monthlyEst = Math.round(item.dailyAvg * 30);
+        return { name, estimativa: monthlyEst };
+      }).sort((a, b) => b.estimativa - a.estimativa);
 
     const rEntries = Object.entries(eggStock.racas).map(([breed, val]) => {
       const data = val as any;
@@ -291,13 +334,18 @@ export default function EggCollection() {
 
   async function loadBaias() {
     try {
-      const [birds, dbBaiasData] = await Promise.all([
+      const [birds, dbBaiasData, eggLogs] = await Promise.all([
         dbService.getBirds(),
-        dbService.getBaias()
+        dbService.getBaias(),
+        dbService.getEggLogs()
       ]);
       setDbBaias(dbBaiasData || []);
-      const baias = Array.from(new Set(birds.map(b => b.baia).filter(Boolean))) as string[];
-      setUniqueBaias(baias);
+      const allBaias = Array.from(new Set([
+        ...(dbBaiasData || []).map((b: any) => b.name),
+        ...birds.map(b => b.baia),
+        ...(eggLogs || []).map((l: any) => l.baia)
+      ].filter(Boolean))) as string[];
+      setUniqueBaias(allBaias.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })));
     } catch (error) {
       console.error('Erro ao carregar baias:', error);
     }
@@ -305,10 +353,18 @@ export default function EggCollection() {
 
   async function loadRacas() {
     try {
-      const racasData = await dbService.getRacas();
+      const [racasData, birds, eggLogs] = await Promise.all([
+        dbService.getRacas(),
+        dbService.getBirds(),
+        dbService.getEggLogs()
+      ]);
       setDbRacas(racasData || []);
-      const racasNames = (racasData || []).map((r: any) => r.name).filter(Boolean);
-      setUniqueRacas(racasNames);
+      const racasNames = Array.from(new Set([
+        ...(racasData || []).map((r: any) => r.name),
+        ...birds.map(b => b.raca),
+        ...(eggLogs || []).map((l: any) => l.raca)
+      ].filter(Boolean))) as string[];
+      setUniqueRacas(racasNames.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })));
     } catch (error) {
       console.error('Erro ao carregar raças:', error);
     }
@@ -373,10 +429,6 @@ export default function EggCollection() {
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
   const daysArray = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
-  const totalMonthly = logs
-    .filter(l => l.month === viewDate.getMonth() + 1 && l.year === viewDate.getFullYear())
-    .reduce((acc, curr) => acc + curr.count, 0);
-
   const handleUpdateDay = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (editingDay === null) return;
@@ -392,8 +444,20 @@ export default function EggCollection() {
 
     const pairsString = formData.get('pairs') as string;
     const pairs = pairsString ? pairsString.split(',').map(p => p.trim()).filter(p => p !== '') : [];
-    const baia = formData.get('baia') as string;
-    const raca = formData.get('raca') as string;
+    const rawBaia = (formData.get('baia') as string) || '';
+    const rawRaca = (formData.get('raca') as string) || '';
+    const baia = rawBaia.trim();
+    const raca = rawRaca.trim();
+
+    if (originType === 'baia' && !baia) {
+      alert('Por favor, selecione ou informe a Baia de origem.');
+      return;
+    }
+    if (originType === 'raca' && !raca) {
+      alert('Por favor, selecione ou informe a Raça de origem.');
+      return;
+    }
+
     const condition = formData.get('condition') as string || 'Normal';
     const collectorId = formData.get('collector_id') as string;
 
@@ -403,8 +467,8 @@ export default function EggCollection() {
       year: viewDate.getFullYear(),
       count,
       pairs,
-      baia: originType === 'baia' ? baia : null,
-      raca: originType === 'raca' ? raca : null,
+      baia: originType === 'baia' ? (baia || null) : null,
+      raca: originType === 'raca' ? (raca || null) : null,
       condition,
       collector_id: collectorId || null
     };
@@ -417,8 +481,8 @@ export default function EggCollection() {
         l.month === viewDate.getMonth() + 1 && 
         l.year === viewDate.getFullYear() &&
         (originType === 'baia' 
-          ? l.baia === baia 
-          : l.raca === raca)
+          ? Boolean(l.baia) && normalizeBaia(l.baia) === normalizeBaia(baia)
+          : Boolean(l.raca) && normalizeBreed(l.raca) === normalizeBreed(raca))
       );
       
       if (existingLogs.length > 0) {
@@ -441,7 +505,7 @@ export default function EggCollection() {
 
     try {
       await dbService.saveEggLog(logData);
-      await loadLogs();
+      await Promise.all([loadLogs(), loadBaias(), loadRacas()]);
       setEditingLogId(null);
       form.reset(); // Keeps modal open but clears form for the next baia
       
@@ -469,6 +533,11 @@ export default function EggCollection() {
     l.year === viewDate.getFullYear()
   );
 
+  const currentDayBaiaLogs = currentDayLogs.filter(l => Boolean(l.baia));
+  const currentDayRacaLogs = currentDayLogs.filter(l => Boolean(l.raca));
+  const currentDayBaiaCount = currentDayBaiaLogs.reduce((acc, curr) => acc + curr.count, 0);
+  const currentDayRacaCount = currentDayRacaLogs.reduce((acc, curr) => acc + curr.count, 0);
+
   const logToEdit = logs.find(l => l.id === editingLogId);
 
   useEffect(() => {
@@ -478,10 +547,26 @@ export default function EggCollection() {
       } else {
         setOriginType('baia');
       }
+    }
+  }, [editingLogId, logToEdit]);
+
+  const handleDayClick = (day: number) => {
+    if (viewFilter === 'raca') {
+      setOriginType('raca');
     } else {
       setOriginType('baia');
     }
-  }, [editingLogId, logToEdit]);
+    setEditingDay(day);
+  };
+
+  const handleAddCollectionClick = () => {
+    if (viewFilter === 'raca') {
+      setOriginType('raca');
+    } else {
+      setOriginType('baia');
+    }
+    setEditingDay(new Date().getDate());
+  };
 
   if (loading) {
     return (
@@ -508,8 +593,15 @@ export default function EggCollection() {
           <div className="bg-white border border-slate-100 px-6 py-4 rounded-3xl flex items-center gap-4 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
             <Egg className="text-[#2563EB] size-8" />
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total este mês</p>
-              <p className="text-2xl font-black text-[#1F2937] font-headline">{totalMonthly} Ovos</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                {viewFilter === 'all' ? 'Total este mês' : viewFilter === 'baia' ? 'Total Mês (Baias)' : 'Total Mês (Raças)'}
+              </p>
+              <p className="text-2xl font-black text-[#1F2937] font-headline">{activeTotalMonthly} Ovos</p>
+              {viewFilter === 'all' && (
+                <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                  Baias: <span className="text-[#2563EB]">{totalMonthlyBaia}</span> • Raças: <span className="text-[#8B5CF6]">{totalMonthlyRaca}</span>
+                </p>
+              )}
             </div>
           </div>
           <button 
@@ -525,7 +617,7 @@ export default function EggCollection() {
             <QrCode size={16} /> QR Codes
           </button>
           <button 
-            onClick={() => setEditingDay(new Date().getDate())}
+            onClick={handleAddCollectionClick}
             className="bg-[#2563EB] text-white px-6 py-4 rounded-[24px] shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer"
           >
             <Plus size={16} /> Adicionar Coleta
@@ -533,26 +625,82 @@ export default function EggCollection() {
         </div>
       </section>
 
+      {/* Seletor de Modo de Visualização: Separar por Baia ou Raça */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white border border-slate-100 p-4 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+        <div className="flex items-center gap-3">
+          <div className="bg-[#EFF6FF] text-[#2563EB] p-2.5 rounded-2xl">
+            <Egg size={20} />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-[#1F2937]">Visualização da Produção</h4>
+            <p className="text-xs text-slate-400 font-medium">Exibição separada exatamente da forma escolhida na coleta</p>
+          </div>
+        </div>
+
+        <div className="flex bg-[#F8FAFC] p-1.5 rounded-2xl border border-slate-100 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setViewFilter('all')}
+            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
+              viewFilter === 'all'
+                ? 'bg-white text-[#2563EB] shadow-sm border border-slate-200/60'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Todas ({totalMonthlyAll})
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewFilter('baia')}
+            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              viewFilter === 'baia'
+                ? 'bg-[#2563EB] text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <MapPin size={14} />
+            Por Baia ({totalMonthlyBaia})
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewFilter('raca')}
+            className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              viewFilter === 'raca'
+                ? 'bg-[#8B5CF6] text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Egg size={14} />
+            Por Raça ({totalMonthlyRaca})
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Calendar View */}
         <div className="lg:col-span-2 bg-white border border-slate-100 rounded-3xl p-4 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
           <div className="flex justify-between items-center mb-6 sm:mb-10">
             <div className="flex items-center gap-3">
               <CalendarIcon className="text-[#2563EB] size-6" />
-              <h3 className="text-xl font-bold text-[#1F2937] font-headline tracking-tight uppercase">
-                {viewDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-              </h3>
+              <div>
+                <h3 className="text-xl font-bold text-[#1F2937] font-headline tracking-tight uppercase">
+                  {viewDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                </h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                  {viewFilter === 'all' ? 'Exibindo todas as coletas' : viewFilter === 'baia' ? 'Exibindo apenas coletas por Baia' : 'Exibindo apenas coletas por Raça'}
+                </p>
+              </div>
             </div>
             <div className="flex gap-2">
               <button 
                 onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))}
-                className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors"
+                className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors cursor-pointer"
               >
                 <ChevronLeft size={20} />
               </button>
               <button 
                 onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))}
-                className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors"
+                className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors cursor-pointer"
               >
                 <ChevronRight size={20} />
               </button>
@@ -563,9 +711,8 @@ export default function EggCollection() {
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'].map(d => (
               <div key={d} className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest pb-4">{d}</div>
             ))}
-            {/* Pad calendar for first day of month if needed - simplification here, just showing days */}
             {daysArray.map(day => {
-              const dayLogs = logs.filter(l => 
+              const dayLogs = displayedLogs.filter(l => 
                 l.day === day && 
                 l.month === viewDate.getMonth() + 1 && 
                 l.year === viewDate.getFullYear()
@@ -579,19 +726,25 @@ export default function EggCollection() {
               return (
                 <div 
                   key={day} 
-                  onClick={() => setEditingDay(day)}
+                  onClick={() => handleDayClick(day)}
                   className={`
                     aspect-square rounded-xl sm:rounded-2xl p-1 sm:p-2 relative flex flex-col justify-between transition-all cursor-pointer group
-                    ${dayLogs.length > 0 ? 'bg-[#EFF6FF] border border-[#DBEAFE]' : 'bg-[#F8FAFC] border border-transparent hover:border-slate-200'}
+                    ${dayLogs.length > 0 
+                      ? (viewFilter === 'raca' 
+                          ? 'bg-[#FAF5FF] border border-[#E9D5FF]' 
+                          : 'bg-[#EFF6FF] border border-[#DBEAFE]') 
+                      : 'bg-[#F8FAFC] border border-transparent hover:border-slate-200'}
                     ${isToday ? 'ring-2 ring-[#2563EB] ring-offset-2' : ''}
                   `}
                 >
-                  <span className={`text-xs sm:text-sm ${isToday ? 'font-black text-[#2563EB]' : 'font-bold'} ${dayLogs.length > 0 && !isToday ? 'text-[#2563EB]' : (!isToday ? 'text-slate-500' : '')}`}>
+                  <span className={`text-xs sm:text-sm ${isToday ? 'font-black text-[#2563EB]' : 'font-bold'} ${dayLogs.length > 0 && !isToday ? (viewFilter === 'raca' ? 'text-[#8B5CF6]' : 'text-[#2563EB]') : (!isToday ? 'text-slate-500' : '')}`}>
                     {day}
                   </span>
                   {dayLogs.length > 0 && (
                     <div className="flex flex-col items-center">
-                      <div className="bg-[#2563EB] text-white w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold shadow-sm z-10">{totalOvos}</div>
+                      <div className={`${viewFilter === 'raca' ? 'bg-[#8B5CF6]' : 'bg-[#2563EB]'} text-white w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold shadow-sm z-10`}>
+                        {totalOvos}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -602,9 +755,14 @@ export default function EggCollection() {
 
         {/* Recent Recordings */}
         <div className="bg-white border border-slate-100 rounded-3xl p-4 sm:p-8 flex flex-col shadow-[0_2px_10px_rgba(0,0,0,0.02)] max-h-[600px] overflow-hidden">
-          <h3 className="text-xl font-bold text-[#1F2937] mb-8 tracking-tight">Últimos Registros</h3>
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-xl font-bold text-[#1F2937] tracking-tight">Últimos Registros</h3>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              {viewFilter === 'all' ? 'Todos' : viewFilter === 'baia' ? 'Por Baia' : 'Por Raça'}
+            </span>
+          </div>
           <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            {logs.slice(0, 10).map((log, i) => (
+            {displayedLogs.slice(0, 10).map((log) => (
               <motion.div 
                 key={log.id} 
                 initial={{ opacity: 0, x: 20 }}
@@ -630,12 +788,12 @@ export default function EggCollection() {
                   </div>
                   <div className="flex items-center gap-2">
                     {log.baia && (
-                      <div className="bg-[#F3F4F6] text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border border-slate-200">
+                      <div className="bg-[#EFF6FF] text-[#2563EB] text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border border-[#DBEAFE]">
                         Baia: {log.baia}
                       </div>
                     )}
                     {log.raca && (
-                      <div className="bg-[#FAF5FF] text-purple-600 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border border-purple-200">
+                      <div className="bg-[#FAF5FF] text-[#8B5CF6] text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border border-[#E9D5FF]">
                         Raça: {log.raca}
                       </div>
                     )}
@@ -654,9 +812,9 @@ export default function EggCollection() {
                 </div>
               </motion.div>
             ))}
-            {logs.length === 0 && (
+            {displayedLogs.length === 0 && (
               <div className="text-center py-10 opacity-50 text-slate-400 font-medium">
-                Nenhuma coleta registrada
+                Nenhuma coleta registrada {viewFilter === 'baia' ? 'para baias' : viewFilter === 'raca' ? 'para raças' : ''}
               </div>
             )}
           </div>
@@ -664,86 +822,100 @@ export default function EggCollection() {
       </div>
 
       {/* Eggs by Baia and Raça Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className={`grid gap-8 ${viewFilter === 'all' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
         {/* Ovos por Baia */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-          <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100 mb-6 flex items-center gap-3">
-            <div className="bg-[#EFF6FF] dark:bg-blue-950/40 p-2 rounded-2xl">
-              <Egg size={24} className="text-[#2563EB] dark:text-blue-400" />
+        {(viewFilter === 'all' || viewFilter === 'baia') && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+            <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100 mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-[#EFF6FF] dark:bg-blue-950/40 p-2 rounded-2xl">
+                  <Egg size={24} className="text-[#2563EB] dark:text-blue-400" />
+                </div>
+                Ovos por Baia
+              </div>
+              <span className="text-xs font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full uppercase">
+                {eggsByBaia.reduce((acc, c) => acc + c.count, 0)} Ovos
+              </span>
+            </h3>
+            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              {eggsByBaia.map((item, index) => (
+                <div 
+                  key={item.name} 
+                  onClick={() => setSelectedFilter({ type: 'baia', name: item.name })}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-800/50 border border-slate-50 dark:border-slate-800/80 hover:bg-[#EFF6FF] dark:hover:bg-blue-950/20 hover:border-[#2563EB]/30 dark:hover:border-blue-900/50 cursor-pointer transition-all group"
+                  title="Clique para editar/ver coletas desta baia"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#EFF6FF] dark:bg-blue-950/50 text-[#2563EB] dark:text-blue-400 font-bold text-sm">
+                      {index + 1}
+                    </span>
+                    <span className="font-bold text-[#1F2937] dark:text-slate-200">{item.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-[#2563EB] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                      {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
+                    </span>
+                    <span className="text-slate-400 dark:text-slate-500">
+                      <Edit2 size={14} />
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {eggsByBaia.length === 0 && (
+                <div className="text-center py-10 opacity-50 text-slate-400 dark:text-slate-500 font-medium">
+                  Nenhum registro de ovos por baia
+                </div>
+              )}
             </div>
-            Ovos por Baia
-          </h3>
-          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            {eggsByBaia.map((item, index) => (
-              <div 
-                key={item.name} 
-                onClick={() => setSelectedFilter({ type: 'baia', name: item.name })}
-                className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-800/50 border border-slate-50 dark:border-slate-800/80 hover:bg-[#EFF6FF] dark:hover:bg-blue-950/20 hover:border-[#2563EB]/30 dark:hover:border-blue-900/50 cursor-pointer transition-all group"
-                title="Clique para editar/ver coletas desta baia"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#EFF6FF] dark:bg-blue-950/50 text-[#2563EB] dark:text-blue-400 font-bold text-sm">
-                    {index + 1}
-                  </span>
-                  <span className="font-bold text-[#1F2937] dark:text-slate-200">{item.name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="bg-[#2563EB] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                    {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
-                  </span>
-                  <span className="text-slate-400 dark:text-slate-500">
-                    <Edit2 size={14} />
-                  </span>
-                </div>
-              </div>
-            ))}
-            {eggsByBaia.length === 0 && (
-              <div className="text-center py-10 opacity-50 text-slate-400 dark:text-slate-500 font-medium">
-                Nenhum registro de ovos por baia
-              </div>
-            )}
           </div>
-        </div>
+        )}
 
         {/* Ovos por Raça */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-          <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100 mb-6 flex items-center gap-3">
-            <div className="bg-[#FAF5FF] dark:bg-purple-950/40 p-2 rounded-2xl">
-              <Egg size={24} className="text-[#8B5CF6] dark:text-purple-400" />
+        {(viewFilter === 'all' || viewFilter === 'raca') && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+            <h3 className="text-xl sm:text-2xl font-bold text-[#1F2937] dark:text-slate-100 mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-[#FAF5FF] dark:bg-purple-950/40 p-2 rounded-2xl">
+                  <Egg size={24} className="text-[#8B5CF6] dark:text-purple-400" />
+                </div>
+                Ovos por Raça
+              </div>
+              <span className="text-xs font-bold text-slate-400 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full uppercase">
+                {eggsByRaca.reduce((acc, c) => acc + c.count, 0)} Ovos
+              </span>
+            </h3>
+            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              {eggsByRaca.map((item, index) => (
+                <div 
+                  key={item.name} 
+                  onClick={() => setSelectedFilter({ type: 'raca', name: item.name })}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-800/50 border border-slate-50 dark:border-slate-800/80 hover:bg-[#FAF5FF] dark:hover:bg-purple-950/20 hover:border-[#8B5CF6]/30 dark:hover:border-purple-900/50 cursor-pointer transition-all group"
+                  title="Clique para editar/ver coletas desta raça"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FAF5FF] dark:bg-purple-950/50 text-[#8B5CF6] dark:text-purple-400 font-bold text-sm">
+                      {index + 1}
+                    </span>
+                    <span className="font-bold text-[#1F2937] dark:text-slate-200">{item.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-[#8B5CF6] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                      {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
+                    </span>
+                    <span className="text-slate-400 dark:text-slate-500">
+                      <Edit2 size={14} />
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {eggsByRaca.length === 0 && (
+                <div className="text-center py-10 opacity-50 text-slate-400 dark:text-slate-500 font-medium">
+                  Nenhum registro de ovos por raça
+                </div>
+              )}
             </div>
-            Ovos por Raça
-          </h3>
-          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            {eggsByRaca.map((item, index) => (
-              <div 
-                key={item.name} 
-                onClick={() => setSelectedFilter({ type: 'raca', name: item.name })}
-                className="flex items-center justify-between p-4 rounded-2xl bg-[#F8FAFC] dark:bg-slate-800/50 border border-slate-50 dark:border-slate-800/80 hover:bg-[#FAF5FF] dark:hover:bg-purple-950/20 hover:border-[#8B5CF6]/30 dark:hover:border-purple-900/50 cursor-pointer transition-all group"
-                title="Clique para editar/ver coletas desta raça"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FAF5FF] dark:bg-purple-950/50 text-[#8B5CF6] dark:text-purple-400 font-bold text-sm">
-                    {index + 1}
-                  </span>
-                  <span className="font-bold text-[#1F2937] dark:text-slate-200">{item.name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="bg-[#8B5CF6] text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                    {item.count} {item.count === 1 ? 'Ovo' : 'Ovos'}
-                  </span>
-                  <span className="text-slate-400 dark:text-slate-500">
-                    <Edit2 size={14} />
-                  </span>
-                </div>
-              </div>
-            ))}
-            {eggsByRaca.length === 0 && (
-              <div className="text-center py-10 opacity-50 text-slate-400 dark:text-slate-500 font-medium">
-                Nenhum registro de ovos por raça
-              </div>
-            )}
           </div>
-        </div>
+        )}
       </div>
 
       {/* Estimativa Mensal de Ovos Section */}
@@ -760,58 +932,62 @@ export default function EggCollection() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className={`grid gap-8 ${viewFilter === 'all' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
           {/* Gráfico Baias */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Projeção por Baia (Ovos / Mês)</h4>
-            <div className="h-[250px] w-full">
-              {baiaEstimates.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={baiaEstimates} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
-                    <Tooltip 
-                      cursor={{ fill: '#F8FAFC' }}
-                      contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
-                      formatter={(value: any) => [`${value} Ovos / Mês`, 'Estimativa']}
-                    />
-                    <Bar dataKey="estimativa" fill="#2563EB" radius={[6, 6, 0, 0]}>
-                      <LabelList dataKey="estimativa" position="top" fill="#64748B" fontSize={11} fontWeight="bold" />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">Nenhuma projeção por baia disponível</div>
-              )}
+          {(viewFilter === 'all' || viewFilter === 'baia') && (
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Projeção por Baia (Ovos / Mês)</h4>
+              <div className="h-[250px] w-full">
+                {baiaEstimates.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={baiaEstimates} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
+                      <Tooltip 
+                        cursor={{ fill: '#F8FAFC' }}
+                        contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                        formatter={(value: any) => [`${value} Ovos / Mês`, 'Estimativa']}
+                      />
+                      <Bar dataKey="estimativa" fill="#2563EB" radius={[6, 6, 0, 0]}>
+                        <LabelList dataKey="estimativa" position="top" fill="#64748B" fontSize={11} fontWeight="bold" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">Nenhuma projeção por baia disponível</div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Gráfico Raças */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Projeção por Raça (Ovos / Mês)</h4>
-            <div className="h-[250px] w-full">
-              {racaEstimates.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={racaEstimates} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
-                    <Tooltip 
-                      cursor={{ fill: '#F8FAFC' }}
-                      contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
-                      formatter={(value: any) => [`${value} Ovos / Mês`, 'Estimativa']}
-                    />
-                    <Bar dataKey="estimativa" fill="#8B5CF6" radius={[6, 6, 0, 0]}>
-                      <LabelList dataKey="estimativa" position="top" fill="#64748B" fontSize={11} fontWeight="bold" />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">Nenhuma projeção por raça disponível</div>
-              )}
+          {(viewFilter === 'all' || viewFilter === 'raca') && (
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Projeção por Raça (Ovos / Mês)</h4>
+              <div className="h-[250px] w-full">
+                {racaEstimates.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={racaEstimates} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 11, fontWeight: '500' }} />
+                      <Tooltip 
+                        cursor={{ fill: '#F8FAFC' }}
+                        contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E2E8F0', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                        formatter={(value: any) => [`${value} Ovos / Mês`, 'Estimativa']}
+                      />
+                      <Bar dataKey="estimativa" fill="#8B5CF6" radius={[6, 6, 0, 0]}>
+                        <LabelList dataKey="estimativa" position="top" fill="#64748B" fontSize={11} fontWeight="bold" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-slate-400 text-sm font-medium">Nenhuma projeção por raça disponível</div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex items-start gap-2.5 text-slate-400 dark:text-slate-500 text-xs font-medium leading-relaxed">
@@ -837,180 +1013,184 @@ export default function EggCollection() {
 
         <div className="flex flex-col gap-8">
           {/* Estoque por Raça */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-4">
-            <h3 className="text-lg font-bold text-[#1F2937] dark:text-slate-100 flex items-center gap-2 mb-2">
-              <Egg className="text-[#2563EB] dark:text-blue-450" size={20} />
-              Estoque por Raça
-            </h3>
-            {racaEntries.length === 0 ? (
-              <div className="bg-[#F8FAFC] dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-2xl p-8 text-center text-slate-400 dark:text-slate-500 text-sm">
-                Nenhum estoque por raça disponível.
-              </div>
-            ) : (
-              <>
-                {/* Desktop Table View */}
-                <div className="hidden md:block border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-left text-sm text-slate-500 dark:text-slate-400">
-                      <thead className="bg-[#F8FAFC] dark:bg-slate-800/50 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
-                        <tr>
-                          <th scope="col" className="px-6 py-4">Raça</th>
-                          <th scope="col" className="px-6 py-4 text-center">Coletados</th>
-                          <th scope="col" className="px-6 py-4 text-center">Estoque</th>
-                          <th scope="col" className="px-6 py-4 text-center">Reservados</th>
-                          <th scope="col" className="px-6 py-4 text-center">Média / Dia</th>
-                          <th scope="col" className="px-6 py-4 text-center">Incubados</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {racaEntries.map((entry) => (
-                          <tr key={entry.breed} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                            <td className="px-6 py-4 font-bold text-[#1F2937] dark:text-slate-200">{entry.breed}</td>
-                            <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.collected} ovos</td>
-                            <td className="px-6 py-4 text-center">
-                              <div className="flex items-center justify-center gap-1.5">
-                                {getStockBadge(entry.available)}
-                                <button
-                                  onClick={() => handleOpenStockEdit(entry, 'raca')}
-                                  className="text-slate-400 hover:text-[#2563EB] transition-colors p-1 cursor-pointer flex items-center justify-center shrink-0"
-                                  title="Ajustar Estoque"
-                                >
-                                  <MoreHorizontal size={14} />
-                                </button>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.sold} ovos</td>
-                            <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB] dark:text-blue-400">{entry.dailyAvg.toFixed(1)} / dia</td>
-                            <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.incubated} ovos</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+          {(viewFilter === 'all' || viewFilter === 'raca') && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-4">
+              <h3 className="text-lg font-bold text-[#1F2937] dark:text-slate-100 flex items-center gap-2 mb-2">
+                <Egg className="text-[#2563EB] dark:text-blue-450" size={20} />
+                Estoque por Raça
+              </h3>
+              {racaEntries.length === 0 ? (
+                <div className="bg-[#F8FAFC] dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-2xl p-8 text-center text-slate-400 dark:text-slate-500 text-sm">
+                  Nenhum estoque por raça disponível.
                 </div>
+              ) : (
+                <>
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-left text-sm text-slate-500 dark:text-slate-400">
+                        <thead className="bg-[#F8FAFC] dark:bg-slate-800/50 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+                          <tr>
+                            <th scope="col" className="px-6 py-4">Raça</th>
+                            <th scope="col" className="px-6 py-4 text-center">Coletados</th>
+                            <th scope="col" className="px-6 py-4 text-center">Estoque</th>
+                            <th scope="col" className="px-6 py-4 text-center">Reservados</th>
+                            <th scope="col" className="px-6 py-4 text-center">Média / Dia</th>
+                            <th scope="col" className="px-6 py-4 text-center">Incubados</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {racaEntries.map((entry) => (
+                            <tr key={entry.breed} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                              <td className="px-6 py-4 font-bold text-[#1F2937] dark:text-slate-200">{entry.breed}</td>
+                              <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.collected} ovos</td>
+                              <td className="px-6 py-4 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  {getStockBadge(entry.available)}
+                                  <button
+                                    onClick={() => handleOpenStockEdit(entry, 'raca')}
+                                    className="text-slate-400 hover:text-[#2563EB] transition-colors p-1 cursor-pointer flex items-center justify-center shrink-0"
+                                    title="Ajustar Estoque"
+                                  >
+                                    <MoreHorizontal size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.sold} ovos</td>
+                              <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB] dark:text-blue-400">{entry.dailyAvg.toFixed(1)} / dia</td>
+                              <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.incubated} ovos</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
 
-                {/* Mobile List View */}
-                <div className="block md:hidden border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
-                  {racaEntries.map((entry) => (
-                    <div key={entry.breed} className="flex items-center justify-between p-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors gap-3">
-                      <div className="flex-1 min-w-0">
-                        <span className="font-bold text-sm text-[#1F2937] dark:text-slate-200 block truncate">{entry.breed}</span>
-                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-semibold">
-                          <span>Col: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.collected}</span></span>
-                          <span className="text-slate-300 dark:text-slate-700">•</span>
-                          <span>Est: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.available}</span></span>
-                          <span className="text-slate-300 dark:text-slate-700">•</span>
-                          <span>Res: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.sold}</span></span>
-                          <span className="text-slate-300 dark:text-slate-700">•</span>
-                          <span>Méd: <span className="text-[#2563EB] dark:text-blue-400 font-bold">{entry.dailyAvg.toFixed(1)}/d</span></span>
-                          <span className="text-slate-300 dark:text-slate-700">•</span>
-                          <span>Inc: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.incubated}</span></span>
+                  {/* Mobile List View */}
+                  <div className="block md:hidden border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+                    {racaEntries.map((entry) => (
+                      <div key={entry.breed} className="flex items-center justify-between p-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors gap-3">
+                        <div className="flex-1 min-w-0">
+                          <span className="font-bold text-sm text-[#1F2937] dark:text-slate-200 block truncate">{entry.breed}</span>
+                          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-semibold">
+                            <span>Col: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.collected}</span></span>
+                            <span className="text-slate-300 dark:text-slate-700">•</span>
+                            <span>Est: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.available}</span></span>
+                            <span className="text-slate-300 dark:text-slate-700">•</span>
+                            <span>Res: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.sold}</span></span>
+                            <span className="text-slate-300 dark:text-slate-700">•</span>
+                            <span>Méd: <span className="text-[#2563EB] dark:text-blue-400 font-bold">{entry.dailyAvg.toFixed(1)}/d</span></span>
+                            <span className="text-slate-300 dark:text-slate-700">•</span>
+                            <span>Inc: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.incubated}</span></span>
+                          </div>
+                        </div>
+                        <div className="shrink-0 pl-1 flex items-center gap-1.5">
+                          {getStockBadge(entry.available)}
+                          <button
+                            onClick={() => handleOpenStockEdit(entry, 'raca')}
+                            className="text-slate-400 hover:text-[#2563EB] p-1.5 cursor-pointer flex items-center justify-center shrink-0"
+                            title="Ajustar Estoque"
+                          >
+                            <MoreHorizontal size={14} />
+                          </button>
                         </div>
                       </div>
-                      <div className="shrink-0 pl-1 flex items-center gap-1.5">
-                        {getStockBadge(entry.available)}
-                        <button
-                          onClick={() => handleOpenStockEdit(entry, 'raca')}
-                          className="text-slate-400 hover:text-[#2563EB] p-1.5 cursor-pointer flex items-center justify-center shrink-0"
-                          title="Ajustar Estoque"
-                        >
-                          <MoreHorizontal size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Estoque por Baia */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-4">
-            <h3 className="text-lg font-bold text-[#1F2937] dark:text-slate-100 flex items-center gap-2 mb-2">
-              <MapPin className="text-[#2563EB] dark:text-blue-450" size={20} />
-              Estoque por Baia
-            </h3>
-            {baiaEntries.length === 0 ? (
-              <div className="bg-[#F8FAFC] dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-2xl p-8 text-center text-slate-400 dark:text-slate-550 text-sm">
-                Nenhum estoque por baia disponível.
-              </div>
-            ) : (
-              <>
-                {/* Desktop Table View */}
-                <div className="hidden md:block border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-left text-sm text-slate-500 dark:text-slate-400">
-                      <thead className="bg-[#F8FAFC] dark:bg-slate-800/50 text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
-                        <tr>
-                          <th scope="col" className="px-6 py-4">Baia</th>
-                          <th scope="col" className="px-6 py-4 text-center">Coletados</th>
-                          <th scope="col" className="px-6 py-4 text-center">Estoque</th>
-                          <th scope="col" className="px-6 py-4 text-center">Reservados</th>
-                          <th scope="col" className="px-6 py-4 text-center">Média / Dia</th>
-                          <th scope="col" className="px-6 py-4 text-center">Incubados</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {baiaEntries.map((entry) => (
-                          <tr key={entry.baia} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                            <td className="px-6 py-4 font-bold text-[#1F2937] dark:text-slate-200">Baia {entry.baia}</td>
-                            <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.collected} ovos</td>
-                            <td className="px-6 py-4 text-center">
-                              <div className="flex items-center justify-center gap-1.5">
-                                {getStockBadge(entry.available)}
-                                <button
-                                  onClick={() => handleOpenStockEdit(entry, 'baia')}
-                                  className="text-slate-400 hover:text-[#2563EB] transition-colors p-1 cursor-pointer flex items-center justify-center shrink-0"
-                                  title="Ajustar Estoque"
-                                >
-                                  <MoreHorizontal size={14} />
-                                </button>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.sold} ovos</td>
-                            <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB] dark:text-blue-400">{entry.dailyAvg.toFixed(1)} / dia</td>
-                            <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.incubated} ovos</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+          {(viewFilter === 'all' || viewFilter === 'baia') && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-4">
+              <h3 className="text-lg font-bold text-[#1F2937] dark:text-slate-100 flex items-center gap-2 mb-2">
+                <MapPin className="text-[#2563EB] dark:text-blue-450" size={20} />
+                Estoque por Baia
+              </h3>
+              {baiaEntries.length === 0 ? (
+                <div className="bg-[#F8FAFC] dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-2xl p-8 text-center text-slate-400 dark:text-slate-550 text-sm">
+                  Nenhum estoque por baia disponível.
                 </div>
+              ) : (
+                <>
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-left text-sm text-slate-500 dark:text-slate-400">
+                        <thead className="bg-[#F8FAFC] dark:bg-slate-800/50 text-[10px] font-bold text-slate-400 dark:text-slate-550 uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
+                          <tr>
+                            <th scope="col" className="px-6 py-4">Baia</th>
+                            <th scope="col" className="px-6 py-4 text-center">Coletados</th>
+                            <th scope="col" className="px-6 py-4 text-center">Estoque</th>
+                            <th scope="col" className="px-6 py-4 text-center">Reservados</th>
+                            <th scope="col" className="px-6 py-4 text-center">Média / Dia</th>
+                            <th scope="col" className="px-6 py-4 text-center">Incubados</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {baiaEntries.map((entry) => (
+                            <tr key={entry.baia} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                              <td className="px-6 py-4 font-bold text-[#1F2937] dark:text-slate-200">Baia {entry.baia}</td>
+                              <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.collected} ovos</td>
+                              <td className="px-6 py-4 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  {getStockBadge(entry.available)}
+                                  <button
+                                    onClick={() => handleOpenStockEdit(entry, 'baia')}
+                                    className="text-slate-400 hover:text-[#2563EB] transition-colors p-1 cursor-pointer flex items-center justify-center shrink-0"
+                                    title="Ajustar Estoque"
+                                  >
+                                    <MoreHorizontal size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.sold} ovos</td>
+                              <td className="px-6 py-4 text-center text-xs font-semibold text-[#2563EB] dark:text-blue-400">{entry.dailyAvg.toFixed(1)} / dia</td>
+                              <td className="px-6 py-4 text-center text-xs font-semibold text-slate-700 dark:text-slate-300">{entry.incubated} ovos</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
 
-                {/* Mobile List View */}
-                <div className="block md:hidden border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
-                  {baiaEntries.map((entry) => (
-                    <div key={entry.baia} className="flex items-center justify-between p-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors gap-3">
-                      <div className="flex-1 min-w-0">
-                        <span className="font-bold text-sm text-[#1F2937] dark:text-slate-200 block truncate">Baia {entry.baia}</span>
-                        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-semibold">
-                          <span>Col: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.collected}</span></span>
-                          <span className="text-slate-300 dark:text-slate-700">•</span>
-                          <span>Est: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.available}</span></span>
-                          <span className="text-slate-300 dark:text-slate-700">•</span>
-                          <span>Res: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.sold}</span></span>
-                          <span className="text-slate-300 dark:text-slate-700">•</span>
-                          <span>Méd: <span className="text-[#2563EB] dark:text-blue-400 font-bold">{entry.dailyAvg.toFixed(1)}/d</span></span>
-                          <span className="text-slate-300 dark:text-slate-700">•</span>
-                          <span>Inc: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.incubated}</span></span>
+                  {/* Mobile List View */}
+                  <div className="block md:hidden border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+                    {baiaEntries.map((entry) => (
+                      <div key={entry.baia} className="flex items-center justify-between p-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors gap-3">
+                        <div className="flex-1 min-w-0">
+                          <span className="font-bold text-sm text-[#1F2937] dark:text-slate-200 block truncate">Baia {entry.baia}</span>
+                          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-semibold">
+                            <span>Col: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.collected}</span></span>
+                            <span className="text-slate-300 dark:text-slate-700">•</span>
+                            <span>Est: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.available}</span></span>
+                            <span className="text-slate-300 dark:text-slate-700">•</span>
+                            <span>Res: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.sold}</span></span>
+                            <span className="text-slate-300 dark:text-slate-700">•</span>
+                            <span>Méd: <span className="text-[#2563EB] dark:text-blue-400 font-bold">{entry.dailyAvg.toFixed(1)}/d</span></span>
+                            <span className="text-slate-300 dark:text-slate-700">•</span>
+                            <span>Inc: <span className="text-slate-800 dark:text-slate-300 font-bold">{entry.incubated}</span></span>
+                          </div>
+                        </div>
+                        <div className="shrink-0 pl-1 flex items-center gap-1.5">
+                          {getStockBadge(entry.available)}
+                          <button
+                            onClick={() => handleOpenStockEdit(entry, 'baia')}
+                            className="text-slate-400 hover:text-[#2563EB] p-1.5 cursor-pointer flex items-center justify-center shrink-0"
+                            title="Ajustar Estoque"
+                          >
+                            <MoreHorizontal size={14} />
+                          </button>
                         </div>
                       </div>
-                      <div className="shrink-0 pl-1 flex items-center gap-1.5">
-                        {getStockBadge(entry.available)}
-                        <button
-                          onClick={() => handleOpenStockEdit(entry, 'baia')}
-                          className="text-slate-400 hover:text-[#2563EB] p-1.5 cursor-pointer flex items-center justify-center shrink-0"
-                          title="Ajustar Estoque"
-                        >
-                          <MoreHorizontal size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Legenda das Abreviaturas (Mobile) */}
@@ -1175,9 +1355,16 @@ export default function EggCollection() {
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <h3 className="text-2xl font-bold text-[#1F2937]">Coleta: Dia {editingDay}</h3>
-                  <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">
-                    {viewDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">
+                      {viewDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                    </p>
+                    {currentDayLogs.length > 0 && (
+                      <span className="text-xs font-black bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                        {currentDayLogs.reduce((acc, c) => acc + c.count, 0)} {currentDayLogs.reduce((acc, c) => acc + c.count, 0) === 1 ? 'ovo' : 'ovos'}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <button 
                   onClick={handleCloseModal}
@@ -1188,64 +1375,148 @@ export default function EggCollection() {
               </div>
 
               {currentDayLogs.length > 0 && (
-                <div className="mb-6 space-y-3 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                  {currentDayLogs.map(log => {
-                    const isEditingThis = editingLogId === log.id;
-                    return (
-                      <div 
-                        key={log.id} 
-                        className={`flex justify-between items-center p-3 rounded-2xl border transition-all ${
-                          isEditingThis 
-                            ? 'bg-[#EFF6FF] border-[#2563EB]/40 shadow-sm ring-1 ring-[#2563EB]/20' 
-                            : 'bg-[#F8FAFC] border-slate-100'
-                        }`}
-                      >
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            {log.baia && (
-                              <span className="text-[10px] font-bold bg-[#E0E7FF] text-[#2563EB] px-2 py-0.5 rounded-md uppercase border border-[#DBEAFE]">Baia: {log.baia}</span>
-                            )}
-                            {log.raca && (
-                              <span className="text-[10px] font-bold bg-[#F3E8FF] text-[#8B5CF6] px-2 py-0.5 rounded-md uppercase border border-[#E9D5FF]">Raça: {log.raca}</span>
-                            )}
-                            <span className="text-sm font-black text-[#1F2937]">{log.count} Ovos</span>
-                            {log.condition && log.condition !== 'Normal' && (
-                              <span className="text-[10px] font-bold bg-[#FEF2F2] text-[#EF4444] px-2 py-0.5 rounded-md border border-[#FECACA] uppercase">{log.condition}</span>
-                            )}
-                            {isEditingThis && (
-                              <span className="text-[9px] font-extrabold bg-[#2563EB] text-white px-2 py-0.5 rounded-md uppercase tracking-wider animate-pulse">Editando</span>
-                            )}
-                          </div>
-                          {log.pairs && log.pairs.length > 0 && (
-                            <div className="text-[10px] font-bold text-slate-500 uppercase">Casais: {log.pairs.join(', ')}</div>
-                          )}
-                          {log.collector?.full_name && (
-                            <div className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Coletor: {log.collector.full_name}</div>
-                          )}
-                        </div>
-                        <div className="flex gap-1">
-                          <button 
-                            onClick={() => setEditingLogId(log.id)}
-                            className={`p-2 rounded-xl transition-all ${
-                              isEditingThis 
-                                ? 'text-[#2563EB] bg-white border border-[#2563EB]/25 shadow-sm' 
-                                : 'text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF]'
-                            }`}
-                            title="Editar"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button 
-                            onClick={() => removeEntry(log.id)}
-                            className="p-2 text-slate-400 hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded-xl transition-colors"
-                            title="Excluir"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
+                <div className="mb-6 space-y-4 max-h-52 overflow-y-auto pr-2 custom-scrollbar">
+                  {currentDayBaiaLogs.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center px-1">
+                        <span className="text-[11px] font-bold text-[#2563EB] uppercase tracking-wider flex items-center gap-1.5">
+                          <Layers size={13} />
+                          Coletas por Baia ({currentDayBaiaCount} {currentDayBaiaCount === 1 ? 'ovo' : 'ovos'})
+                        </span>
                       </div>
-                    );
-                  })}
+                      <div className="space-y-2">
+                        {currentDayBaiaLogs.map(log => {
+                          const isEditingThis = editingLogId === log.id;
+                          return (
+                            <div 
+                              key={log.id} 
+                              className={`flex justify-between items-center p-3 rounded-2xl border transition-all ${
+                                isEditingThis 
+                                  ? 'bg-[#EFF6FF] border-[#2563EB]/40 shadow-sm ring-1 ring-[#2563EB]/20' 
+                                  : 'bg-[#F8FAFC] border-slate-100 hover:border-slate-200'
+                              }`}
+                            >
+                              <div>
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <span className="text-[10px] font-bold bg-[#E0E7FF] text-[#2563EB] px-2 py-0.5 rounded-md uppercase border border-[#DBEAFE]">
+                                    Baia: {log.baia}
+                                  </span>
+                                  <span className="text-sm font-black text-[#1F2937]">{log.count} Ovos</span>
+                                  {log.condition && log.condition !== 'Normal' && (
+                                    <span className="text-[10px] font-bold bg-[#FEF2F2] text-[#EF4444] px-2 py-0.5 rounded-md border border-[#FECACA] uppercase">
+                                      {log.condition}
+                                    </span>
+                                  )}
+                                  {isEditingThis && (
+                                    <span className="text-[9px] font-extrabold bg-[#2563EB] text-white px-2 py-0.5 rounded-md uppercase tracking-wider animate-pulse">
+                                      Editando
+                                    </span>
+                                  )}
+                                </div>
+                                {log.pairs && log.pairs.length > 0 && (
+                                  <div className="text-[10px] font-bold text-slate-500 uppercase">Casais: {log.pairs.join(', ')}</div>
+                                )}
+                                {log.collector?.full_name && (
+                                  <div className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Coletor: {log.collector.full_name}</div>
+                                )}
+                              </div>
+                              <div className="flex gap-1">
+                                <button 
+                                  onClick={() => setEditingLogId(log.id)}
+                                  className={`p-2 rounded-xl transition-all ${
+                                    isEditingThis 
+                                      ? 'text-[#2563EB] bg-white border border-[#2563EB]/25 shadow-sm' 
+                                      : 'text-slate-400 hover:text-[#2563EB] hover:bg-[#EFF6FF]'
+                                  }`}
+                                  title="Editar"
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button 
+                                  onClick={() => removeEntry(log.id)}
+                                  className="p-2 text-slate-400 hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded-xl transition-colors"
+                                  title="Excluir"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {currentDayRacaLogs.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center px-1">
+                        <span className="text-[11px] font-bold text-[#8B5CF6] uppercase tracking-wider flex items-center gap-1.5">
+                          <Compass size={13} />
+                          Coletas por Raça ({currentDayRacaCount} {currentDayRacaCount === 1 ? 'ovo' : 'ovos'})
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {currentDayRacaLogs.map(log => {
+                          const isEditingThis = editingLogId === log.id;
+                          return (
+                            <div 
+                              key={log.id} 
+                              className={`flex justify-between items-center p-3 rounded-2xl border transition-all ${
+                                isEditingThis 
+                                  ? 'bg-[#F5F3FF] border-[#8B5CF6]/40 shadow-sm ring-1 ring-[#8B5CF6]/20' 
+                                  : 'bg-[#F8FAFC] border-slate-100 hover:border-slate-200'
+                              }`}
+                            >
+                              <div>
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <span className="text-[10px] font-bold bg-[#F3E8FF] text-[#8B5CF6] px-2 py-0.5 rounded-md uppercase border border-[#E9D5FF]">
+                                    Raça: {log.raca}
+                                  </span>
+                                  <span className="text-sm font-black text-[#1F2937]">{log.count} Ovos</span>
+                                  {log.condition && log.condition !== 'Normal' && (
+                                    <span className="text-[10px] font-bold bg-[#FEF2F2] text-[#EF4444] px-2 py-0.5 rounded-md border border-[#FECACA] uppercase">
+                                      {log.condition}
+                                    </span>
+                                  )}
+                                  {isEditingThis && (
+                                    <span className="text-[9px] font-extrabold bg-[#8B5CF6] text-white px-2 py-0.5 rounded-md uppercase tracking-wider animate-pulse">
+                                      Editando
+                                    </span>
+                                  )}
+                                </div>
+                                {log.pairs && log.pairs.length > 0 && (
+                                  <div className="text-[10px] font-bold text-slate-500 uppercase">Casais: {log.pairs.join(', ')}</div>
+                                )}
+                                {log.collector?.full_name && (
+                                  <div className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Coletor: {log.collector.full_name}</div>
+                                )}
+                              </div>
+                              <div className="flex gap-1">
+                                <button 
+                                  onClick={() => setEditingLogId(log.id)}
+                                  className={`p-2 rounded-xl transition-all ${
+                                    isEditingThis 
+                                      ? 'text-[#8B5CF6] bg-white border border-[#8B5CF6]/25 shadow-sm' 
+                                      : 'text-slate-400 hover:text-[#8B5CF6] hover:bg-[#F5F3FF]'
+                                  }`}
+                                  title="Editar"
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button 
+                                  onClick={() => removeEntry(log.id)}
+                                  className="p-2 text-slate-400 hover:text-[#EF4444] hover:bg-[#FEF2F2] rounded-xl transition-colors"
+                                  title="Excluir"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1310,34 +1581,53 @@ export default function EggCollection() {
 
                 <div className="space-y-3">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Origem da Coleta</label>
-                  <div className="flex gap-4">
-                    {['baia', 'raca'].map(option => (
-                      <label key={option} className="flex-1 flex items-center justify-center gap-2 bg-[#F8FAFC] border border-slate-200 rounded-2xl py-3 cursor-pointer transition-all hover:border-[#2563EB] has-[:checked]:bg-[#EFF6FF] has-[:checked]:border-[#2563EB] has-[:checked]:text-[#2563EB] text-slate-500">
-                        <input 
-                          type="radio" 
-                          name="origin_type" 
-                          value={option} 
-                          checked={originType === option}
-                          onChange={() => setOriginType(option as 'baia' | 'raca')}
-                          className="hidden" 
-                        />
-                        <span className="text-xs font-bold uppercase tracking-widest">
-                          {option === 'baia' ? 'Por Baia' : 'Por Raça'}
-                        </span>
-                      </label>
-                    ))}
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setOriginType('baia')}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
+                        originType === 'baia'
+                          ? 'bg-[#EFF6FF] border-[#2563EB] text-[#2563EB] shadow-sm ring-1 ring-[#2563EB]/20'
+                          : 'bg-[#F8FAFC] border-slate-200 text-slate-500 hover:border-slate-300'
+                      }`}
+                    >
+                      <Layers size={16} />
+                      <span>Por Baia</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setOriginType('raca')}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
+                        originType === 'raca'
+                          ? 'bg-[#F5F3FF] border-[#8B5CF6] text-[#8B5CF6] shadow-sm ring-1 ring-[#8B5CF6]/20'
+                          : 'bg-[#F8FAFC] border-slate-200 text-slate-500 hover:border-slate-300'
+                      }`}
+                    >
+                      <Compass size={16} />
+                      <span>Por Raça</span>
+                    </button>
                   </div>
+                  <p className="text-[11px] text-slate-400 font-medium px-1">
+                    {originType === 'baia' 
+                      ? '✓ Ovos atribuídos e controlados exclusivamente por Baia.' 
+                      : '✓ Ovos atribuídos e controlados exclusivamente por Raça.'}
+                  </p>
                 </div>
 
                 {originType === 'baia' ? (
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Baia / Grupo de Origem</label>
+                    <div className="flex justify-between items-center ml-1">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Baia / Grupo de Origem</label>
+                      <span className="text-[10px] text-slate-400 font-bold">{uniqueBaias.length} opções</span>
+                    </div>
                     <input 
                       name="baia" 
                       list="egg-baias-list"
+                      required
                       defaultValue={logToEdit?.baia || prefilledBaia} 
                       type="text" 
-                      placeholder="Ex: Baia 01" 
+                      placeholder="Selecione ou digite a baia (Ex: Baia 01)" 
                       className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
                     />
                     <datalist id="egg-baias-list">
@@ -1348,14 +1638,18 @@ export default function EggCollection() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Raça de Origem</label>
+                    <div className="flex justify-between items-center ml-1">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Raça de Origem</label>
+                      <span className="text-[10px] text-slate-400 font-bold">{uniqueRacas.length} opções</span>
+                    </div>
                     <input 
                       name="raca" 
                       list="egg-racas-list"
+                      required
                       defaultValue={logToEdit?.raca || prefilledRaca} 
                       type="text" 
-                      placeholder="Ex: GSB, Galo Índio" 
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                      placeholder="Selecione ou digite a raça (Ex: GSB, Índio Gigante)" 
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#8B5CF6]/50 focus:ring-4 focus:ring-[#8B5CF6]/10 transition-all outline-none" 
                     />
                     <datalist id="egg-racas-list">
                       {uniqueRacas.map(raca => (
