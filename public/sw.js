@@ -1,9 +1,12 @@
-const CACHE_NAME = 'avs-pwa-cache-v29';
+const CACHE_NAME = 'avs-pwa-cache-v30';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icon.svg',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
 ];
 
 // Install Event
