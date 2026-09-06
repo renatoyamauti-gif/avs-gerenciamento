@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, Egg, Trash2, X, Loader2, Edit2, QrCode, Printer, Camera, MapPin, TrendingUp, MoreHorizontal } from 'lucide-react';
 import { dbService } from '../lib/dbService';
@@ -47,6 +48,7 @@ export default function EggCollection() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrTab, setQrTab] = useState<'baia' | 'raca'>('baia');
   const [printSingleItem, setPrintSingleItem] = useState<{type: 'baia' | 'raca', name: string} | null>(null);
+  const [isPrintingQR, setIsPrintingQR] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<{ type: 'baia' | 'raca'; name: string } | null>(null);
 
@@ -214,6 +216,60 @@ export default function EggCollection() {
     loadRacas();
     loadCollectorsAndUser();
   }, []);
+
+  useEffect(() => {
+    if (showQRModal) {
+      document.body.classList.add('qr-modal-open');
+    } else {
+      document.body.classList.remove('qr-modal-open');
+    }
+    return () => {
+      document.body.classList.remove('qr-modal-open');
+    };
+  }, [showQRModal]);
+
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      setIsPrintingQR(false);
+      setPrintSingleItem(null);
+      document.body.classList.remove('printing-qr-active');
+    };
+
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => {
+      window.removeEventListener('afterprint', handleAfterPrint);
+      document.body.classList.remove('printing-qr-active');
+    };
+  }, []);
+
+  const triggerPrint = (singleItem: { type: 'baia' | 'raca'; name: string } | null = null) => {
+    setPrintSingleItem(singleItem);
+    setIsPrintingQR(true);
+    document.body.classList.add('printing-qr-active');
+
+    const itemsToPrint = singleItem ? [singleItem.name] : (qrTab === 'baia' ? uniqueBaias : uniqueRacas);
+    const tabType = singleItem ? singleItem.type : qrTab;
+
+    const promises = itemsToPrint.map(item => {
+      return new Promise((resolve) => {
+        const url = `${window.location.origin}/eggs?${tabType}=${encodeURIComponent(item)}`;
+        const img = new Image();
+        img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+        if (img.complete) {
+          resolve(true);
+        } else {
+          img.onload = () => resolve(true);
+          img.onerror = () => resolve(true);
+        }
+      });
+    });
+
+    Promise.all(promises).then(() => {
+      setTimeout(() => {
+        window.print();
+      }, 150);
+    });
+  };
 
   async function loadCollectorsAndUser() {
     try {
@@ -1509,13 +1565,8 @@ export default function EggCollection() {
                 </div>
                 
                 <button
-                  onClick={() => {
-                    setPrintSingleItem(null);
-                    setTimeout(() => {
-                      window.print();
-                    }, 100);
-                  }}
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#2563EB] text-white px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] transition-all"
+                  onClick={() => triggerPrint(null)}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#2563EB] text-white px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] transition-all cursor-pointer"
                 >
                   <Printer size={16} /> Imprimir Todos
                 </button>
@@ -1526,7 +1577,7 @@ export default function EggCollection() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                   {(qrTab === 'baia' ? uniqueBaias : uniqueRacas).map((item) => {
                     const url = `${window.location.origin}/eggs?${qrTab}=${encodeURIComponent(item)}`;
-                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(url)}`;
+                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
                     return (
                       <div key={item} className="bg-[#F8FAFC] border border-slate-100 rounded-3xl p-6 flex flex-col items-center justify-between text-center relative group hover:border-[#2563EB]/30 transition-all">
                         <div className="text-sm font-black text-slate-800 mb-1 uppercase font-headline">{item}</div>
@@ -1537,14 +1588,8 @@ export default function EggCollection() {
                         </div>
                         
                         <button
-                          onClick={() => {
-                            setPrintSingleItem({ type: qrTab, name: item });
-                            setTimeout(() => {
-                              window.print();
-                              setPrintSingleItem(null);
-                            }, 100);
-                          }}
-                          className="flex items-center gap-1.5 text-[10px] font-black text-[#2563EB] uppercase tracking-widest hover:text-[#1D4ED8]"
+                          onClick={() => triggerPrint({ type: qrTab, name: item })}
+                          className="flex items-center gap-1.5 text-[10px] font-black text-[#2563EB] uppercase tracking-widest hover:text-[#1D4ED8] cursor-pointer"
                         >
                           <Printer size={12} /> Imprimir este
                         </button>
@@ -1569,66 +1614,211 @@ export default function EggCollection() {
         onScan={handleQRScan} 
       />
 
-      {/* Printable Area (Hidden on screen, visible during print) */}
-      <div id="print-section" className="hidden">
-        {printSingleItem ? (
-          <div className="print-card">
-            <div className="text-xl font-black text-slate-800 mb-2 uppercase font-headline">{printSingleItem.name}</div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Coleta de Ovos</div>
-            <img 
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/eggs?${printSingleItem.type}=${encodeURIComponent(printSingleItem.name)}`)}`} 
-              alt={printSingleItem.name} 
-              className="w-40 h-40 object-contain mx-auto mb-4" 
-            />
-            <div className="text-[9px] font-bold text-blue-600 tracking-tight">
-              {`${window.location.origin}/eggs?${printSingleItem.type}=${encodeURIComponent(printSingleItem.name)}`}
-            </div>
-          </div>
-        ) : (
-          (qrTab === 'baia' ? uniqueBaias : uniqueRacas).map((item) => {
-            const url = `${window.location.origin}/eggs?${qrTab}=${encodeURIComponent(item)}`;
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-            return (
-              <div key={item} className="print-card">
-                <div className="text-xl font-black text-slate-800 mb-2 uppercase font-headline">{item}</div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Coleta de Ovos</div>
-                <img src={qrUrl} alt={item} className="w-40 h-40 object-contain mx-auto mb-4" />
-                <div className="text-[9px] font-bold text-blue-600 tracking-tight">{url}</div>
+      {/* Printable Area via Portal to document.body (completely detached from #root) */}
+      {createPortal(
+        <div id="print-qr-section" className={isPrintingQR ? 'print-qr-active' : 'hidden'}>
+          {printSingleItem ? (
+            <div className="print-single-wrapper">
+              <div className="print-card print-card-single">
+                <div className="print-card-badge">AVS GERENCIAMENTO</div>
+                <div className="print-card-title">{printSingleItem.name}</div>
+                <div className="print-card-subtitle">
+                  {printSingleItem.type === 'baia' ? 'Baia' : 'Raça'} • Coleta de Ovos
+                </div>
+                <div className="print-qr-frame">
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/eggs?${printSingleItem.type}=${encodeURIComponent(printSingleItem.name)}`)}`} 
+                    alt={printSingleItem.name} 
+                    className="print-qr-image" 
+                  />
+                </div>
+                <div className="print-card-footer">
+                  Aponte a câmera para registrar a coleta
+                </div>
+                <div className="print-card-url">
+                  {`${window.location.origin}/eggs?${printSingleItem.type}=${encodeURIComponent(printSingleItem.name)}`}
+                </div>
               </div>
-            );
-          })
-        )}
-      </div>
+            </div>
+          ) : (
+            <div className="print-grid">
+              {(qrTab === 'baia' ? uniqueBaias : uniqueRacas).map((item) => {
+                const url = `${window.location.origin}/eggs?${qrTab}=${encodeURIComponent(item)}`;
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+                return (
+                  <div key={item} className="print-card">
+                    <div className="print-card-badge">AVS GERENCIAMENTO</div>
+                    <div className="print-card-title">{item}</div>
+                    <div className="print-card-subtitle">
+                      {qrTab === 'baia' ? 'Baia' : 'Raça'} • Coleta
+                    </div>
+                    <div className="print-qr-frame">
+                      <img src={qrUrl} alt={item} className="print-qr-image" />
+                    </div>
+                    <div className="print-card-url">{url}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
 
       <style dangerouslySetInnerHTML={{__html: `
+        #print-qr-section {
+          display: none;
+        }
+
         @media print {
-          body * {
+          /* Hide the main application UI completely so it generates 0px and 0 blank pages */
+          body.printing-qr-active #root,
+          body.qr-modal-open #root {
+            display: none !important;
             visibility: hidden !important;
+            height: 0 !important;
+            max-height: 0 !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
-          #print-section, #print-section * {
+
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            overflow: visible !important;
+            max-width: none !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          body.printing-qr-active #print-qr-section,
+          body.qr-modal-open #print-qr-section {
+            display: block !important;
             visibility: visible !important;
+            position: static !important;
+            width: 100% !important;
+            background: #ffffff !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
-          #print-section {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
+
+          .print-grid {
             display: grid !important;
             grid-template-columns: repeat(3, 1fr) !important;
-            gap: 20px !important;
-            background: white !important;
+            gap: 6mm !important;
+            width: 100% !important;
+            background: #ffffff !important;
           }
+
+          .print-single-wrapper {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            min-height: 60vh !important;
+            width: 100% !important;
+            padding-top: 20mm !important;
+          }
+
           .print-card {
-            border: 1px solid #cbd5e1 !important;
-            border-radius: 16px !important;
-            padding: 24px !important;
+            border: 2px dashed #94a3b8 !important;
+            border-radius: 14px !important;
+            padding: 12px 10px !important;
             text-align: center !important;
             page-break-inside: avoid !important;
+            break-inside: avoid !important;
             display: flex !important;
             flex-direction: column !important;
             align-items: center !important;
-            justify-content: center !important;
-            background: white !important;
+            justify-content: space-between !important;
+            background: #ffffff !important;
+            box-sizing: border-box !important;
+          }
+
+          .print-card-single {
+            max-width: 320px !important;
+            width: 100% !important;
+            padding: 24px 20px !important;
+            border: 2px solid #2563eb !important;
+            border-radius: 20px !important;
+            margin: 0 auto !important;
+          }
+
+          .print-card-badge {
+            font-size: 8px !important;
+            font-weight: 800 !important;
+            letter-spacing: 1.5px !important;
+            color: #2563eb !important;
+            text-transform: uppercase !important;
+            margin-bottom: 4px !important;
+          }
+
+          .print-card-title {
+            font-size: 15px !important;
+            font-weight: 900 !important;
+            color: #0f172a !important;
+            text-transform: uppercase !important;
+            margin-bottom: 2px !important;
+            line-height: 1.2 !important;
+          }
+
+          .print-card-single .print-card-title {
+            font-size: 22px !important;
+            margin-bottom: 4px !important;
+          }
+
+          .print-card-subtitle {
+            font-size: 9px !important;
+            font-weight: 700 !important;
+            color: #64748b !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+            margin-bottom: 8px !important;
+          }
+
+          .print-qr-frame {
+            background: #ffffff !important;
+            padding: 4px !important;
+            border-radius: 8px !important;
+            display: inline-block !important;
+            margin-bottom: 6px !important;
+          }
+
+          .print-qr-image {
+            width: 125px !important;
+            height: 125px !important;
+            object-fit: contain !important;
+            display: block !important;
+            margin: 0 auto !important;
+          }
+
+          .print-card-single .print-qr-image {
+            width: 180px !important;
+            height: 180px !important;
+          }
+
+          .print-card-footer {
+            font-size: 8px !important;
+            font-weight: 600 !important;
+            color: #475569 !important;
+            margin-bottom: 4px !important;
+          }
+
+          .print-card-url {
+            font-size: 7px !important;
+            font-weight: 600 !important;
+            color: #2563eb !important;
+            word-break: break-all !important;
+            line-height: 1.1 !important;
           }
         }
       `}} />
