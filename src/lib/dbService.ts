@@ -1,9 +1,15 @@
 import { supabase, supabaseAdmin } from './supabaseClient';
 import { handleSupabaseError } from './errorHandlers';
 
+interface CacheEntry {
+  data: any;
+  timestamp: number;
+}
+
 let _cachedProfile: any = null;
-const _queryCache: Record<string, { data: any; timestamp: number }> = {};
-const CACHE_TTL = 300000; // 5 minutes TTL
+const _queryCache: Record<string, CacheEntry> = {};
+const _inFlightRevalidations = new Map<string, Promise<any>>();
+const CACHE_TTL = 300000; // 5 minutes fresh TTL
 
 function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -29,19 +35,17 @@ function isNetworkError(error: any): boolean {
   return false;
 }
 
-function getCachedData(key: string, maxAgeMs = 300000) { // 5 minutes TTL
+function getCachedEntry(key: string): CacheEntry | null {
   const mem = _queryCache[key];
-  if (mem && Date.now() - mem.timestamp < maxAgeMs) {
-    return mem.data;
-  }
+  if (mem && mem.data !== undefined) return mem;
 
   try {
     const stored = localStorage.getItem(`avs_cache_${key}`);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (parsed && parsed.data !== undefined && (Date.now() - (parsed.timestamp || 0) < maxAgeMs)) {
+      if (parsed && parsed.data !== undefined) {
         _queryCache[key] = parsed;
-        return parsed.data;
+        return parsed;
       }
     }
   } catch (e) {
@@ -51,24 +55,22 @@ function getCachedData(key: string, maxAgeMs = 300000) { // 5 minutes TTL
   return null;
 }
 
-function getOfflineFallback(key: string) {
-  const memCached = _queryCache[key];
-  if (memCached) return memCached.data;
-
-  try {
-    const stored = localStorage.getItem(`avs_cache_${key}`);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return parsed.data;
-    }
-  } catch (e) {
-    console.error(`Error reading fallback cache for ${key}:`, e);
+function getCachedData(key: string, maxAgeMs = CACHE_TTL) {
+  const entry = getCachedEntry(key);
+  if (!entry) return null;
+  if (Date.now() - (entry.timestamp || 0) < maxAgeMs) {
+    return entry.data;
   }
   return null;
 }
 
+function getOfflineFallback(key: string) {
+  const entry = getCachedEntry(key);
+  return entry ? entry.data : null;
+}
+
 function setCachedData(key: string, data: any) {
-  const cachedObj = {
+  const cachedObj: CacheEntry = {
     data,
     timestamp: Date.now()
   };
@@ -82,10 +84,58 @@ function setCachedData(key: string, data: any) {
 
 function invalidateCache(key: string) {
   delete _queryCache[key];
+  _inFlightRevalidations.delete(key);
   try {
     localStorage.removeItem(`avs_cache_${key}`);
   } catch (e) {
     console.error(`Error invalidating cache for ${key}:`, e);
+  }
+}
+
+async function fetchWithSWR<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+  fallbackKey?: string
+): Promise<T> {
+  const entry = getCachedEntry(key);
+  const isFresh = entry && (Date.now() - (entry.timestamp || 0) < CACHE_TTL);
+
+  if (isFresh) {
+    return entry.data;
+  }
+
+  if (entry) {
+    // Stale-While-Revalidate: Return cached data immediately (0ms wait)
+    // and revalidate silently in the background
+    if (!_inFlightRevalidations.has(key)) {
+      const revalidationPromise = (async () => {
+        try {
+          const freshData = await fetcher();
+          setCachedData(key, freshData);
+          window.dispatchEvent(new CustomEvent('avs_data_revalidated', { detail: { key, data: freshData } }));
+          return freshData;
+        } catch (err) {
+          console.warn(`Background revalidation failed for ${key}, keeping stale data:`, err);
+        } finally {
+          _inFlightRevalidations.delete(key);
+        }
+      })();
+      _inFlightRevalidations.set(key, revalidationPromise);
+    }
+    return entry.data;
+  }
+
+  // No cache at all: fetch synchronously
+  try {
+    const freshData = await fetcher();
+    setCachedData(key, freshData);
+    return freshData;
+  } catch (err) {
+    if (isNetworkError(err)) {
+      const fallback = getOfflineFallback(fallbackKey || key);
+      if (fallback) return fallback;
+    }
+    throw err;
   }
 }
 
@@ -302,22 +352,13 @@ export const dbService = {
 
   // Birds (Plantel)
   async getBirds() {
-    const cached = getCachedData('birds');
-    if (cached) return cached;
-    try {
+    return fetchWithSWR('birds', async () => {
       const { data, error } = await supabase
         .from('birds')
         .select('*, rations(*), bird_history(id)');
       if (error) handleSupabaseError(error, 'list', 'birds');
-      setCachedData('birds', data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback('birds');
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveBird(bird: any) {
@@ -425,24 +466,15 @@ export const dbService = {
 
   async getBirdHistory(birdId: string) {
     const cacheKey = `bird_history_${birdId}`;
-    const cached = getCachedData(cacheKey);
-    if (cached) return cached;
-    try {
+    return fetchWithSWR(cacheKey, async () => {
       const { data, error } = await supabase
         .from('bird_history')
         .select('*')
         .eq('bird_id', birdId)
         .order('date', { ascending: false });
       if (error) handleSupabaseError(error, 'list', 'bird_history');
-      setCachedData(cacheKey, data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback(cacheKey);
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveBirdHistory(history: any) {
@@ -514,24 +546,15 @@ export const dbService = {
   // Baia History
   async getBaiaHistory(baiaName: string) {
     const cacheKey = `baia_history_${baiaName}`;
-    const cached = getCachedData(cacheKey);
-    if (cached) return cached;
-    try {
+    return fetchWithSWR(cacheKey, async () => {
       const { data, error } = await supabase
         .from('baia_history')
         .select('*')
         .eq('baia_name', baiaName)
         .order('date', { ascending: false });
       if (error) handleSupabaseError(error, 'list', 'baia_history');
-      setCachedData(cacheKey, data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback(cacheKey);
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveBaiaHistory(history: any) {
@@ -602,23 +625,14 @@ export const dbService = {
 
   // Baias (New Table)
   async getBaias() {
-    const cached = getCachedData('baias');
-    if (cached) return cached;
-    try {
+    return fetchWithSWR('baias', async () => {
       const { data, error } = await supabase
         .from('baias')
         .select('*')
         .order('name');
       if (error) handleSupabaseError(error, 'list', 'baias');
-      setCachedData('baias', data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback('baias');
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveBaia(baia: any) {
@@ -743,10 +757,7 @@ export const dbService = {
     }
 
     const cacheKey = ownerId ? `racas_${ownerId}` : 'racas';
-    const cached = getCachedData(cacheKey);
-    if (cached) return cached;
-
-    try {
+    return fetchWithSWR(cacheKey, async () => {
       let query = supabase
         .from('racas')
         .select('*');
@@ -773,16 +784,8 @@ export const dbService = {
       }
 
       if (error) handleSupabaseError(error, 'list', 'racas');
-      const result = data || [];
-      setCachedData(cacheKey, result);
-      return result;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback(cacheKey);
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+      return data || [];
+    });
   },
 
   async saveRaca(raca: any) {
@@ -902,23 +905,14 @@ export const dbService = {
 
   // Transaction Categories
   async getTransactionCategories() {
-    const cached = getCachedData('transaction_categories');
-    if (cached) return cached;
-    try {
+    return fetchWithSWR('transaction_categories', async () => {
       const { data, error } = await supabase
         .from('transaction_categories')
         .select('*')
         .order('name');
       if (error) handleSupabaseError(error, 'list', 'transaction_categories');
-      setCachedData('transaction_categories', data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback('transaction_categories');
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveTransactionCategory(category: any) {
@@ -969,23 +963,14 @@ export const dbService = {
 
   // Rations
   async getRations() {
-    const cached = getCachedData('rations');
-    if (cached) return cached;
-    try {
+    return fetchWithSWR('rations', async () => {
       const { data, error } = await supabase
         .from('rations')
         .select('*')
         .order('name');
       if (error) handleSupabaseError(error, 'list', 'rations');
-      setCachedData('rations', data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback('rations');
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveRation(ration: any) {
@@ -1038,23 +1023,14 @@ export const dbService = {
 
   // Ingredients
   async getIngredients() {
-    const cached = getCachedData('ingredients');
-    if (cached) return cached;
-    try {
+    return fetchWithSWR('ingredients', async () => {
       const { data, error } = await supabase
         .from('ingredients')
         .select('*')
         .order('name');
       if (error) handleSupabaseError(error, 'list', 'ingredients');
-      setCachedData('ingredients', data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback('ingredients');
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveIngredient(ingredient: any) {
@@ -1105,23 +1081,14 @@ export const dbService = {
 
   // Finance
   async getTransactions() {
-    const cached = getCachedData('transactions');
-    if (cached) return cached;
-    try {
+    return fetchWithSWR('transactions', async () => {
       const { data, error } = await supabase
         .from('transactions')
         .select('*')
         .order('date', { ascending: false });
       if (error) handleSupabaseError(error, 'list', 'transactions');
-      setCachedData('transactions', data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback('transactions');
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveTransaction(transaction: any) {
@@ -1172,9 +1139,7 @@ export const dbService = {
 
   // Eggs
   async getEggLogs() {
-    const cached = getCachedData('egg_logs');
-    if (cached) return cached;
-    try {
+    return fetchWithSWR('egg_logs', async () => {
       const { data, error } = await supabase
         .from('egg_logs')
         .select('*, collector:profiles!collector_id(full_name)')
@@ -1182,15 +1147,8 @@ export const dbService = {
         .order('month', { ascending: false })
         .order('day', { ascending: false });
       if (error) handleSupabaseError(error, 'list', 'egg_logs');
-      setCachedData('egg_logs', data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback('egg_logs');
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveEggLog(log: any) {
@@ -1246,22 +1204,13 @@ export const dbService = {
 
   // Incubators
   async getIncubators() {
-    const cached = getCachedData('incubators');
-    if (cached) return cached;
-    try {
+    return fetchWithSWR('incubators', async () => {
       const { data, error } = await supabase
         .from('incubators')
         .select('*, incubator_batches(*)');
       if (error) handleSupabaseError(error, 'list', 'incubators');
-      setCachedData('incubators', data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback('incubators');
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveIncubator(incubator: any) {
@@ -1617,23 +1566,14 @@ export const dbService = {
 
   // Maternity
   async getMaternityRecords() {
-    const cached = getCachedData('maternity');
-    if (cached) return cached;
-    try {
+    return fetchWithSWR('maternity', async () => {
       const { data, error } = await supabase
         .from('maternity')
         .select('*')
         .order('birth_date', { ascending: false });
       if (error) handleSupabaseError(error, 'list', 'maternity');
-      setCachedData('maternity', data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback('maternity');
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveMaternityRecord(record: any) {
@@ -1684,24 +1624,15 @@ export const dbService = {
 
   async getMaternityHistory(maternityId: string) {
     const cacheKey = `maternity_history_${maternityId}`;
-    const cached = getCachedData(cacheKey);
-    if (cached) return cached;
-    try {
+    return fetchWithSWR(cacheKey, async () => {
       const { data, error } = await supabase
         .from('maternity_history')
         .select('*')
         .eq('maternity_id', maternityId)
         .order('date', { ascending: false });
       if (error) handleSupabaseError(error, 'list', 'maternity_history');
-      setCachedData(cacheKey, data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback(cacheKey);
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveMaternityHistory(history: any) {
@@ -1858,17 +1789,25 @@ export const dbService = {
   },
 
   async getTeamMembers() {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+    let user = session?.user;
+    if (!user) {
+      const { data } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+      user = data?.user;
+    }
     if (!user) throw new Error('Não autenticado');
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('parent_user_id', user.id)
-      .order('full_name');
+    const cacheKey = `team_members_${user.id}`;
+    return fetchWithSWR(cacheKey, async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('parent_user_id', user!.id)
+        .order('full_name');
 
-    if (error) handleSupabaseError(error, 'list', 'profiles');
-    return data || [];
+      if (error) handleSupabaseError(error, 'list', 'profiles');
+      return data || [];
+    });
   },
 
   async createSubUser(email: string, password: string, fullName: string, permissions: any) {
@@ -1921,6 +1860,7 @@ export const dbService = {
       throw profileError;
     }
 
+    invalidateCache(`team_members_${adminUser.id}`);
     return profileData[0];
   },
 
@@ -2046,6 +1986,7 @@ export const dbService = {
       .select();
 
     if (profileError) throw profileError;
+    invalidateCache(`team_members_${adminUser.id}`);
     return profileData[0];
   },
 
@@ -2076,6 +2017,7 @@ export const dbService = {
       .eq('id', id);
 
     if (dbError) throw dbError;
+    invalidateCache(`team_members_${adminUser.id}`);
   },
 
   // Bird Lineage / Pedigree
@@ -2140,23 +2082,14 @@ export const dbService = {
 
   // Clients
   async getClients() {
-    const cached = getCachedData('clients');
-    if (cached) return cached;
-    try {
+    return fetchWithSWR('clients', async () => {
       const { data, error } = await supabase
         .from('clients')
         .select('*')
         .order('name');
       if (error) handleSupabaseError(error, 'list', 'clients');
-      setCachedData('clients', data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback('clients');
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveClient(client: any) {
@@ -2207,23 +2140,14 @@ export const dbService = {
 
   // Orders
   async getOrders() {
-    const cached = getCachedData('orders');
-    if (cached) return cached;
-    try {
+    return fetchWithSWR('orders', async () => {
       const { data, error } = await supabase
         .from('orders')
         .select('*, clients(*)')
         .order('created_at', { ascending: false });
       if (error) handleSupabaseError(error, 'list', 'orders');
-      setCachedData('orders', data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback('orders');
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveOrder(order: any) {
@@ -2283,23 +2207,14 @@ export const dbService = {
 
   // Products
   async getProducts() {
-    const cached = getCachedData('products');
-    if (cached) return cached;
-    try {
+    return fetchWithSWR('products', async () => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .order('name');
       if (error) handleSupabaseError(error, 'list', 'products');
-      setCachedData('products', data);
       return data;
-    } catch (err) {
-      if (isNetworkError(err)) {
-        const fallback = getOfflineFallback('products');
-        if (fallback) return fallback;
-      }
-      throw err;
-    }
+    });
   },
 
   async saveProduct(product: any) {
@@ -2370,13 +2285,16 @@ export const dbService = {
 
   async getCollectors() {
     const ownerId = await this.getOwnerId();
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, role')
-      .or(`id.eq.${ownerId},parent_user_id.eq.${ownerId}`)
-      .order('full_name');
-    if (error) handleSupabaseError(error, 'list', 'profiles');
-    return data || [];
+    const cacheKey = ownerId ? `collectors_${ownerId}` : 'collectors';
+    return fetchWithSWR(cacheKey, async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, role')
+        .or(`id.eq.${ownerId},parent_user_id.eq.${ownerId}`)
+        .order('full_name');
+      if (error) handleSupabaseError(error, 'list', 'profiles');
+      return data || [];
+    });
   }
 };
 

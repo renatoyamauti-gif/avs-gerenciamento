@@ -24,11 +24,20 @@ import { dbService } from '../lib/dbService';
 import { supabase } from '../lib/supabaseClient';
 
 export default function Settings() {
-  const [loading, setLoading] = useState(true);
+  const cachedProfile = (() => {
+    try {
+      const stored = localStorage.getItem('avs_cached_profile');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const [loading, setLoading] = useState(!cachedProfile);
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
-  const [userEmail, setUserEmail] = useState<string>('');
+  const [profile, setProfile] = useState<any>(cachedProfile);
+  const [userEmail, setUserEmail] = useState<string>(cachedProfile?.email || '');
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
   // Tabs
@@ -104,12 +113,14 @@ export default function Settings() {
 
   async function loadProfile() {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserEmail(user.email || '');
+      const { data: { session } } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+      if (session?.user) {
+        setUserEmail(session.user.email || '');
       }
       const data = await dbService.getProfile();
-      setProfile(data);
+      if (data) {
+        setProfile(data);
+      }
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
     } finally {

@@ -106,10 +106,14 @@ export default function Subscription() {
   const { plan: currentPlan, isTrialExpired } = useSubscription();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        setUserId(data.user.id);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUserId(session.user.id);
       }
+    }).catch(() => {
+      supabase.auth.getUser().then(({ data }) => {
+        if (data?.user) setUserId(data.user.id);
+      }).catch(() => {});
     });
   }, []);
 

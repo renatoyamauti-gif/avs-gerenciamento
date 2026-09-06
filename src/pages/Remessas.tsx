@@ -54,39 +54,48 @@ interface ShippingOption {
 }
 
 export default function Remessas() {
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedProfile = (() => {
+    try {
+      const stored = localStorage.getItem('avs_cached_profile');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const [profile, setProfile] = useState<any>(cachedProfile);
+  const [loading, setLoading] = useState(!cachedProfile);
   const [copiedClients, setCopiedClients] = useState(false);
   const [copiedOrders, setCopiedOrders] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   
   // Settings State - Melhor Envio
-  const [originPostalCode, setOriginPostalCode] = useState('');
-  const [token, setToken] = useState('');
-  const [sandbox, setSandbox] = useState(false);
+  const [originPostalCode, setOriginPostalCode] = useState(cachedProfile?.origin_postal_code || '');
+  const [token, setToken] = useState(cachedProfile?.melhor_envio_token || '');
+  const [sandbox, setSandbox] = useState(cachedProfile?.melhor_envio_sandbox ?? false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
   const [connectedUser, setConnectedUser] = useState<any>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isEditingMelhorEnvio, setIsEditingMelhorEnvio] = useState(false);
 
   // Settings State - SuperFrete
-  const [superfreteToken, setSuperfreteToken] = useState('');
-  const [superfreteSandbox, setSuperfreteSandbox] = useState(false);
-  const [superfreteEnabled, setSuperfreteEnabled] = useState(false);
+  const [superfreteToken, setSuperfreteToken] = useState(cachedProfile?.superfrete_token || '');
+  const [superfreteSandbox, setSuperfreteSandbox] = useState(cachedProfile?.superfrete_sandbox ?? false);
+  const [superfreteEnabled, setSuperfreteEnabled] = useState(cachedProfile?.superfrete_enabled ?? false);
   const [superfreteValidationStatus, setSuperfreteValidationStatus] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
   const [superfreteConnectedUser, setSuperfreteConnectedUser] = useState<any>(null);
   const [superfreteValidationError, setSuperfreteValidationError] = useState<string | null>(null);
   const [isEditingSuperfrete, setIsEditingSuperfrete] = useState(false);
 
   // Settings State - Correios
-  const [correiosUser, setCorreiosUser] = useState('');
-  const [correiosPassword, setCorreiosPassword] = useState('');
-  const [correiosContract, setCorreiosContract] = useState('');
-  const [correiosCard, setCorreiosCard] = useState('');
-  const [correiosSandbox, setCorreiosSandbox] = useState(false);
-  const [correiosEnabled, setCorreiosEnabled] = useState(false);
-  const [correiosPacCode, setCorreiosPacCode] = useState('03298');
-  const [correiosSedexCode, setCorreiosSedexCode] = useState('03220');
+  const [correiosUser, setCorreiosUser] = useState(cachedProfile?.correios_user || '');
+  const [correiosPassword, setCorreiosPassword] = useState(cachedProfile?.correios_password || '');
+  const [correiosContract, setCorreiosContract] = useState(cachedProfile?.correios_contract || '');
+  const [correiosCard, setCorreiosCard] = useState(cachedProfile?.correios_card || '');
+  const [correiosSandbox, setCorreiosSandbox] = useState(cachedProfile?.correios_sandbox ?? false);
+  const [correiosEnabled, setCorreiosEnabled] = useState(cachedProfile?.correios_enabled ?? false);
+  const [correiosPacCode, setCorreiosPacCode] = useState(cachedProfile?.correios_pac_code || '03298');
+  const [correiosSedexCode, setCorreiosSedexCode] = useState(cachedProfile?.correios_sedex_code || '03220');
   const [correiosValidationStatus, setCorreiosValidationStatus] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
   const [correiosValidationError, setCorreiosValidationError] = useState<string | null>(null);
   const [isEditingCorreios, setIsEditingCorreios] = useState(false);
@@ -508,15 +517,15 @@ export default function Remessas() {
   const [recipientComplement, setRecipientComplement] = useState('');
 
   // Sender details (pre-filled or customized)
-  const [senderName, setSenderName] = useState('');
-  const [senderPhone, setSenderPhone] = useState('');
-  const [senderEmail, setSenderEmail] = useState('');
-  const [senderCpf, setSenderCpf] = useState('');
-  const [senderAddress, setSenderAddress] = useState('');
-  const [senderNumber, setSenderNumber] = useState('');
-  const [senderDistrict, setSenderDistrict] = useState('');
-  const [senderCity, setSenderCity] = useState('');
-  const [senderState, setSenderState] = useState('');
+  const [senderName, setSenderName] = useState(cachedProfile?.sender_name || cachedProfile?.full_name || '');
+  const [senderPhone, setSenderPhone] = useState(cachedProfile?.sender_phone || cachedProfile?.phone || '');
+  const [senderEmail, setSenderEmail] = useState(cachedProfile?.sender_email || '');
+  const [senderCpf, setSenderCpf] = useState(cachedProfile?.sender_cpf || '');
+  const [senderAddress, setSenderAddress] = useState(cachedProfile?.sender_address || '');
+  const [senderNumber, setSenderNumber] = useState(cachedProfile?.sender_number || '');
+  const [senderDistrict, setSenderDistrict] = useState(cachedProfile?.sender_district || '');
+  const [senderCity, setSenderCity] = useState(cachedProfile?.sender_city || '');
+  const [senderState, setSenderState] = useState(cachedProfile?.sender_state || '');
 
   // Tab Management State
   const [activeTab, setActiveTab] = useState<'shipping' | 'orders_clients'>('shipping');
@@ -604,10 +613,12 @@ export default function Remessas() {
 
   async function loadSettings() {
     try {
-      setLoading(true);
+      if (!profile && !cachedProfile) {
+        setLoading(true);
+      }
       const prof = await dbService.getProfile();
-      setProfile(prof);
       if (prof) {
+        setProfile(prof);
         setOriginPostalCode(prof.origin_postal_code || '');
         setToken(prof.melhor_envio_token || '');
         setSandbox(prof.melhor_envio_sandbox ?? false);
@@ -635,10 +646,17 @@ export default function Remessas() {
         setSenderCity(prof.sender_city || '');
         setSenderState(prof.sender_state || '');
         
-        const { data: { user } } = await supabase.auth.getUser();
-        const emailFallback = user ? user.email : '';
-        setSenderEmail(prof.sender_email || emailFallback || '');
+        if (prof.sender_email) {
+          setSenderEmail(prof.sender_email);
+        } else {
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user?.email) {
+              setSenderEmail(session.user.email);
+            }
+          }).catch(() => {});
+        }
 
+        // Validate tokens in background without blocking initial screen
         if (prof.melhor_envio_token) {
           validateToken(prof.melhor_envio_token, prof.melhor_envio_sandbox ?? true);
         }
@@ -654,12 +672,14 @@ export default function Remessas() {
           });
         }
       }
-      
-      // Load orders and clients
-      await loadOrdersClientsData();
+    } catch (err) {
+      console.error('Erro ao carregar configurações de remessas:', err);
     } finally {
       setLoading(false);
     }
+
+    // Load orders and clients in background without blocking UI
+    loadOrdersClientsData();
   }
 
   // Egg Stock and Daily Collection Averages Calculation (both Breed and Baia)
@@ -1159,9 +1179,24 @@ export default function Remessas() {
       : 'https://melhorenvio.com.br';
   };
 
-  // Helper to query with proxy to bypass CORS
-  const fetchWithProxy = async (url: string, options: any) => {
-    return fetch(url, options);
+  // Helper to query with proxy to bypass CORS with timeout protection
+  const fetchWithProxy = async (url: string, options: any = {}) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: options.signal || controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        throw new Error('Tempo limite da requisição esgotado (timeout)');
+      }
+      throw err;
+    }
   };
 
   async function validateToken(testToken: string, isSandbox: boolean) {
