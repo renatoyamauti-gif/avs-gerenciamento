@@ -31,7 +31,8 @@ import {
   Tag,
   Download,
   Link,
-  Share2
+  Share2,
+  Info
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { calculateEggStock, normalizeBreed, normalizeBaia } from '../lib/stockHelper';
@@ -50,7 +51,157 @@ interface ShippingOption {
     name: string;
     picture: string;
   };
-  provider: 'melhor_envio' | 'superfrete' | 'correios';
+  provider: 'melhor_envio' | 'superfrete' | 'correios' | 'estimativa';
+}
+
+export function getUfFromCep(cep: string): string {
+  const clean = (cep || '').replace(/\D/g, '');
+  if (clean.length < 2) return '';
+  const prefix2 = parseInt(clean.substring(0, 2), 10);
+  const prefix3 = parseInt(clean.substring(0, 3), 10);
+
+  if (prefix2 >= 1 && prefix2 <= 19) return 'SP';
+  if (prefix2 >= 20 && prefix2 <= 28) return 'RJ';
+  if (prefix2 === 29) return 'ES';
+  if (prefix2 >= 30 && prefix2 <= 39) return 'MG';
+  if (prefix2 >= 40 && prefix2 <= 48) return 'BA';
+  if (prefix2 === 49) return 'SE';
+  if (prefix2 >= 50 && prefix2 <= 56) return 'PE';
+  if (prefix2 === 57) return 'AL';
+  if (prefix2 === 58) return 'PB';
+  if (prefix2 === 59) return 'RN';
+  if (prefix2 >= 60 && prefix2 <= 63) return 'CE';
+  if (prefix2 === 64) return 'PI';
+  if (prefix2 === 65) return 'MA';
+  if (prefix2 >= 66 && prefix2 <= 68 && prefix3 < 689) return 'PA';
+  if (prefix3 === 689) return 'AP';
+  if (prefix3 >= 690 && prefix3 <= 692) return 'AM';
+  if (prefix3 === 693) return 'RR';
+  if (prefix3 >= 694 && prefix3 <= 698) return 'AM';
+  if (prefix3 === 699) return 'AC';
+  if (prefix2 >= 70 && prefix2 <= 73 && prefix3 < 728) return 'DF';
+  if ((prefix3 >= 728 && prefix3 <= 729) || (prefix3 >= 737 && prefix2 <= 76 && prefix3 < 768)) return 'GO';
+  if (prefix3 >= 768 && prefix3 <= 769) return 'RO';
+  if (prefix2 === 77) return 'TO';
+  if (prefix2 === 78) return 'MT';
+  if (prefix2 === 79) return 'MS';
+  if (prefix2 >= 80 && prefix2 <= 87) return 'PR';
+  if (prefix2 >= 88 && prefix2 <= 89) return 'SC';
+  if (prefix2 >= 90 && prefix2 <= 99) return 'RS';
+  return '';
+}
+
+function getRegionFromUf(uf: string): 'sudeste' | 'sul' | 'centro_oeste' | 'nordeste' | 'norte' {
+  if (['SP', 'RJ', 'MG', 'ES'].includes(uf)) return 'sudeste';
+  if (['PR', 'SC', 'RS'].includes(uf)) return 'sul';
+  if (['DF', 'GO', 'MT', 'MS'].includes(uf)) return 'centro_oeste';
+  if (['BA', 'SE', 'PE', 'AL', 'PB', 'RN', 'CE', 'PI', 'MA'].includes(uf)) return 'nordeste';
+  return 'norte';
+}
+
+function calculateCorreiosEstimate(
+  originCep: string,
+  destCep: string,
+  weightKg: number,
+  lengthCm: number,
+  widthCm: number,
+  heightCm: number
+): ShippingOption[] {
+  const originUf = getUfFromCep(originCep) || 'SP';
+  const destUf = getUfFromCep(destCep) || 'SP';
+  const originRegion = getRegionFromUf(originUf);
+  const destRegion = getRegionFromUf(destUf);
+
+  const cubicWeight = (lengthCm * widthCm * heightCm) / 6000;
+  const billableWeight = (cubicWeight > 5 && cubicWeight > weightKg) ? cubicWeight : Math.max(weightKg, 0.3);
+  const extraKg = Math.max(0, billableWeight - 1);
+
+  const isSameState = originUf === destUf;
+  const isSameRegion = originRegion === destRegion;
+
+  let pacBase = 22.90;
+  let pacPerKg = 4.20;
+  let pacDays = 5;
+
+  let sedexBase = 29.80;
+  let sedexPerKg = 5.80;
+  let sedexDays = 2;
+
+  if (isSameState) {
+    pacBase = 21.50;
+    pacPerKg = 3.60;
+    pacDays = 4;
+    sedexBase = 27.90;
+    sedexPerKg = 4.80;
+    sedexDays = 1;
+  } else if (isSameRegion) {
+    pacBase = 26.80;
+    pacPerKg = 4.90;
+    pacDays = 6;
+    sedexBase = 38.50;
+    sedexPerKg = 7.20;
+    sedexDays = 2;
+  } else if (
+    (originRegion === 'sudeste' && destRegion === 'sul') ||
+    (originRegion === 'sul' && destRegion === 'sudeste') ||
+    (originRegion === 'sudeste' && destRegion === 'centro_oeste') ||
+    (originRegion === 'centro_oeste' && destRegion === 'sudeste')
+  ) {
+    pacBase = 32.50;
+    pacPerKg = 6.20;
+    pacDays = 7;
+    sedexBase = 53.00;
+    sedexPerKg = 9.80;
+    sedexDays = 3;
+  } else if (
+    originRegion === 'nordeste' || destRegion === 'nordeste'
+  ) {
+    pacBase = 46.00;
+    pacPerKg = 8.50;
+    pacDays = 9;
+    sedexBase = 76.00;
+    sedexPerKg = 13.50;
+    sedexDays = 4;
+  } else {
+    pacBase = 59.00;
+    pacPerKg = 11.00;
+    pacDays = 12;
+    sedexBase = 98.00;
+    sedexPerKg = 18.00;
+    sedexDays = 5;
+  }
+
+  const pacTotal = Math.round((pacBase + (extraKg * pacPerKg)) * 100) / 100;
+  const sedexTotal = Math.round((sedexBase + (extraKg * sedexPerKg)) * 100) / 100;
+
+  return [
+    {
+      id: 'correios_pac_est',
+      name: `PAC (${originUf} ➔ ${destUf})`,
+      price: pacTotal,
+      custom_price: pacTotal,
+      delivery_time: pacDays,
+      company: {
+        id: 'correios',
+        name: 'Correios',
+        picture: 'https://storage.googleapis.com/sandbox-api-superfrete.appspot.com/logos/correios.png'
+      },
+      provider: 'estimativa'
+    },
+    {
+      id: 'correios_sedex_est',
+      name: `SEDEX (${originUf} ➔ ${destUf})`,
+      price: sedexTotal,
+      custom_price: sedexTotal,
+      delivery_time: sedexDays,
+      company: {
+        id: 'correios',
+        name: 'Correios',
+        picture: 'https://storage.googleapis.com/sandbox-api-superfrete.appspot.com/logos/correios.png'
+      },
+      provider: 'estimativa'
+    }
+  ];
 }
 
 export default function Remessas() {
@@ -70,7 +221,9 @@ export default function Remessas() {
   const [savingSettings, setSavingSettings] = useState(false);
   
   // Settings State - Melhor Envio
-  const [originPostalCode, setOriginPostalCode] = useState(cachedProfile?.origin_postal_code || '');
+  const initialOriginCep = cachedProfile?.sender_postal_code || cachedProfile?.origin_postal_code || '';
+  const [originPostalCode, setOriginPostalCode] = useState(initialOriginCep);
+  const [simOriginPostalCode, setSimOriginPostalCode] = useState(initialOriginCep);
   const [token, setToken] = useState(cachedProfile?.melhor_envio_token || '');
   const [sandbox, setSandbox] = useState(cachedProfile?.melhor_envio_sandbox ?? false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
@@ -112,6 +265,7 @@ export default function Remessas() {
   const [calculating, setCalculating] = useState(false);
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
   const [calcError, setCalcError] = useState<string | null>(null);
+  const [calcNotice, setCalcNotice] = useState<string | null>(null);
 
   // Tracking State
   const [trackingCode, setTrackingCode] = useState('');
@@ -644,8 +798,9 @@ export default function Remessas() {
         setSenderCpf(prof.sender_cpf || '');
         const profPostalCode = prof.sender_postal_code || prof.origin_postal_code || '';
         setSenderPostalCode(profPostalCode);
-        if (!originPostalCode && profPostalCode) {
+        if (profPostalCode) {
           setOriginPostalCode(profPostalCode);
+          setSimOriginPostalCode(prev => prev || profPostalCode);
         }
         setSenderAddress(prof.sender_address || '');
         setSenderNumber(prof.sender_number || '');
@@ -1511,33 +1666,32 @@ export default function Remessas() {
 
   const handleCalculateShipping = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!originPostalCode) {
-      setCalcError('CEP de origem é obrigatório.');
+    const effectiveOrigin = (simOriginPostalCode || originPostalCode || senderPostalCode || '').replace(/\D/g, '');
+    const cleanDest = (destPostalCode || '').replace(/\D/g, '');
+
+    if (!effectiveOrigin || effectiveOrigin.length !== 8) {
+      setCalcError('Por favor, informe um CEP de origem válido com 8 dígitos.');
       return;
     }
-    if (!destPostalCode) {
-      setCalcError('CEP de destino é obrigatório.');
+    if (!cleanDest || cleanDest.length !== 8) {
+      setCalcError('Por favor, informe um CEP de destino válido com 8 dígitos.');
       return;
     }
+
+    const cleanOrigin = effectiveOrigin;
+
+    setCalculating(true);
+    setCalcError(null);
+    setCalcNotice(null);
+    setShippingOptions([]);
+    setSelectedService(null);
 
     const isME = !!token.replace(/\s+/g, '');
     const isSF = !!superfreteToken.replace(/\s+/g, '') && superfreteEnabled;
     const isCO = !!correiosUser.trim() && !!correiosPassword.trim() && correiosEnabled;
 
-    if (!isME && !isSF && !isCO) {
-      setCalcError('Nenhum provedor de frete (Melhor Envio, SuperFrete ou Correios) está configurado ou ativado.');
-      return;
-    }
-
-    setCalculating(true);
-    setCalcError(null);
-    setShippingOptions([]);
-    setSelectedService(null);
-
-    const cleanOrigin = originPostalCode.replace(/\D/g, '');
-    const cleanDest = destPostalCode.replace(/\D/g, '');
-
-    const promises: Promise<any>[] = [];
+    const promises: Promise<ShippingOption[]>[] = [];
+    const providerErrors: string[] = [];
 
     // 1. Melhor Envio Quote
     if (isME) {
@@ -1565,7 +1719,8 @@ export default function Remessas() {
           headers: {
             'Authorization': `Bearer ${cleanToken}`,
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'User-Agent': 'AVSGerenciamento/1.0.0 (suporte@avsgerenciamento.local)'
           },
           body: JSON.stringify(meBody)
         })
@@ -1588,11 +1743,12 @@ export default function Remessas() {
                   name: option.company.name,
                   picture: option.company.picture
                 },
-                provider: 'melhor_envio'
+                provider: 'melhor_envio' as const
               }));
           })
           .catch((err) => {
             console.error('Erro na cotação do Melhor Envio:', err);
+            providerErrors.push(`Melhor Envio: ${err.message || 'Falha ao cotar'}`);
             return [];
           })
       );
@@ -1650,11 +1806,12 @@ export default function Remessas() {
                   name: option.company.name,
                   picture: option.company.picture || 'https://storage.googleapis.com/sandbox-api-superfrete.appspot.com/logos/correios.png'
                 },
-                provider: 'superfrete'
+                provider: 'superfrete' as const
               }));
           })
           .catch((err) => {
             console.error('Erro na cotação do SuperFrete:', err);
+            providerErrors.push(`SuperFrete: ${err.message || 'Falha ao cotar'}`);
             return [];
           })
       );
@@ -1726,11 +1883,12 @@ export default function Remessas() {
                   name: 'Correios Direto',
                   picture: 'https://storage.googleapis.com/sandbox-api-superfrete.appspot.com/logos/correios.png'
                 },
-                provider: 'correios'
+                provider: 'correios' as const
               }));
           })
           .catch((err) => {
             console.error('Erro na cotação dos Correios Direto:', err);
+            providerErrors.push(`Correios: ${err.message || 'Falha ao cotar'}`);
             return [];
           })
       );
@@ -1738,17 +1896,43 @@ export default function Remessas() {
 
     try {
       const results = await Promise.all(promises);
-      const combinedOptions = results.flat();
+      let combinedOptions = results.flat();
+
+      if (combinedOptions.length === 0) {
+        // Fallback to official Correios Estimate
+        const estimates = calculateCorreiosEstimate(
+          cleanOrigin,
+          cleanDest,
+          parseFloat(weight) || 1.0,
+          parseInt(length) || 25,
+          parseInt(width) || 20,
+          parseInt(height) || 15
+        );
+        combinedOptions = estimates;
+
+        if (!isME && !isSF && !isCO) {
+          setCalcNotice('Cotações calculadas pela tabela oficial dos Correios. Para emitir etiquetas reais com até 80% de desconto, ative o Melhor Envio ou SuperFrete ao lado.');
+        } else {
+          setCalcNotice(`As integrações ativas não retornaram cotações no momento (${providerErrors.join(' | ') || 'verifique seus tokens'}). Exibindo estimativa oficial de referência dos Correios.`);
+        }
+      } else {
+        setCalcNotice('Opções de frete calculadas em tempo real pelas transportadoras conectadas.');
+      }
 
       combinedOptions.sort((a, b) => a.price - b.price);
-
       setShippingOptions(combinedOptions);
-      if (combinedOptions.length === 0) {
-        setCalcError('Nenhuma opção de entrega disponível para as dimensões e CEP informados.');
-      }
     } catch (err: any) {
       console.error(err);
-      setCalcError(err.message || 'Erro ao calcular cotações de frete.');
+      const estimates = calculateCorreiosEstimate(
+        cleanOrigin,
+        cleanDest,
+        parseFloat(weight) || 1.0,
+        parseInt(length) || 25,
+        parseInt(width) || 20,
+        parseInt(height) || 15
+      );
+      setShippingOptions(estimates);
+      setCalcNotice('Exibindo estimativa de referência dos Correios.');
     } finally {
       setCalculating(false);
     }
@@ -1762,7 +1946,7 @@ export default function Remessas() {
     setLabelError(null);
     setLabelResult(null);
 
-    const cleanOrigin = (senderPostalCode || originPostalCode).replace(/\D/g, '');
+    const cleanOrigin = (simOriginPostalCode || senderPostalCode || originPostalCode).replace(/\D/g, '');
     const cleanDest = destPostalCode.replace(/\D/g, '');
 
     // 1. Melhor Envio Label
@@ -1826,7 +2010,8 @@ export default function Remessas() {
           headers: {
             'Authorization': `Bearer ${cleanToken}`,
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'User-Agent': 'AVSGerenciamento/1.0.0 (suporte@avsgerenciamento.local)'
           },
           body: JSON.stringify(cartData)
         });
@@ -4313,48 +4498,102 @@ export default function Remessas() {
         {/* Center/Right column - Simulator and Label purchase */}
         <div className="lg:col-span-2 space-y-6">
           <div id="shipping-simulator-card" className="bg-white border border-slate-100 rounded-3xl p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-              <Calculator className="text-[#2563EB]" size={20} />
-              <h3 className="font-bold text-[#1F2937] text-lg">Simular Valores e Prazos</h3>
+            <div className="flex items-center justify-between gap-3 mb-6 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <Calculator className="text-[#2563EB]" size={20} />
+                <h3 className="font-bold text-[#1F2937] text-lg">Simular Valores e Prazos</h3>
+              </div>
+              <span className="text-[10px] font-bold px-3 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-full uppercase tracking-wider">
+                Correios & Transportadoras
+              </span>
             </div>
 
             <form onSubmit={handleCalculateShipping} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">CEP de Destino</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center justify-between">
+                    <span>CEP de Origem (Remetente)</span>
+                    {getUfFromCep(simOriginPostalCode) && (
+                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-mono">
+                        {getUfFromCep(simOriginPostalCode)}
+                      </span>
+                    )}
+                  </label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                     <input
                       required
                       type="text"
-                      placeholder="Ex: 22021-001"
-                      value={destPostalCode}
-                      onChange={(e) => setDestPostalCode(e.target.value)}
+                      placeholder="00000-000"
+                      maxLength={9}
+                      value={simOriginPostalCode}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const raw = val.replace(/\D/g, '').slice(0, 8);
+                        const formatted = raw.length > 5 ? `${raw.slice(0, 5)}-${raw.slice(5)}` : raw;
+                        setSimOriginPostalCode(formatted);
+                        setOriginPostalCode(formatted);
+                      }}
                       className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-10 pr-4 py-3.5 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Peso Estimado (kg)</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center justify-between">
+                    <span>CEP de Destino (Comprador)</span>
+                    {getUfFromCep(destPostalCode) && (
+                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-mono">
+                        {getUfFromCep(destPostalCode)}
+                      </span>
+                    )}
+                  </label>
                   <div className="relative">
-                    <Package className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                     <input
                       required
-                      type="number"
-                      step="0.01"
-                      min="0.1"
-                      value={weight}
-                      onChange={(e) => setWeight(e.target.value)}
+                      type="text"
+                      placeholder="00000-000"
+                      maxLength={9}
+                      value={destPostalCode}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const raw = val.replace(/\D/g, '').slice(0, 8);
+                        const formatted = raw.length > 5 ? `${raw.slice(0, 5)}-${raw.slice(5)}` : raw;
+                        setDestPostalCode(formatted);
+                      }}
                       className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-10 pr-4 py-3.5 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none"
                     />
                   </div>
                 </div>
               </div>
 
+              {getUfFromCep(simOriginPostalCode) && getUfFromCep(destPostalCode) && (
+                <div className="flex items-center justify-center gap-2 p-2.5 bg-blue-50/60 border border-blue-100 rounded-xl text-xs font-bold text-blue-700">
+                  <Truck size={14} className="text-blue-600 shrink-0" />
+                  <span>Rota: Origem ({getUfFromCep(simOriginPostalCode)}) ➔ Destino ({getUfFromCep(destPostalCode)})</span>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Peso Estimado (kg)</label>
+                <div className="relative">
+                  <Package className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    required
+                    type="number"
+                    step="0.01"
+                    min="0.1"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-10 pr-4 py-3.5 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Largura (cm)</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Largura (cm)</label>
                   <input
                     required
                     type="number"
@@ -4364,7 +4603,7 @@ export default function Remessas() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Altura (cm)</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Altura (cm)</label>
                   <input
                     required
                     type="number"
@@ -4387,12 +4626,20 @@ export default function Remessas() {
 
               <button
                 type="submit"
-                disabled={calculating || (!token.replace(/\s+/g, '') && !superfreteEnabled && !correiosEnabled)}
-                className="w-full py-4 bg-[#16A34A] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#15803D] active:scale-95 transition-all disabled:opacity-50"
+                disabled={calculating}
+                className="w-full py-4 bg-[#16A34A] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#15803D] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {calculating ? (
-                  <span className="flex items-center justify-center gap-2"><RefreshCw className="animate-spin" size={18} /> Calculando Tarifas...</span>
-                ) : 'Calcular Frete'}
+                  <>
+                    <RefreshCw className="animate-spin" size={18} />
+                    <span>Calculando Tarifas...</span>
+                  </>
+                ) : (
+                  <>
+                    <Calculator size={18} />
+                    <span>Calcular Frete</span>
+                  </>
+                )}
               </button>
             </form>
 
@@ -4403,9 +4650,21 @@ export default function Remessas() {
               </div>
             )}
 
+            {calcNotice && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium p-4 rounded-2xl flex gap-2 mt-4">
+                <Info size={18} className="shrink-0 text-blue-600" />
+                <span>{calcNotice}</span>
+              </div>
+            )}
+
             {shippingOptions.length > 0 && (
               <div className="space-y-4 mt-8">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest border-b border-slate-100 pb-2">Opções Disponíveis</h4>
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Opções Disponíveis</h4>
+                  <span className="text-[11px] font-medium text-slate-400">
+                    {shippingOptions.length} {shippingOptions.length === 1 ? 'opção encontrada' : 'opções encontradas'}
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {shippingOptions.map((option) => (
                     <div 
@@ -4428,9 +4687,11 @@ export default function Remessas() {
                                 ? 'bg-blue-50 text-blue-700 border border-blue-100' 
                                 : option.provider === 'superfrete' 
                                   ? 'bg-purple-50 text-purple-700 border border-purple-100' 
-                                  : 'bg-yellow-50 text-yellow-700 border border-yellow-100'
+                                  : option.provider === 'correios'
+                                    ? 'bg-yellow-50 text-yellow-700 border border-yellow-100'
+                                    : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                             }`}>
-                              {option.provider === 'melhor_envio' ? 'via Melhor Envio' : option.provider === 'superfrete' ? 'via SuperFrete' : 'via Correios Contrato'}
+                              {option.provider === 'melhor_envio' ? 'via Melhor Envio' : option.provider === 'superfrete' ? 'via SuperFrete' : option.provider === 'correios' ? 'via Correios Contrato' : 'Estimativa Correios'}
                             </span>
                           </div>
                         </div>
@@ -4442,7 +4703,7 @@ export default function Remessas() {
                       <div className="flex justify-between items-end mt-6 pt-4 border-t border-slate-100">
                         <div className="flex flex-col">
                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Prazo</span>
-                          <span className="text-xs font-bold text-[#1F2937] flex items-center gap-1"><Calendar size={12} className="text-[#2563EB]" /> {option.delivery_time} dias úteis</span>
+                          <span className="text-xs font-bold text-[#1F2937] flex items-center gap-1"><Calendar size={12} className="text-[#2563EB]" /> {option.delivery_time} {option.delivery_time === 1 ? 'dia útil' : 'dias úteis'}</span>
                         </div>
                         <div className="text-right">
                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Preço Sugerido</span>
@@ -4465,45 +4726,91 @@ export default function Remessas() {
                 exit={{ opacity: 0, y: 20 }}
                 className="bg-white border border-slate-100 rounded-3xl p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-6"
               >
-                <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                  <FileText className="text-[#2563EB]" size={20} />
-                  <div>
-                    <h3 className="font-bold text-[#1F2937] text-lg">Gerar Rascunho da Etiqueta</h3>
-                    <p className="text-xs text-slate-500">Serviço Selecionado: **{selectedService.company.name} {selectedService.name}**</p>
-                  </div>
-                </div>
-
-                <form onSubmit={handleCreateLabel} className="space-y-6">
-                  {/* Sender Details Preview */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-1">
-                      <h4 className="text-xs font-bold text-[#2563EB] uppercase tracking-widest">1. Dados do Remetente (Criatório)</h4>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEditingSender(true);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                        className="text-[10px] font-bold text-[#2563EB] hover:underline"
-                      >
-                        Editar Remetente
-                      </button>
+                {selectedService.provider === 'estimativa' ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                      <Calculator className="text-[#2563EB]" size={20} />
+                      <div>
+                        <h3 className="font-bold text-[#1F2937] text-lg">Cotação Estimada: {selectedService.name}</h3>
+                        <p className="text-xs text-slate-500">Valor estimado: R$ {selectedService.price.toFixed(2)} | Prazo: {selectedService.delivery_time} {selectedService.delivery_time === 1 ? 'dia útil' : 'dias úteis'}</p>
+                      </div>
                     </div>
-                    <div className="bg-[#F8FAFC] border border-slate-200 rounded-2xl p-4 text-xs text-[#475569] flex gap-3 items-start">
-                      <MapPin className="text-[#2563EB] shrink-0 mt-0.5" size={16} />
-                      <div className="space-y-1">
-                        <p className="font-bold text-[#1F2937]">{senderName || 'Não configurado'}</p>
-                        <p className="leading-relaxed">
-                          {senderAddress ? `${senderAddress}, ${senderNumber}` : 'Endereço não cadastrado'} <br />
-                          {senderDistrict && `${senderDistrict} - `}{senderCity && `${senderCity} / `}{senderState}
-                          {originPostalCode && ` | CEP: ${originPostalCode}`}
-                        </p>
-                        <p className="text-[11px] text-slate-400 mt-1">
-                          {senderCpf && `CPF/CNPJ: ${senderCpf}`} {senderPhone && ` | Tel: ${senderPhone}`}
-                        </p>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-amber-900 space-y-3">
+                      <div className="flex items-center gap-2 font-bold text-amber-800 text-sm">
+                        <Info size={18} className="shrink-0" />
+                        <span>Como emitir etiquetas para esta cotação?</span>
+                      </div>
+                      <p className="text-xs leading-relaxed text-amber-800">
+                        Esta simulação foi gerada a partir da <strong>tabela oficial de referência dos Correios</strong>. Para gerar a etiqueta de envio com código de barras, declaração de conteúdo automática e descontos de até 80%, ative o <strong>Melhor Envio</strong> ou <strong>SuperFrete</strong> na coluna ao lado.
+                      </p>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingMelhorEnvio(true);
+                            const el = document.getElementById('melhor-envio-card');
+                            el?.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                          className="px-4 py-2 bg-[#2563EB] text-white rounded-xl text-xs font-bold hover:bg-[#1D4ED8] transition-all shadow-sm cursor-pointer"
+                        >
+                          Ativar Melhor Envio
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingSuperfrete(true);
+                            const el = document.getElementById('superfrete-card');
+                            el?.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                          className="px-4 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold hover:bg-purple-700 transition-all shadow-sm cursor-pointer"
+                        >
+                          Ativar SuperFrete
+                        </button>
                       </div>
                     </div>
                   </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                      <FileText className="text-[#2563EB]" size={20} />
+                      <div>
+                        <h3 className="font-bold text-[#1F2937] text-lg">Gerar Rascunho da Etiqueta</h3>
+                        <p className="text-xs text-slate-500">Serviço Selecionado: **{selectedService.company.name} {selectedService.name}**</p>
+                      </div>
+                    </div>
+
+                    <form onSubmit={handleCreateLabel} className="space-y-6">
+                      {/* Sender Details Preview */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-1">
+                          <h4 className="text-xs font-bold text-[#2563EB] uppercase tracking-widest">1. Dados do Remetente (Criatório)</h4>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsEditingSender(true);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="text-[10px] font-bold text-[#2563EB] hover:underline"
+                          >
+                            Editar Remetente
+                          </button>
+                        </div>
+                        <div className="bg-[#F8FAFC] border border-slate-200 rounded-2xl p-4 text-xs text-[#475569] flex gap-3 items-start">
+                          <MapPin className="text-[#2563EB] shrink-0 mt-0.5" size={16} />
+                          <div className="space-y-1">
+                            <p className="font-bold text-[#1F2937]">{senderName || 'Não configurado'}</p>
+                            <p className="leading-relaxed">
+                              {senderAddress ? `${senderAddress}, ${senderNumber}` : 'Endereço não cadastrado'} <br />
+                              {senderDistrict && `${senderDistrict} - `}{senderCity && `${senderCity} / `}{senderState}
+                              {(simOriginPostalCode || senderPostalCode || originPostalCode) && ` | CEP: ${simOriginPostalCode || senderPostalCode || originPostalCode}`}
+                            </p>
+                            <p className="text-[11px] text-slate-400 mt-1">
+                              {senderCpf && `CPF/CNPJ: ${senderCpf}`} {senderPhone && ` | Tel: ${senderPhone}`}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
 
                   {/* Recipient details */}
                   <div className="space-y-4">
@@ -4689,9 +4996,11 @@ export default function Remessas() {
                     ) : 'Confirmar e Gerar Etiqueta'}
                   </button>
                 </form>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
           {/* Tracking Widget */}
           <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-6 transition-colors duration-200">
