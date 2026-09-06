@@ -54,8 +54,8 @@ interface ShippingOption {
   provider: 'melhor_envio' | 'superfrete' | 'correios' | 'estimativa';
 }
 
-export function getUfFromCep(cep: string): string {
-  const clean = (cep || '').replace(/\D/g, '');
+export function getUfFromCep(cep: any): string {
+  const clean = String(cep || '').replace(/\D/g, '');
   if (clean.length < 2) return '';
   const prefix2 = parseInt(clean.substring(0, 2), 10);
   const prefix3 = parseInt(clean.substring(0, 3), 10);
@@ -221,7 +221,7 @@ export default function Remessas() {
   const [savingSettings, setSavingSettings] = useState(false);
   
   // Settings State - Melhor Envio
-  const initialOriginCep = cachedProfile?.sender_postal_code || cachedProfile?.origin_postal_code || '';
+  const initialOriginCep = String(cachedProfile?.sender_postal_code || cachedProfile?.origin_postal_code || '');
   const [originPostalCode, setOriginPostalCode] = useState(initialOriginCep);
   const [simOriginPostalCode, setSimOriginPostalCode] = useState(initialOriginCep);
   const [token, setToken] = useState(cachedProfile?.melhor_envio_token || '');
@@ -671,17 +671,17 @@ export default function Remessas() {
   const [recipientComplement, setRecipientComplement] = useState('');
 
   // Sender details (pre-filled or customized)
-  const [senderName, setSenderName] = useState(cachedProfile?.sender_name || cachedProfile?.full_name || '');
-  const [senderPhone, setSenderPhone] = useState(cachedProfile?.sender_phone || cachedProfile?.phone || '');
-  const [senderEmail, setSenderEmail] = useState(cachedProfile?.sender_email || '');
-  const [senderCpf, setSenderCpf] = useState(cachedProfile?.sender_cpf || '');
-  const [senderPostalCode, setSenderPostalCode] = useState(cachedProfile?.sender_postal_code || cachedProfile?.origin_postal_code || '');
+  const [senderName, setSenderName] = useState(String(cachedProfile?.sender_name || cachedProfile?.full_name || ''));
+  const [senderPhone, setSenderPhone] = useState(String(cachedProfile?.sender_phone || cachedProfile?.phone || ''));
+  const [senderEmail, setSenderEmail] = useState(String(cachedProfile?.sender_email || ''));
+  const [senderCpf, setSenderCpf] = useState(String(cachedProfile?.sender_cpf || ''));
+  const [senderPostalCode, setSenderPostalCode] = useState(String(cachedProfile?.sender_postal_code || cachedProfile?.origin_postal_code || ''));
   const [loadingSenderCep, setLoadingSenderCep] = useState(false);
-  const [senderAddress, setSenderAddress] = useState(cachedProfile?.sender_address || '');
-  const [senderNumber, setSenderNumber] = useState(cachedProfile?.sender_number || '');
-  const [senderDistrict, setSenderDistrict] = useState(cachedProfile?.sender_district || '');
-  const [senderCity, setSenderCity] = useState(cachedProfile?.sender_city || '');
-  const [senderState, setSenderState] = useState(cachedProfile?.sender_state || '');
+  const [senderAddress, setSenderAddress] = useState(String(cachedProfile?.sender_address || ''));
+  const [senderNumber, setSenderNumber] = useState(String(cachedProfile?.sender_number || ''));
+  const [senderDistrict, setSenderDistrict] = useState(String(cachedProfile?.sender_district || ''));
+  const [senderCity, setSenderCity] = useState(String(cachedProfile?.sender_city || ''));
+  const [senderState, setSenderState] = useState(String(cachedProfile?.sender_state || ''));
 
   // Tab Management State
   const [activeTab, setActiveTab] = useState<'shipping' | 'orders_clients'>('shipping');
@@ -775,7 +775,7 @@ export default function Remessas() {
       const prof = await dbService.getProfile();
       if (prof) {
         setProfile(prof);
-        setOriginPostalCode(prof.origin_postal_code || '');
+        setOriginPostalCode(String(prof.origin_postal_code || ''));
         setToken(prof.melhor_envio_token || '');
         setSandbox(prof.melhor_envio_sandbox ?? false);
 
@@ -793,20 +793,20 @@ export default function Remessas() {
         setCorreiosSedexCode(prof.correios_sedex_code || '03220');
         
         // Load sender details from saved profile or fallback to defaults
-        setSenderName(prof.sender_name || prof.full_name || '');
-        setSenderPhone(prof.sender_phone || prof.phone || '');
-        setSenderCpf(prof.sender_cpf || '');
-        const profPostalCode = prof.sender_postal_code || prof.origin_postal_code || '';
+        setSenderName(String(prof.sender_name || prof.full_name || ''));
+        setSenderPhone(String(prof.sender_phone || prof.phone || ''));
+        setSenderCpf(String(prof.sender_cpf || ''));
+        const profPostalCode = String(prof.sender_postal_code || prof.origin_postal_code || '');
         setSenderPostalCode(profPostalCode);
         if (profPostalCode) {
           setOriginPostalCode(profPostalCode);
           setSimOriginPostalCode(prev => prev || profPostalCode);
         }
-        setSenderAddress(prof.sender_address || '');
-        setSenderNumber(prof.sender_number || '');
-        setSenderDistrict(prof.sender_district || '');
-        setSenderCity(prof.sender_city || '');
-        setSenderState(prof.sender_state || '');
+        setSenderAddress(String(prof.sender_address || ''));
+        setSenderNumber(String(prof.sender_number || ''));
+        setSenderDistrict(String(prof.sender_district || ''));
+        setSenderCity(String(prof.sender_city || ''));
+        setSenderState(String(prof.sender_state || ''));
         
         if (prof.sender_email) {
           setSenderEmail(prof.sender_email);
@@ -859,7 +859,7 @@ export default function Remessas() {
 
   // CEP Lookup for Client form
   const handleCepLookup = async (cep: string) => {
-    const cleanCep = cep.replace(/\D/g, '');
+    const cleanCep = String(cep || '').replace(/\D/g, '');
     if (cleanCep.length !== 8) return;
     setLoadingCep(true);
     try {
@@ -881,7 +881,7 @@ export default function Remessas() {
 
   // CEP Lookup for Sender form
   const handleSenderCepLookup = async (cep: string) => {
-    const cleanCep = cep.replace(/\D/g, '');
+    const cleanCep = String(cep || '').replace(/\D/g, '');
     if (cleanCep.length !== 8) return;
     setLoadingSenderCep(true);
     try {
@@ -914,7 +914,7 @@ export default function Remessas() {
         cpf_cnpj: clientCpf,
         phone: clientPhone,
         email: clientEmail,
-        postal_code: clientPostalCode.replace(/\D/g, ''),
+        postal_code: String(clientPostalCode || '').replace(/\D/g, ''),
         address: clientAddress,
         number: clientNumber,
         complemento: clientComplement,
@@ -969,7 +969,7 @@ export default function Remessas() {
     setClientCpf(client.cpf_cnpj || '');
     setClientPhone(client.phone || '');
     setClientEmail(client.email || '');
-    setClientPostalCode(client.postal_code || '');
+    setClientPostalCode(String(client.postal_code || ''));
     setClientAddress(client.address || '');
     setClientNumber(client.number || '');
     setClientComplement(client.complemento || '');
@@ -1290,7 +1290,7 @@ export default function Remessas() {
     setRecipientDistrict(client.district || '');
     setRecipientCity(client.city || '');
     setRecipientState(client.state || '');
-    setDestPostalCode(client.postal_code || '');
+    setDestPostalCode(String(client.postal_code || ''));
 
     // Estimate weight: 1 egg = 60g (0.06kg) + package box base 500g (0.5kg)
     let totalEggs = 0;
@@ -1612,7 +1612,7 @@ export default function Remessas() {
 
     try {
       await dbService.updateProfile({
-        origin_postal_code: originPostalCode.replace(/\D/g, ''),
+        origin_postal_code: String(originPostalCode || '').replace(/\D/g, ''),
         melhor_envio_token: cleanToken,
         melhor_envio_sandbox: sandbox
       });
@@ -1632,7 +1632,7 @@ export default function Remessas() {
     e.preventDefault();
     setSavingSender(true);
 
-    const cleanCep = (senderPostalCode || originPostalCode).replace(/\D/g, '');
+    const cleanCep = String(senderPostalCode || originPostalCode || '').replace(/\D/g, '');
     if (!cleanCep || cleanCep.length !== 8) {
       alert('Por favor, informe um CEP válido com 8 dígitos para o remetente.');
       setSavingSender(false);
@@ -1666,8 +1666,8 @@ export default function Remessas() {
 
   const handleCalculateShipping = async (e: React.FormEvent) => {
     e.preventDefault();
-    const effectiveOrigin = (simOriginPostalCode || originPostalCode || senderPostalCode || '').replace(/\D/g, '');
-    const cleanDest = (destPostalCode || '').replace(/\D/g, '');
+    const effectiveOrigin = String(simOriginPostalCode || originPostalCode || senderPostalCode || '').replace(/\D/g, '');
+    const cleanDest = String(destPostalCode || '').replace(/\D/g, '');
 
     if (!effectiveOrigin || effectiveOrigin.length !== 8) {
       setCalcError('Por favor, informe um CEP de origem válido com 8 dígitos.');
@@ -1946,8 +1946,8 @@ export default function Remessas() {
     setLabelError(null);
     setLabelResult(null);
 
-    const cleanOrigin = (simOriginPostalCode || senderPostalCode || originPostalCode).replace(/\D/g, '');
-    const cleanDest = destPostalCode.replace(/\D/g, '');
+    const cleanOrigin = String(simOriginPostalCode || senderPostalCode || originPostalCode || '').replace(/\D/g, '');
+    const cleanDest = String(destPostalCode || '').replace(/\D/g, '');
 
     // 1. Melhor Envio Label
     if (selectedService.provider === 'melhor_envio') {
@@ -3329,7 +3329,7 @@ export default function Remessas() {
   };
 
   const renderStockTab = () => {
-    const racaEntries = Object.entries(eggStock.racas).map(([breed, val]) => {
+    const racaEntries = Object.entries(eggStock?.racas || {}).map(([breed, val]) => {
       const data = val as any;
       return {
         breed,
@@ -3342,7 +3342,7 @@ export default function Remessas() {
       };
     }).sort((a, b) => b.available - a.available);
 
-    const baiaEntries = Object.entries(eggStock.baias).map(([baia, val]) => {
+    const baiaEntries = Object.entries(eggStock?.baias || {}).map(([baia, val]) => {
       const data = val as any;
       return {
         baia,

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'avs-pwa-cache-v27';
+const CACHE_NAME = 'avs-pwa-cache-v28';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -52,10 +52,14 @@ self.addEventListener('fetch', (event) => {
         }
         return fetch(event.request).then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
+            const contentType = networkResponse.headers.get('content-type') || '';
+            // Critical: Never cache an HTML SPA fallback response for a .js/.css asset!
+            if (!contentType.includes('text/html')) {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+            }
           }
           return networkResponse;
         });
@@ -64,24 +68,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Stale-While-Revalidate strategy for HTML navigation (instant display + background update)
+  // Network-First strategy for HTML navigation:
+  // Always fetches the latest index.html from network when online to guarantee current script chunks.
+  // Falls back to cached index.html when offline.
   if (event.request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html') {
     event.respondWith(
-      caches.match('/index.html').then((cachedIndex) => {
-        const fetchPromise = fetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              const responseToCache = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put('/index.html', responseToCache);
-              });
-            }
-            return networkResponse;
-          })
-          .catch(() => cachedIndex);
-
-        return cachedIndex || fetchPromise;
-      })
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put('/index.html', responseToCache);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match('/index.html'))
     );
     return;
   }

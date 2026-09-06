@@ -16,22 +16,54 @@ import { Session } from '@supabase/supabase-js';
 import { dbService } from './lib/dbService';
 import { useSubscription } from './hooks/useSubscription';
 import { useTheme } from './contexts/ThemeContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
-// Code splitting com React.lazy para navegação fluida e bundle ultra leve
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Plantel = lazy(() => import('./pages/Plantel'));
-const EggCollection = lazy(() => import('./pages/EggCollection'));
-const Chocadeira = lazy(() => import('./pages/Chocadeira'));
-const Maternity = lazy(() => import('./pages/Maternity'));
-const Remessas = lazy(() => import('./pages/Remessas'));
-const Products = lazy(() => import('./pages/Products'));
-const Finance = lazy(() => import('./pages/Finance'));
-const Ration = lazy(() => import('./pages/Ration'));
-const SettingsPage = lazy(() => import('./pages/Settings'));
-const Chat = lazy(() => import('./pages/Chat'));
-const Subscription = lazy(() => import('./pages/Subscription'));
-const BreedingLineage = lazy(() => import('./pages/BreedingLineage'));
-const PublicClientForm = lazy(() => import('./pages/PublicClientForm'));
+// Helper com retry e limpeza automática de cache para evitar falha de carregamento de chunks após novos deploys
+function lazyWithRetry<T extends React.ComponentType<any>>(
+  componentImport: () => Promise<{ default: T }>
+) {
+  return lazy(async () => {
+    const pageHasAlreadyBeenForceRefreshed = JSON.parse(
+      window.sessionStorage.getItem('avs_chunk_retry_refreshed') || 'false'
+    );
+
+    try {
+      const module = await componentImport();
+      window.sessionStorage.setItem('avs_chunk_retry_refreshed', 'false');
+      return module;
+    } catch (error: any) {
+      console.warn('Dynamic import chunk error:', error);
+      if (!pageHasAlreadyBeenForceRefreshed) {
+        window.sessionStorage.setItem('avs_chunk_retry_refreshed', 'true');
+        if ('caches' in window) {
+          try {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+          } catch {}
+        }
+        window.location.reload();
+        return new Promise<{ default: T }>(() => {});
+      }
+      throw error;
+    }
+  });
+}
+
+// Code splitting resiliente com lazyWithRetry para navegação fluida e bundle ultra leve
+const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'));
+const Plantel = lazyWithRetry(() => import('./pages/Plantel'));
+const EggCollection = lazyWithRetry(() => import('./pages/EggCollection'));
+const Chocadeira = lazyWithRetry(() => import('./pages/Chocadeira'));
+const Maternity = lazyWithRetry(() => import('./pages/Maternity'));
+const Remessas = lazyWithRetry(() => import('./pages/Remessas'));
+const Products = lazyWithRetry(() => import('./pages/Products'));
+const Finance = lazyWithRetry(() => import('./pages/Finance'));
+const Ration = lazyWithRetry(() => import('./pages/Ration'));
+const SettingsPage = lazyWithRetry(() => import('./pages/Settings'));
+const Chat = lazyWithRetry(() => import('./pages/Chat'));
+const Subscription = lazyWithRetry(() => import('./pages/Subscription'));
+const BreedingLineage = lazyWithRetry(() => import('./pages/BreedingLineage'));
+const PublicClientForm = lazyWithRetry(() => import('./pages/PublicClientForm'));
 
 const PageLoader = () => (
   <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3">
@@ -254,38 +286,40 @@ export default function App() {
             </motion.div>
             )}
 
-            <Suspense fallback={<PageLoader />}>
-              <AnimatePresence>
-                {isPublicRoute ? (
-                  <Routes>
-                    <Route path="/cadastro-cliente/:userId" element={<PublicClientForm />} />
-                    <Route path="*" element={<Navigate to="/" />} />
-                  </Routes>
-                ) : isLocked ? (
-                  <Routes>
-                    <Route path="/subscription" element={<Subscription />} />
-                    <Route path="*" element={<Navigate to="/subscription" />} />
-                  </Routes>
-                ) : (
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/birds" element={hasPermission('birds') ? <Plantel /> : <Navigate to="/" />} />
-                    <Route path="/birds/lineage/:id" element={hasPermission('birds') ? <BreedingLineage /> : <Navigate to="/" />} />
-                    <Route path="/breeding" element={hasPermission('breeding') ? <Chocadeira /> : <Navigate to="/" />} />
-                    <Route path="/maternity" element={hasPermission('maternity') ? <Maternity /> : <Navigate to="/" />} />
-                    <Route path="/eggs" element={hasPermission('eggs') ? <EggCollection /> : <Navigate to="/" />} />
-                    <Route path="/shipping" element={hasPermission('shipping') ? <Remessas /> : <Navigate to="/" />} />
-                    <Route path="/products" element={hasPermission('shipping') ? <Products /> : <Navigate to="/" />} />
-                    <Route path="/ration" element={hasPermission('ration') ? <Ration /> : <Navigate to="/" />} />
-                    <Route path="/finance" element={hasPermission('finance') ? <Finance /> : <Navigate to="/" />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="/chat" element={hasPermission('chat') ? <Chat /> : <Navigate to="/" />} />
-                    <Route path="/subscription" element={<Subscription />} />
-                    <Route path="*" element={<Navigate to="/" />} />
-                  </Routes>
-                )}
-              </AnimatePresence>
-            </Suspense>
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <AnimatePresence>
+                  {isPublicRoute ? (
+                    <Routes>
+                      <Route path="/cadastro-cliente/:userId" element={<PublicClientForm />} />
+                      <Route path="*" element={<Navigate to="/" />} />
+                    </Routes>
+                  ) : isLocked ? (
+                    <Routes>
+                      <Route path="/subscription" element={<Subscription />} />
+                      <Route path="*" element={<Navigate to="/subscription" />} />
+                    </Routes>
+                  ) : (
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/birds" element={hasPermission('birds') ? <Plantel /> : <Navigate to="/" />} />
+                      <Route path="/birds/lineage/:id" element={hasPermission('birds') ? <BreedingLineage /> : <Navigate to="/" />} />
+                      <Route path="/breeding" element={hasPermission('breeding') ? <Chocadeira /> : <Navigate to="/" />} />
+                      <Route path="/maternity" element={hasPermission('maternity') ? <Maternity /> : <Navigate to="/" />} />
+                      <Route path="/eggs" element={hasPermission('eggs') ? <EggCollection /> : <Navigate to="/" />} />
+                      <Route path="/shipping" element={hasPermission('shipping') ? <Remessas /> : <Navigate to="/" />} />
+                      <Route path="/products" element={hasPermission('shipping') ? <Products /> : <Navigate to="/" />} />
+                      <Route path="/ration" element={hasPermission('ration') ? <Ration /> : <Navigate to="/" />} />
+                      <Route path="/finance" element={hasPermission('finance') ? <Finance /> : <Navigate to="/" />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/chat" element={hasPermission('chat') ? <Chat /> : <Navigate to="/" />} />
+                      <Route path="/subscription" element={<Subscription />} />
+                      <Route path="*" element={<Navigate to="/" />} />
+                    </Routes>
+                  )}
+                </AnimatePresence>
+              </Suspense>
+            </ErrorBoundary>
 
             {!isPublicRoute && (
               <footer className="pt-12 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center text-[10px] sm:text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-[0.1em] mt-20 gap-4 text-center sm:text-left mb-6 transition-colors duration-200">

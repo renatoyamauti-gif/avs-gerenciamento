@@ -1,6 +1,8 @@
-export function normalizeBreed(name: string): string {
+export function normalizeBreed(name: any): string {
   if (!name) return '';
-  const n = name.trim().toLowerCase();
+  const str = String(name).trim();
+  if (!str) return '';
+  const n = str.toLowerCase();
   if (n === 'rir' || n.includes('rhode island') || n.includes('rhode')) return 'RIR';
   if (n.includes('gsb')) return 'GSB';
   if (n.includes('brama') || n.includes('bhrama') || n.includes('bhama') || n.includes('bhrma')) return 'Brama';
@@ -9,26 +11,28 @@ export function normalizeBreed(name: string): string {
   if (n.includes('sedosa')) return 'Sedosa';
   
   // Custom breeds: trim and Title Case
-  return name.trim()
+  return str
     .toLowerCase()
     .split(/\s+/)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
 
-export function normalizeBaia(name: string): string {
+export function normalizeBaia(name: any): string {
   if (!name) return '';
-  return name.trim()
+  const str = String(name).trim();
+  if (!str) return '';
+  return str
     .toLowerCase()
     .split(/\s+/)
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
 
-export function isBreedMatchingBaia(breed: string, baia: string): boolean {
+export function isBreedMatchingBaia(breed: any, baia: any): boolean {
   if (!breed || !baia) return false;
-  const br = breed.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const ba = baia.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const br = String(breed).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const ba = String(baia).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   
   if (br.includes(ba) || ba.includes(br)) return true;
   
@@ -104,16 +108,18 @@ export function calculateEggStock({
   const racaDays: Record<string, Set<string>> = {};
   const baiaDays: Record<string, Set<string>> = {};
 
-  const initRaca = (breed: string) => {
+  const initRaca = (breed: any) => {
     const normR = normalizeBreed(breed);
+    if (!normR) return '';
     if (!racaMap[normR]) {
       racaMap[normR] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0, egg_stock_adjustment: 0 };
     }
     return normR;
   };
 
-  const initBaia = (bName: string) => {
+  const initBaia = (bName: any) => {
     const b = normalizeBaia(bName);
+    if (!b) return '';
     if (!baiaMap[b]) {
       baiaMap[b] = { collected: 0, incubated: 0, sold: 0, available: 0, dailyAvg: 0, daysCollected: 0, egg_stock_adjustment: 0 };
     }
@@ -125,7 +131,7 @@ export function calculateEggStock({
     const name = typeof r === 'string' ? r : r?.name;
     if (name) {
       const normR = initRaca(name);
-      if (typeof r === 'object' && r !== null && r.egg_stock_adjustment !== undefined) {
+      if (normR && typeof r === 'object' && r !== null && r.egg_stock_adjustment !== undefined) {
         racaMap[normR].egg_stock_adjustment = Number(r.egg_stock_adjustment) || 0;
       }
     }
@@ -136,13 +142,13 @@ export function calculateEggStock({
     const name = typeof b === 'string' ? b : b?.name;
     if (name) {
       const activeB = initBaia(name);
-      if (typeof b === 'object' && b !== null && b.egg_stock_adjustment !== undefined) {
+      if (activeB && typeof b === 'object' && b !== null && b.egg_stock_adjustment !== undefined) {
         baiaMap[activeB].egg_stock_adjustment = Number(b.egg_stock_adjustment) || 0;
       }
     }
   });
 
-  const getRacasForBaia = (bName: string): string[] => {
+  const getRacasForBaia = (bName: any): string[] => {
     if (!bName) return [];
     const b = normalizeBaia(bName);
     const allBreeds = baiaToRacas[b] ? Array.from(baiaToRacas[b]) : [];
@@ -154,7 +160,7 @@ export function calculateEggStock({
     return allBreeds;
   };
 
-  const getBaiasForRaca = (breed: string): string[] => {
+  const getBaiasForRaca = (breed: any): string[] => {
     if (!breed) return [];
     const r = normalizeBreed(breed);
     const allBaias = racaToBaias[r] ? Array.from(racaToBaias[r]) : [];
@@ -172,12 +178,13 @@ export function calculateEggStock({
     if (qty <= 0) return;
 
     const dateKey = `${log.year}-${log.month}-${log.day}`;
-    const logBaias = log.baia ? log.baia.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-    const logRacas = log.raca ? log.raca.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+    const logBaias = log.baia ? String(log.baia).split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+    const logRacas = log.raca ? String(log.raca).split(',').map((s: string) => s.trim()).filter(Boolean) : [];
 
     // Se foi registrado por baia, contabiliza unicamente na Baia
     logBaias.forEach((b: string) => {
       const activeB = initBaia(b);
+      if (!activeB) return;
       baiaMap[activeB].collected += qty;
       if (!baiaDays[activeB]) baiaDays[activeB] = new Set();
       baiaDays[activeB].add(dateKey);
@@ -186,6 +193,7 @@ export function calculateEggStock({
     // Se foi registrado por raça, contabiliza unicamente na Raça
     logRacas.forEach((r: string) => {
       const normR = initRaca(r);
+      if (!normR) return;
       racaMap[normR].collected += qty;
       if (!racaDays[normR]) racaDays[normR] = new Set();
       racaDays[normR].add(dateKey);
@@ -200,7 +208,7 @@ export function calculateEggStock({
           const qty = Number(qtyStr) || 0;
           if (qty <= 0) return;
           const activeB = initBaia(bName);
-          baiaMap[activeB].incubated += qty;
+          if (activeB) baiaMap[activeB].incubated += qty;
         });
       }
       if (batch.raca_details) {
@@ -208,7 +216,7 @@ export function calculateEggStock({
           const qty = typeof val === 'object' && val !== null ? (Number((val as any).quantity) || 0) : (Number(val) || 0);
           if (qty <= 0) return;
           const normR = initRaca(breed);
-          racaMap[normR].incubated += qty;
+          if (normR) racaMap[normR].incubated += qty;
         });
       }
     });
@@ -228,13 +236,17 @@ export function calculateEggStock({
 
         if (item.origem_type === 'raca' && item.raca) {
           const normR = initRaca(item.raca);
-          const totalEggsSold = (qty * 12) + (Number(item.gift_eggs) || 0);
-          racaMap[normR].sold += totalEggsSold;
+          if (normR) {
+            const totalEggsSold = (qty * 12) + (Number(item.gift_eggs) || 0);
+            racaMap[normR].sold += totalEggsSold;
+          }
         } else if (item.origem_type === 'baia' && item.baia) {
           const bName = item.baia;
           const activeB = initBaia(bName);
-          const totalEggsSold = (qty * 12) + (Number(item.gift_eggs) || 0);
-          baiaMap[activeB].sold += totalEggsSold;
+          if (activeB) {
+            const totalEggsSold = (qty * 12) + (Number(item.gift_eggs) || 0);
+            baiaMap[activeB].sold += totalEggsSold;
+          }
         } else if (item.origem_type === 'produto' && item.product_id) {
           const prod = (products || []).find((p: any) => p.id === item.product_id);
           if (prod) {
@@ -244,11 +256,11 @@ export function calculateEggStock({
 
             if (prod.egg_raca) {
               const normR = initRaca(prod.egg_raca);
-              racaMap[normR].sold += totalEggsSold;
+              if (normR) racaMap[normR].sold += totalEggsSold;
             } else if (prod.egg_baia) {
               const bName = prod.egg_baia;
               const activeB = initBaia(bName);
-              baiaMap[activeB].sold += totalEggsSold;
+              if (activeB) baiaMap[activeB].sold += totalEggsSold;
             }
           }
         }
