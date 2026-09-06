@@ -1202,7 +1202,7 @@ export default function Plantel() {
                         className="px-4 bg-[#2563EB] text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-[#1D4ED8] transition-colors shadow-sm shrink-0 flex items-center justify-center"
                         title="Cadastrar Nova Baia"
                       >
-                        + Nova
+                        + Baia
                       </button>
                     </div>
                   </div>
