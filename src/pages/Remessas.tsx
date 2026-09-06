@@ -521,6 +521,8 @@ export default function Remessas() {
   const [senderPhone, setSenderPhone] = useState(cachedProfile?.sender_phone || cachedProfile?.phone || '');
   const [senderEmail, setSenderEmail] = useState(cachedProfile?.sender_email || '');
   const [senderCpf, setSenderCpf] = useState(cachedProfile?.sender_cpf || '');
+  const [senderPostalCode, setSenderPostalCode] = useState(cachedProfile?.sender_postal_code || cachedProfile?.origin_postal_code || '');
+  const [loadingSenderCep, setLoadingSenderCep] = useState(false);
   const [senderAddress, setSenderAddress] = useState(cachedProfile?.sender_address || '');
   const [senderNumber, setSenderNumber] = useState(cachedProfile?.sender_number || '');
   const [senderDistrict, setSenderDistrict] = useState(cachedProfile?.sender_district || '');
@@ -640,6 +642,11 @@ export default function Remessas() {
         setSenderName(prof.sender_name || prof.full_name || '');
         setSenderPhone(prof.sender_phone || prof.phone || '');
         setSenderCpf(prof.sender_cpf || '');
+        const profPostalCode = prof.sender_postal_code || prof.origin_postal_code || '';
+        setSenderPostalCode(profPostalCode);
+        if (!originPostalCode && profPostalCode) {
+          setOriginPostalCode(profPostalCode);
+        }
         setSenderAddress(prof.sender_address || '');
         setSenderNumber(prof.sender_number || '');
         setSenderDistrict(prof.sender_district || '');
@@ -714,6 +721,27 @@ export default function Remessas() {
       console.error('Erro ao buscar CEP:', err);
     } finally {
       setLoadingCep(false);
+    }
+  };
+
+  // CEP Lookup for Sender form
+  const handleSenderCepLookup = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '');
+    if (cleanCep.length !== 8) return;
+    setLoadingSenderCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        if (data.logradouro) setSenderAddress(data.logradouro);
+        if (data.bairro) setSenderDistrict(data.bairro);
+        if (data.localidade) setSenderCity(data.localidade);
+        if (data.uf) setSenderState(data.uf);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar CEP do remetente:', err);
+    } finally {
+      setLoadingSenderCep(false);
     }
   };
 
@@ -1449,12 +1477,21 @@ export default function Remessas() {
     e.preventDefault();
     setSavingSender(true);
 
+    const cleanCep = (senderPostalCode || originPostalCode).replace(/\D/g, '');
+    if (!cleanCep || cleanCep.length !== 8) {
+      alert('Por favor, informe um CEP válido com 8 dígitos para o remetente.');
+      setSavingSender(false);
+      return;
+    }
+
     try {
       await dbService.updateProfile({
         sender_name: senderName,
         sender_phone: senderPhone,
         sender_email: senderEmail,
         sender_cpf: senderCpf,
+        sender_postal_code: cleanCep,
+        origin_postal_code: cleanCep,
         sender_address: senderAddress,
         sender_number: senderNumber,
         sender_district: senderDistrict,
@@ -1462,6 +1499,7 @@ export default function Remessas() {
         sender_state: senderState
       });
 
+      setOriginPostalCode(senderPostalCode || cleanCep);
       setIsEditingSender(false);
       alert('Dados do remetente salvos com sucesso!');
     } catch (err: any) {
@@ -1724,7 +1762,7 @@ export default function Remessas() {
     setLabelError(null);
     setLabelResult(null);
 
-    const cleanOrigin = originPostalCode.replace(/\D/g, '');
+    const cleanOrigin = (senderPostalCode || originPostalCode).replace(/\D/g, '');
     const cleanDest = destPostalCode.replace(/\D/g, '');
 
     // 1. Melhor Envio Label
@@ -3393,6 +3431,7 @@ export default function Remessas() {
     senderName && 
     senderCpf && 
     senderPhone && 
+    (senderPostalCode || originPostalCode) &&
     senderAddress && 
     senderNumber && 
     senderDistrict && 
@@ -4079,7 +4118,8 @@ export default function Remessas() {
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Endereço de Origem</span>
                     <span className="font-medium text-slate-600 block leading-relaxed">
                       {senderAddress}, {senderNumber} <br />
-                      {senderDistrict} - {senderCity} / {senderState}
+                      {senderDistrict} - {senderCity} / {senderState} <br />
+                      <span className="font-bold text-[#1F2937]">CEP: {senderPostalCode || originPostalCode || 'Não informado'}</span>
                     </span>
                   </div>
                 </div>
@@ -4153,46 +4193,80 @@ export default function Remessas() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="col-span-2 space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Endereço de Origem</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="sm:col-span-1 space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between">
+                        <span>CEP de Origem</span>
+                        {loadingSenderCep && (
+                          <span className="text-[#2563EB] flex items-center gap-1 font-normal lowercase text-[10px]">
+                            <RefreshCw className="animate-spin" size={10} /> buscando...
+                          </span>
+                        )}
+                      </label>
                       <input 
                         required 
                         type="text" 
-                        placeholder="Rua/Av..." 
+                        placeholder="00000-000" 
+                        maxLength={9}
+                        value={senderPostalCode} 
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const raw = val.replace(/\D/g, '').slice(0, 8);
+                          const formatted = raw.length > 5 ? `${raw.slice(0, 5)}-${raw.slice(5)}` : raw;
+                          setSenderPostalCode(formatted);
+                          setOriginPostalCode(formatted);
+                          if (raw.length === 8) {
+                            handleSenderCepLookup(raw);
+                          }
+                        }} 
+                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                      />
+                    </div>
+                    <div className="sm:col-span-2 space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Endereço (Rua / Logradouro)</label>
+                      <input 
+                        required 
+                        type="text" 
+                        placeholder="Rua, Av, Rodovia..." 
                         value={senderAddress} 
                         onChange={(e) => setSenderAddress(e.target.value)} 
                         className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Número</label>
-                      <input 
-                        required 
-                        type="text" 
-                        value={senderNumber} 
-                        onChange={(e) => setSenderNumber(e.target.value)} 
-                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-center text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2">
                     <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Número</label>
+                      <input 
+                        required 
+                        type="text" 
+                        placeholder="Nº ou S/N"
+                        value={senderNumber} 
+                        onChange={(e) => setSenderNumber(e.target.value)} 
+                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-center text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-1">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bairro</label>
                       <input 
                         required 
                         type="text" 
+                        placeholder="Bairro"
                         value={senderDistrict} 
                         onChange={(e) => setSenderDistrict(e.target.value)} 
                         className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
                       />
                     </div>
-                    <div className="space-y-1">
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2 space-y-1">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cidade</label>
                       <input 
                         required 
                         type="text" 
+                        placeholder="Cidade"
                         value={senderCity} 
                         onChange={(e) => setSenderCity(e.target.value)} 
                         className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
@@ -4204,7 +4278,7 @@ export default function Remessas() {
                         required 
                         type="text" 
                         maxLength={2} 
-                        placeholder="Ex: SP" 
+                        placeholder="UF" 
                         value={senderState} 
                         onChange={(e) => setSenderState(e.target.value.toUpperCase())} 
                         className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-center text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
