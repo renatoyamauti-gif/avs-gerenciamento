@@ -27,6 +27,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { dbService } from '../lib/dbService';
 import { calculateEggStock } from '../lib/stockHelper';
 import { useTheme } from '../contexts/ThemeContext';
+import { hasPermission } from '../lib/permissions';
 
 export default function Dashboard() {
   const { theme } = useTheme();
@@ -47,7 +48,9 @@ export default function Dashboard() {
   const [racaEstimates, setRacaEstimates] = useState<{ name: string; estimativa: number }[]>([]);
   const [deliveredOrders, setDeliveredOrders] = useState<any[]>([]);
 
-  const showSection = (_moduleName: string) => true;
+  const showSection = (moduleName: string) => {
+    return hasPermission({ role, permissions }, moduleName);
+  };
 
   useEffect(() => {
     loadDashboardData();
@@ -72,7 +75,11 @@ export default function Dashboard() {
 
       if (profile) {
         setRole(profile.role || 'admin');
-        setPermissions(profile.permissions || null);
+        let perms = profile.permissions;
+        if (typeof perms === 'string') {
+          try { perms = JSON.parse(perms); } catch {}
+        }
+        setPermissions(perms || null);
       }
 
       const activeBirds = (birds || []).filter(b => b.status !== 'Vendida' && b.status !== 'Óbito' && b.status !== 'Reservada');
@@ -439,21 +446,25 @@ export default function Dashboard() {
             </Link>
           )}
 
-          <Link to="/settings" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-slate-500/40 hover:shadow-md transition-all group">
-            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
-              <Settings size={20} />
-            </div>
-            <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Configurações</span>
-            <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Criatório e Equipe</span>
-          </Link>
+          {role !== 'tratador' && (
+            <Link to="/settings" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-slate-500/40 hover:shadow-md transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+                <Settings size={20} />
+              </div>
+              <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Configurações</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Criatório e Equipe</span>
+            </Link>
+          )}
 
-          <Link to="/subscription" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-pink-500/40 hover:shadow-md transition-all group">
-            <div className="w-10 h-10 rounded-xl bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
-              <CreditCard size={20} />
-            </div>
-            <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Assinatura</span>
-            <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Planos e Teste</span>
-          </Link>
+          {role !== 'tratador' && (
+            <Link to="/subscription" className="flex flex-col p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-pink-500/40 hover:shadow-md transition-all group">
+              <div className="w-10 h-10 rounded-xl bg-pink-50 dark:bg-pink-950/30 text-pink-600 dark:text-pink-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform">
+                <CreditCard size={20} />
+              </div>
+              <span className="text-xs font-bold font-headline text-[#1F2937] dark:text-slate-100 uppercase">Assinatura</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Planos e Teste</span>
+            </Link>
+          )}
         </div>
       </section>
        {/* Charts / Alerts Section */}

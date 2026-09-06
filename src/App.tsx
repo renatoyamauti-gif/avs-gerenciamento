@@ -17,6 +17,7 @@ import { dbService } from './lib/dbService';
 import { useSubscription } from './hooks/useSubscription';
 import { useTheme } from './contexts/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import { hasPermission } from './lib/permissions';
 
 // Helper com retry e limpeza automática de cache para evitar falha de carregamento de chunks após novos deploys
 function lazyWithRetry<T extends React.ComponentType<any>>(
@@ -193,8 +194,8 @@ export default function App() {
     );
   }
 
-  // Todas as rotas liberadas
-  const hasPermission = (_moduleName: string) => true;
+  const isTratador = profile?.role === 'tratador';
+  const checkPermission = (moduleName: string) => hasPermission(profile, moduleName);
 
   return (
     <Router>
@@ -229,13 +230,13 @@ export default function App() {
           {/* Desktop Header is imported here */}
           {!isPublicRoute && !isLocked && (
             <div className="hidden lg:block">
-              <Header />
+              <Header profile={profile} />
             </div>
           )}
           <div className={`pb-12 px-4 sm:px-6 lg:px-10 max-w-7xl mx-auto ${(!isLocked && !isPublicRoute) ? 'pt-24 lg:pt-28' : 'pt-10'}`}>
             
             {/* Banner de Trial */}
-            {!isPublicRoute && !isLocked && isTrialActive && plan === 'free' && (
+            {!isPublicRoute && !isLocked && !isTratador && isTrialActive && plan === 'free' && (
               <div className="mb-6 bg-gradient-to-r from-amber-400 to-amber-600 text-white p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg shadow-amber-500/20">
                 <div className="flex items-center gap-3">
                   <div className="bg-white/20 p-2 rounded-full">
@@ -302,18 +303,18 @@ export default function App() {
                   ) : (
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
-                      <Route path="/birds" element={hasPermission('birds') ? <Plantel /> : <Navigate to="/" />} />
-                      <Route path="/birds/lineage/:id" element={hasPermission('birds') ? <BreedingLineage /> : <Navigate to="/" />} />
-                      <Route path="/breeding" element={hasPermission('breeding') ? <Chocadeira /> : <Navigate to="/" />} />
-                      <Route path="/maternity" element={hasPermission('maternity') ? <Maternity /> : <Navigate to="/" />} />
-                      <Route path="/eggs" element={hasPermission('eggs') ? <EggCollection /> : <Navigate to="/" />} />
-                      <Route path="/shipping" element={hasPermission('shipping') ? <Remessas /> : <Navigate to="/" />} />
-                      <Route path="/products" element={hasPermission('shipping') ? <Products /> : <Navigate to="/" />} />
-                      <Route path="/ration" element={hasPermission('ration') ? <Ration /> : <Navigate to="/" />} />
-                      <Route path="/finance" element={hasPermission('finance') ? <Finance /> : <Navigate to="/" />} />
-                      <Route path="/settings" element={<SettingsPage />} />
-                      <Route path="/chat" element={hasPermission('chat') ? <Chat /> : <Navigate to="/" />} />
-                      <Route path="/subscription" element={<Subscription />} />
+                      <Route path="/birds" element={checkPermission('birds') ? <Plantel /> : <Navigate to="/" />} />
+                      <Route path="/birds/lineage/:id" element={checkPermission('birds') ? <BreedingLineage /> : <Navigate to="/" />} />
+                      <Route path="/breeding" element={checkPermission('breeding') ? <Chocadeira /> : <Navigate to="/" />} />
+                      <Route path="/maternity" element={checkPermission('maternity') ? <Maternity /> : <Navigate to="/" />} />
+                      <Route path="/eggs" element={checkPermission('eggs') ? <EggCollection /> : <Navigate to="/" />} />
+                      <Route path="/shipping" element={checkPermission('shipping') ? <Remessas /> : <Navigate to="/" />} />
+                      <Route path="/products" element={checkPermission('shipping') ? <Products /> : <Navigate to="/" />} />
+                      <Route path="/ration" element={checkPermission('ration') ? <Ration /> : <Navigate to="/" />} />
+                      <Route path="/finance" element={checkPermission('finance') ? <Finance /> : <Navigate to="/" />} />
+                      <Route path="/settings" element={!isTratador ? <SettingsPage /> : <Navigate to="/" />} />
+                      <Route path="/chat" element={checkPermission('chat') ? <Chat /> : <Navigate to="/" />} />
+                      <Route path="/subscription" element={!isTratador ? <Subscription /> : <Navigate to="/" />} />
                       <Route path="*" element={<Navigate to="/" />} />
                     </Routes>
                   )}

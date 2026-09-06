@@ -18,6 +18,7 @@ import {
   X,
   Plus
 } from 'lucide-react';
+import { hasPermission } from '../lib/permissions';
 
 interface BottomNavProps {
   onOpenMenu: () => void;
@@ -50,11 +51,8 @@ const BottomNav = ({ onOpenMenu, profile }: BottomNavProps) => {
     { path: '/subscription', label: 'Assinatura', desc: 'Planos e faturas', icon: <CreditCard size={22} />, color: 'bg-pink-50 text-pink-600 border-pink-200' },
   ];
 
-  // Todas as páginas liberadas
-  const hasPermission = (_path: string) => true;
-
-  const visibleNavItems = mainNavItems.filter((item) => hasPermission(item.path));
-  const visibleAllModules = allModules.filter((item) => hasPermission(item.path));
+  const visibleNavItems = mainNavItems.filter((item) => hasPermission(profile, item.path));
+  const visibleAllModules = allModules.filter((item) => hasPermission(profile, item.path));
 
   return (
     <>

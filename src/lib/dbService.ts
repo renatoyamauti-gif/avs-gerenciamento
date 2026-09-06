@@ -1426,7 +1426,13 @@ export const dbService = {
         sender_city: user.user_metadata?.sender_city || data?.sender_city || '',
         sender_state: user.user_metadata?.sender_state || data?.sender_state || '',
         role: user.user_metadata?.role || data?.role || 'admin',
-        permissions: user.user_metadata?.permissions || data?.permissions || null,
+        permissions: (() => {
+          let perms = user.user_metadata?.permissions || data?.permissions || null;
+          if (typeof perms === 'string') {
+            try { perms = JSON.parse(perms); } catch {}
+          }
+          return perms;
+        })(),
         parent_user_id: user.user_metadata?.parent_user_id || data?.parent_user_id || null
       };
 

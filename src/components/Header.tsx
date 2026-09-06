@@ -5,7 +5,11 @@ import { IMAGES } from '../constants';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabaseClient';
 
-const Header = () => {
+interface HeaderProps {
+  profile?: any;
+}
+
+const Header = ({ profile }: HeaderProps) => {
   const { theme, toggleTheme } = useTheme();
   
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -136,14 +140,25 @@ const Header = () => {
         </div>
 
         {/* Profile Avatar */}
-        <Link to="/settings" className="h-10 w-10 rounded-full overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-sm hover:border-[#2563EB] dark:hover:border-blue-500 transition-colors cursor-pointer block">
-          <img 
-            src={IMAGES.curator} 
-            alt="Curator Profile" 
-            className="w-full h-full object-cover" 
-            referrerPolicy="no-referrer" 
-          />
-        </Link>
+        {profile?.role === 'tratador' ? (
+          <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-sm block select-none" title={profile?.full_name || 'Tratador'}>
+            <img 
+              src={IMAGES.curator} 
+              alt="Perfil Tratador" 
+              className="w-full h-full object-cover" 
+              referrerPolicy="no-referrer" 
+            />
+          </div>
+        ) : (
+          <Link to="/settings" title="Configurações" className="h-10 w-10 rounded-full overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-sm hover:border-[#2563EB] dark:hover:border-blue-500 transition-colors cursor-pointer block">
+            <img 
+              src={IMAGES.curator} 
+              alt="Curator Profile" 
+              className="w-full h-full object-cover" 
+              referrerPolicy="no-referrer" 
+            />
+          </Link>
+        )}
       </div>
     </header>
   );

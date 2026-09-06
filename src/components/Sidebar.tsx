@@ -19,6 +19,8 @@ import {
   Truck,
   Tag
 } from 'lucide-react';
+import { hasPermission } from '../lib/permissions';
+
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -123,10 +125,7 @@ const Sidebar = ({ isOpen, onClose, profile }: SidebarProps) => {
     { path: '/subscription', label: "Assinatura", icon: <CreditCard size={18} /> },
   ];
 
-  // Todas as páginas liberadas
-  const hasPermission = (_path: string) => true;
-
-  const visibleMenuItems = menuItems.filter(item => hasPermission(item.path));
+  const visibleMenuItems = menuItems.filter(item => hasPermission(profile, item.path));
 
   return (
     <>
