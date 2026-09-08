@@ -739,6 +739,21 @@ export default function Remessas() {
     loadSettings();
   }, []);
 
+  // Helper para obter o cliente de um pedido de forma robusta e resiliente
+  const getOrderClient = (order: any, customClients?: any[]) => {
+    if (!order) return null;
+    let c = order.clients || order.client;
+    if (Array.isArray(c) && c.length > 0) c = c[0];
+    if (c && c.name) return c;
+
+    const list = customClients || clients;
+    if (order.client_id && Array.isArray(list) && list.length > 0) {
+      const found = list.find((item: any) => String(item.id) === String(order.client_id));
+      if (found) return found;
+    }
+    return c || null;
+  };
+
   async function loadOrdersClientsData() {
     try {
       setLoadingOrdersClients(true);
@@ -752,8 +767,13 @@ export default function Remessas() {
         dbService.getProducts(),
         dbService.getBirds()
       ]);
-      setClients(clientsData || []);
-      setOrders(ordersData || []);
+      const validClients = clientsData || [];
+      const populatedOrders = (ordersData || []).map((ord: any) => {
+        const client = getOrderClient(ord, validClients);
+        return { ...ord, clients: client };
+      });
+      setClients(validClients);
+      setOrders(populatedOrders);
       setRacas(racasData || []);
       setEggLogs(eggLogsData || []);
       setIncubators(incubatorsData || []);
@@ -1131,8 +1151,12 @@ export default function Remessas() {
         mainRaca = prod ? prod.name : 'Produto';
       }
 
+      const clientObj = clients.find(c => String(c.id) === String(orderClientId));
+      const clientName = clientObj ? clientObj.name : 'Cliente';
+
       const orderData = {
         client_id: orderClientId,
+        clients: clientObj || null,
         origem_type: mainItem.origem_type,
         raca: mainRaca || 'Produto',
         baia: mainItem.origem_type === 'baia' ? mainItem.baia : '',
@@ -1150,8 +1174,6 @@ export default function Remessas() {
       const saved = await dbService.saveOrder(orderData);
       
       // Sincronizar com financeiro
-      const clientObj = clients.find(c => c.id === orderClientId);
-      const clientName = clientObj ? clientObj.name : 'Cliente';
       await syncOrderWithFinance(saved, clientName);
 
       await loadOrdersClientsData();
@@ -1234,9 +1256,6 @@ export default function Remessas() {
       }]);
     }
     
-    setOrderOrigemType(order.origem_type || 'raca');
-    setOrderRaca(order.raca || '');
-    setOrderBaia(order.baia || '');
     setOrderQuantity(String(order.quantity || ''));
     setOrderStatus(order.status || 'Pendente');
     setOrderTrackingCode(order.tracking_code || '');
@@ -1248,9 +1267,11 @@ export default function Remessas() {
   // Update Order Status directly
   const handleUpdateOrderStatus = async (order: any, newStatus: string) => {
     try {
+      const clientObj = getOrderClient(order);
       const orderData = {
         id: order.id,
         client_id: order.client_id,
+        clients: clientObj || null,
         origem_type: order.origem_type || 'raca',
         raca: order.raca || '',
         baia: order.baia || '',
@@ -1262,7 +1283,7 @@ export default function Remessas() {
       };
       const saved = await dbService.saveOrder(orderData);
       
-      const clientName = order.clients?.name || 'Cliente';
+      const clientName = clientObj?.name || 'Cliente';
       await syncOrderWithFinance(saved, clientName);
 
       await loadOrdersClientsData();
@@ -1273,11 +1294,11 @@ export default function Remessas() {
 
   // "Gerar Envio" Trigger from order list
   const handleGerarEnvio = (order: any) => {
-    if (!order.clients) {
+    const client = getOrderClient(order);
+    if (!client) {
       alert('Cliente não encontrado neste pedido.');
       return;
     }
-    const client = order.clients;
     
     // Set recipient fields
     setRecipientName(client.name || '');
@@ -2570,7 +2591,10 @@ export default function Remessas() {
 
   const renderOrdersTab = () => {
     const filteredOrders = orders.filter(o => {
-      const matchClient = o.clients?.name?.toLowerCase().includes(orderSearch.toLowerCase());
+      const client = getOrderClient(o);
+      const matchClient = client?.name?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+                          client?.phone?.toLowerCase().includes(orderSearch.toLowerCase()) ||
+                          client?.cpf_cnpj?.toLowerCase().includes(orderSearch.toLowerCase());
       const matchRaca = o.raca?.toLowerCase().includes(orderSearch.toLowerCase());
       const matchBaia = o.baia?.toLowerCase().includes(orderSearch.toLowerCase());
       
@@ -3066,7 +3090,24 @@ export default function Remessas() {
             </button>
             <button
               type="button"
-              onClick={() => exportToCSV(orders, `pedidos_${new Date().toISOString().split('T')[0]}`)}
+              onClick={() => {
+                const exportData = orders.map((ord) => {
+                  const c = getOrderClient(ord);
+                  return {
+                    'Cliente': c?.name || 'Sem Cliente',
+                    'Telefone': c?.phone || '',
+                    'E-mail': c?.email || '',
+                    'CPF/CNPJ': c?.cpf_cnpj || '',
+                    'Origem': ord.origem_type === 'baia' ? `Baia: ${ord.baia}` : (ord.raca || 'Produto'),
+                    'Quantidade': ord.quantity,
+                    'Status': ord.status,
+                    'Valor Frete (R$)': ord.shipping_cost || 0,
+                    'Código Rastreio': ord.tracking_code || '',
+                    'Data Pedido': ord.created_at ? ord.created_at.split('T')[0] : ''
+                  };
+                });
+                exportToCSV(exportData, `pedidos_${new Date().toISOString().split('T')[0]}`);
+              }}
               className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[#6B7280] dark:text-slate-400 py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-sm hover:border-[#2563EB] dark:hover:border-blue-500 hover:text-[#2563EB] dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               <Download size={14} /> Exportar CSV
@@ -3116,7 +3157,7 @@ export default function Remessas() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredOrders.map((order) => {
-                    const client = order.clients;
+                    const client = getOrderClient(order);
                     return (
                       <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-4">

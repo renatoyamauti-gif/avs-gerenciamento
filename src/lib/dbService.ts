@@ -2148,20 +2148,55 @@ export const dbService = {
   // Orders
   async getOrders() {
     return fetchWithSWR('orders', async () => {
+      let ordersData: any[] | null = null;
+
+      // 1. Tentar carregar pedidos com o relacionamento de clients embutido
       const { data, error } = await supabase
         .from('orders')
         .select('*, clients(*)')
         .order('created_at', { ascending: false });
-      if (error) handleSupabaseError(error, 'list', 'orders');
-      return data;
+
+      if (error) {
+        console.warn('Aviso: falha na consulta de orders com join clients(*). Tentando select simples:', error);
+        // Fallback: se a relação de chave estrangeira não existir no PostgREST, faz select direto de orders
+        const { data: rawOrders, error: rawError } = await supabase
+          .from('orders')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (rawError) handleSupabaseError(rawError, 'list', 'orders');
+        ordersData = rawOrders || [];
+      } else {
+        ordersData = data || [];
+      }
+
+      // 2. Normalizar e hidratar o cliente para cada pedido
+      const cachedClients = getOfflineFallback('clients') || [];
+      return (ordersData || []).map((ord: any) => {
+        let client = ord.clients || ord.client;
+        if (Array.isArray(client) && client.length > 0) client = client[0];
+        if (!client || !client.name) {
+          if (ord.client_id && cachedClients.length > 0) {
+            client = cachedClients.find((c: any) => String(c.id) === String(ord.client_id)) || null;
+          }
+        }
+        return { ...ord, clients: client || null };
+      });
     });
   },
 
   async saveOrder(order: any) {
     const ownerId = await this.getOwnerId().catch(() => null) || order.user_id;
     const orderData = { ...order, user_id: ownerId };
-    const savedClients = orderData.clients;
+
+    // Preservar objeto do cliente antes de enviar as colunas brutas para a tabela orders
+    let clientObj = orderData.clients || orderData.client;
     delete orderData.clients;
+    delete orderData.client;
+
+    if (!clientObj && orderData.client_id) {
+      const cachedClients = getOfflineFallback('clients') || [];
+      clientObj = cachedClients.find((c: any) => String(c.id) === String(orderData.client_id)) || null;
+    }
 
     const result = await this.handleWriteOperation(
       'orders',
@@ -2170,31 +2205,66 @@ export const dbService = {
       orderData,
       async () => {
         if (order.id && order.id.length > 15) {
+          // Tentar update com join do cliente
           const { data, error } = await supabase
             .from('orders')
             .update(orderData)
             .eq('id', order.id)
-            .select();
-          if (error) handleSupabaseError(error, 'update', 'orders');
-          return { ...data[0], clients: savedClients || null };
+            .select('*, clients(*)');
+
+          if (error) {
+            // Fallback para update simples se o join falhar
+            const { data: fallbackData, error: fbError } = await supabase
+              .from('orders')
+              .update(orderData)
+              .eq('id', order.id)
+              .select();
+            if (fbError) handleSupabaseError(fbError, 'update', 'orders');
+            const row = fallbackData?.[0] || {};
+            return { ...row, clients: clientObj || null };
+          }
+
+          const row = data?.[0] || {};
+          let returnedClient = row.clients;
+          if (Array.isArray(returnedClient) && returnedClient.length > 0) returnedClient = returnedClient[0];
+          return { ...row, clients: returnedClient || clientObj || null };
         } else {
           const { id, ...cleanData } = orderData;
+          // Tentar insert com join do cliente
           const { data, error } = await supabase
             .from('orders')
             .insert([cleanData])
-            .select();
-          if (error) handleSupabaseError(error, 'create', 'orders');
-          return { ...data[0], clients: null };
+            .select('*, clients(*)');
+
+          if (error) {
+            // Fallback para insert simples se o join falhar
+            const { data: fallbackData, error: fbError } = await supabase
+              .from('orders')
+              .insert([cleanData])
+              .select();
+            if (fbError) handleSupabaseError(fbError, 'create', 'orders');
+            const row = fallbackData?.[0] || {};
+            return { ...row, clients: clientObj || null };
+          }
+
+          const row = data?.[0] || {};
+          let returnedClient = row.clients;
+          if (Array.isArray(returnedClient) && returnedClient.length > 0) returnedClient = returnedClient[0];
+          return { ...row, clients: returnedClient || clientObj || null };
         }
       }
     );
 
-    if (savedClients) {
-      const orders = getOfflineFallback('orders') || [];
-      const updated = orders.map((o: any) => o.id === result.id ? { ...o, clients: savedClients } : o);
-      setCachedData('orders', updated);
+    // Garantir que a lista em cache local fique imediatamente com o cliente populado
+    const finalClient = result.clients || clientObj || null;
+    const orders = getOfflineFallback('orders') || [];
+    const updated = orders.map((o: any) => o.id === result.id ? { ...o, clients: finalClient } : o);
+    if (!updated.some((o: any) => o.id === result.id)) {
+      updated.unshift({ ...result, clients: finalClient });
     }
-    return result;
+    setCachedData('orders', updated);
+
+    return { ...result, clients: finalClient };
   },
 
   async deleteOrder(id: string) {

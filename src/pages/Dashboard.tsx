@@ -575,7 +575,7 @@ export default function Dashboard() {
                             <CheckCircle2 className="text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" size={16} />
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-bold text-slate-850 dark:text-slate-200">
-                                Pedido de {order.clients?.name || 'Cliente'} entregue
+                                Pedido de {(Array.isArray(order.clients) ? order.clients[0]?.name : order.clients?.name) || order.client?.name || 'Cliente'} entregue
                               </p>
                               <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate font-medium">
                                 {order.quantity} {order.quantity === 1 ? 'ovo' : 'ovos'} • {order.raca}
