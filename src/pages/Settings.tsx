@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { supabase } from '../lib/supabaseClient';
+import { performSignOut } from '../lib/authHelper';
 import { ALL_MODULES, STORAGE_KEY, DEFAULT_NAV_PATHS } from '../components/BottomNav';
 
 export default function Settings() {
@@ -39,6 +40,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(!cachedProfile);
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [profile, setProfile] = useState<any>(cachedProfile);
   const [userEmail, setUserEmail] = useState<string>(cachedProfile?.email || '');
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -223,7 +225,9 @@ export default function Settings() {
   }
 
   async function handleSignOut() {
-    await supabase.auth.signOut();
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    await performSignOut();
   }
 
   async function handleUpdatePassword(e: React.FormEvent<HTMLFormElement>) {
@@ -709,9 +713,18 @@ export default function Settings() {
               <p className="text-xs text-slate-500 mb-6 tracking-widest uppercase font-bold">Encerrar acesso ao sistema</p>
               <button 
                 onClick={handleSignOut}
-                className="w-full flex items-center justify-center gap-2 bg-[#FEF2F2] text-[#EF4444] border border-[#FECACA] px-6 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest transition-all hover:bg-[#FEE2E2]"
+                disabled={isSigningOut}
+                className="w-full flex items-center justify-center gap-2 bg-[#FEF2F2] dark:bg-red-950/20 text-[#EF4444] border border-[#FECACA] dark:border-red-900/40 px-6 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest transition-all hover:bg-[#FEE2E2] dark:hover:bg-red-900/30 active:scale-[0.98] cursor-pointer touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed select-none"
               >
-                <LogOut size={16} /> Encerrar Sessão
+                {isSigningOut ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" /> Encerrando Sessão...
+                  </>
+                ) : (
+                  <>
+                    <LogOut size={16} /> Encerrar Sessão
+                  </>
+                )}
               </button>
             </section>
 

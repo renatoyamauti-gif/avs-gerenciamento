@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Zap, Shield, Star, CreditCard, Lock } from 'lucide-react';
+import { Check, Zap, Shield, Star, CreditCard, Lock, LogOut, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { supabase } from '../lib/supabaseClient';
+import { performSignOut } from '../lib/authHelper';
 import { useSubscription } from '../hooks/useSubscription';
 
 const plans = [
@@ -103,6 +104,7 @@ const plans = [
 
 export default function Subscription() {
   const [userId, setUserId] = useState<string | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const { plan: currentPlan, isTrialExpired } = useSubscription();
 
   useEffect(() => {
@@ -143,10 +145,23 @@ export default function Subscription() {
               </p>
             </div>
             <button 
-              onClick={() => supabase.auth.signOut()}
-              className="mt-2 px-6 py-2 bg-white text-red-600 rounded-full text-xs font-bold uppercase tracking-widest border border-red-200 hover:bg-red-100 transition-colors shadow-sm"
+              onClick={async () => {
+                if (isSigningOut) return;
+                setIsSigningOut(true);
+                await performSignOut();
+              }}
+              disabled={isSigningOut}
+              className="mt-2 px-6 py-2 bg-white text-red-600 rounded-full text-xs font-bold uppercase tracking-widest border border-red-200 hover:bg-red-100 active:scale-95 transition-all shadow-sm cursor-pointer touch-manipulation disabled:opacity-50 flex items-center gap-1.5 select-none"
             >
-              Sair da Conta
+              {isSigningOut ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" /> Saindo...
+                </>
+              ) : (
+                <>
+                  <LogOut size={14} /> Sair da Conta
+                </>
+              )}
             </button>
           </motion.div>
         )}

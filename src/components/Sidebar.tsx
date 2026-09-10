@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -17,9 +18,12 @@ import {
   Baby,
   MessageSquare,
   Truck,
-  Tag
+  Tag,
+  LogOut,
+  Loader2
 } from 'lucide-react';
 import { hasPermission } from '../lib/permissions';
+import { performSignOut } from '../lib/authHelper';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -126,6 +130,14 @@ const Sidebar = ({ isOpen, onClose, profile }: SidebarProps) => {
   ];
 
   const visibleMenuItems = menuItems.filter(item => hasPermission(profile, item.path));
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    if (window.innerWidth < 1024) onClose();
+    await performSignOut();
+  };
 
   return (
     <>
@@ -186,8 +198,22 @@ const Sidebar = ({ isOpen, onClose, profile }: SidebarProps) => {
             );
           })}
         </nav>
-        <div className="mt-auto pt-4 pb-6 border-t border-slate-200 dark:border-slate-800 opacity-80 flex items-center justify-center shrink-0">
-          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">AVS OS v1.0.5</p>
+
+        <div className="mt-auto pt-3 pb-4 border-t border-slate-200 dark:border-slate-800 shrink-0 space-y-3 px-1">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 border border-transparent hover:border-red-200 dark:hover:border-red-900/40 transition-all font-headline font-bold uppercase tracking-wider text-xs cursor-pointer touch-manipulation active:scale-95 disabled:opacity-50 select-none"
+          >
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 shrink-0">
+              {isSigningOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+            </div>
+            <span>{isSigningOut ? 'Saindo...' : 'Sair da Conta'}</span>
+          </button>
+          <div className="opacity-70 flex items-center justify-center">
+            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">AVS OS v1.0.5</p>
+          </div>
         </div>
       </aside>
     </>

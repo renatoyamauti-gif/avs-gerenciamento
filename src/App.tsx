@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Plus, LogOut, Heart, Menu, Sun, Moon } from 'lucide-react';
+import { Plus, LogOut, Heart, Menu, Sun, Moon, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -14,6 +14,7 @@ import BottomNav from './components/BottomNav';
 import { supabase } from './lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { dbService } from './lib/dbService';
+import { performSignOut } from './lib/authHelper';
 import { useSubscription } from './hooks/useSubscription';
 import { useTheme } from './contexts/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -78,6 +79,7 @@ export default function App() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const { plan, loading: subLoading, isFreePlan, isTrialExpired, trialDaysLeft, isTrialActive } = useSubscription();
   const { theme, toggleTheme } = useTheme();
 
@@ -105,6 +107,7 @@ export default function App() {
         dbService.clearCache(true);
         setSession(null);
         setProfile(null);
+        setIsSigningOut(false);
       } else if (event === 'SIGNED_IN') {
         const prevStored = localStorage.getItem('avs_cached_profile');
         if (prevStored) {
@@ -137,18 +140,39 @@ export default function App() {
       dbService.syncOfflineQueue().catch(console.error);
     };
 
+    const handleSigningOut = () => {
+      setIsSigningOut(true);
+      setSession(null);
+      setProfile(null);
+    };
+
+    const handleSignedOut = () => {
+      setSession(null);
+      setProfile(null);
+      setIsSigningOut(false);
+    };
+
     window.addEventListener('profileUpdated', handleProfileUpdate);
     window.addEventListener('online', handleOnline);
+    window.addEventListener('avs_auth_signing_out', handleSigningOut);
+    window.addEventListener('avs_auth_signed_out', handleSignedOut);
 
     return () => {
       subscription.unsubscribe();
       window.removeEventListener('profileUpdated', handleProfileUpdate);
       window.removeEventListener('online', handleOnline);
+      window.removeEventListener('avs_auth_signing_out', handleSigningOut);
+      window.removeEventListener('avs_auth_signed_out', handleSignedOut);
     };
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    // Instant UI switch to auth screen, zero wait time for user
+    setSession(null);
+    setProfile(null);
+    await performSignOut();
   };
 
   const getFirstName = () => {
@@ -280,9 +304,18 @@ export default function App() {
               </div>
               <button 
                 onClick={handleSignOut}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-white dark:bg-slate-900 text-[#EF4444] border-2 border-[#FCA5A5] dark:border-red-900/40 rounded-full text-sm font-bold uppercase tracking-widest hover:bg-[#FEF2F2] dark:hover:bg-red-950/20 transition-all cursor-pointer"
+                disabled={isSigningOut}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-white dark:bg-slate-900 text-[#EF4444] border-2 border-[#FCA5A5] dark:border-red-900/40 rounded-full text-sm font-bold uppercase tracking-widest hover:bg-[#FEF2F2] dark:hover:bg-red-950/20 active:scale-95 transition-all cursor-pointer touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed select-none"
               >
-                <LogOut size={16} /> Sair da conta
+                {isSigningOut ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Saindo...
+                  </>
+                ) : (
+                  <>
+                    <LogOut size={16} /> Sair da conta
+                  </>
+                )}
               </button>
             </motion.div>
             )}

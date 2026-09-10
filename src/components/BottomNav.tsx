@@ -20,9 +20,12 @@ import {
   SlidersHorizontal,
   Check,
   RotateCcw,
-  ArrowLeft
+  ArrowLeft,
+  LogOut,
+  Loader2
 } from 'lucide-react';
 import { hasPermission } from '../lib/permissions';
+import { performSignOut } from '../lib/authHelper';
 
 interface BottomNavProps {
   onOpenMenu: () => void;
@@ -177,6 +180,14 @@ export default function BottomNav({ onOpenMenu, profile }: BottomNavProps) {
 
   // Estado temporário durante a edição no modal
   const [tempSelectedPaths, setTempSelectedPaths] = useState<string[]>(selectedPaths);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    setIsMenuModalOpen(false);
+    await performSignOut();
+  };
 
   useEffect(() => {
     setTempSelectedPaths(selectedPaths);
@@ -602,6 +613,19 @@ export default function BottomNav({ onOpenMenu, profile }: BottomNavProps) {
                         className="w-full py-3 px-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                       >
                         <span>Abrir Barra Lateral Completa</span>
+                      </button>
+                    </div>
+
+                    {/* Botão Sair da Conta no Menu Mobile */}
+                    <div className="pt-1 pb-2">
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        disabled={isSigningOut}
+                        className="w-full py-3 px-4 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200/80 dark:border-red-900/40 text-red-600 dark:text-red-400 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all cursor-pointer touch-manipulation active:scale-[0.98] disabled:opacity-50 select-none"
+                      >
+                        {isSigningOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+                        <span>{isSigningOut ? 'Saindo...' : 'Sair da Conta'}</span>
                       </button>
                     </div>
                   </div>
