@@ -1,4 +1,4 @@
-const CACHE_NAME = 'avs-pwa-cache-v31';
+const CACHE_NAME = 'avs-pwa-cache-v32';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

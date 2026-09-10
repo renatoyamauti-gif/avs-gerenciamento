@@ -1160,6 +1160,8 @@ export const dbService = {
       collector_id: log.collector_id || user?.id
     };
 
+    invalidateCache('egg_logs');
+
     return this.handleWriteOperation(
       'egg_logs',
       'egg_logs',
@@ -1171,7 +1173,7 @@ export const dbService = {
             .from('egg_logs')
             .update(logData)
             .eq('id', log.id)
-            .select();
+            .select('*, collector:profiles!collector_id(full_name)');
           if (error) handleSupabaseError(error, 'update', 'egg_logs');
           return data[0];
         } else {
@@ -1179,7 +1181,7 @@ export const dbService = {
           const { data, error } = await supabase
             .from('egg_logs')
             .insert([insertData])
-            .select();
+            .select('*, collector:profiles!collector_id(full_name)');
           if (error) handleSupabaseError(error, 'create', 'egg_logs');
           return data[0];
         }
@@ -1188,6 +1190,7 @@ export const dbService = {
   },
 
   async deleteEggLog(id: string) {
+    invalidateCache('egg_logs');
     return this.handleDeleteOperation(
       'egg_logs',
       'egg_logs',

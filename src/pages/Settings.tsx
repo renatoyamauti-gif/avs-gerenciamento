@@ -18,10 +18,13 @@ import {
   X,
   Edit2,
   Link,
-  Share2
+  Share2,
+  SlidersHorizontal,
+  RotateCcw
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { supabase } from '../lib/supabaseClient';
+import { ALL_MODULES, STORAGE_KEY, DEFAULT_NAV_PATHS } from '../components/BottomNav';
 
 export default function Settings() {
   const cachedProfile = (() => {
@@ -41,7 +44,58 @@ export default function Settings() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
   // Tabs
-  const [activeTab, setActiveTab] = useState<'profile' | 'team'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'team' | 'bottomNav'>('profile');
+
+  // Bottom Nav Shortcuts state
+  const [navShortcuts, setNavShortcuts] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.slice(0, 4);
+      }
+    } catch {}
+    return DEFAULT_NAV_PATHS;
+  });
+  const [navMessage, setNavMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const handleToggleNavShortcut = (path: string) => {
+    setNavMessage(null);
+    if (navShortcuts.includes(path)) {
+      if (navShortcuts.length <= 1) {
+        setNavMessage({ type: 'error', text: 'Selecione pelo menos 1 atalho para a barra inferior.' });
+        return;
+      }
+      setNavShortcuts(navShortcuts.filter(p => p !== path));
+    } else {
+      if (navShortcuts.length >= 4) {
+        setNavMessage({ type: 'error', text: 'Máximo de 4 atalhos atingido. Desmarque um antes de adicionar outro.' });
+        return;
+      }
+      setNavShortcuts([...navShortcuts, path]);
+    }
+  };
+
+  const handleSaveNavShortcuts = () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(navShortcuts));
+      window.dispatchEvent(new CustomEvent('avs_custom_nav_updated', { detail: navShortcuts }));
+      setNavMessage({ type: 'success', text: 'Atalhos da barra inferior salvos com sucesso!' });
+      setTimeout(() => setNavMessage(null), 3000);
+    } catch (e) {
+      setNavMessage({ type: 'error', text: 'Erro ao salvar atalhos.' });
+    }
+  };
+
+  const handleResetNavShortcuts = () => {
+    setNavShortcuts(DEFAULT_NAV_PATHS);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_NAV_PATHS));
+      window.dispatchEvent(new CustomEvent('avs_custom_nav_updated', { detail: DEFAULT_NAV_PATHS }));
+      setNavMessage({ type: 'success', text: 'Atalhos restaurados para o padrão original!' });
+      setTimeout(() => setNavMessage(null), 3000);
+    } catch (e) {}
+  };
   
   // Password update states
   const [newPassword, setNewPassword] = useState('');
@@ -399,11 +453,11 @@ export default function Settings() {
       </header>
 
       {/* Tabs Menu */}
-      <div className="flex border-b border-slate-200 gap-6">
+      <div className="flex border-b border-slate-200 gap-6 overflow-x-auto custom-scrollbar">
         <button
           type="button"
           onClick={() => setActiveTab('profile')}
-          className={`pb-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all ${
+          className={`pb-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all shrink-0 cursor-pointer ${
             activeTab === 'profile'
               ? 'border-[#2563EB] text-[#2563EB]'
               : 'border-transparent text-slate-400 hover:text-slate-600'
@@ -414,13 +468,24 @@ export default function Settings() {
         <button
           type="button"
           onClick={() => { setActiveTab('team'); loadTeam(); }}
-          className={`pb-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all ${
+          className={`pb-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all shrink-0 cursor-pointer ${
             activeTab === 'team'
               ? 'border-[#2563EB] text-[#2563EB]'
               : 'border-transparent text-slate-400 hover:text-slate-600'
           }`}
         >
           <Users size={16} /> Equipe / Tratadores
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('bottomNav')}
+          className={`pb-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all shrink-0 cursor-pointer ${
+            activeTab === 'bottomNav'
+              ? 'border-[#2563EB] text-[#2563EB]'
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <SlidersHorizontal size={16} /> Atalhos Mobile
         </button>
       </div>
 
@@ -665,7 +730,7 @@ export default function Settings() {
             </section>
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'team' ? (
         /* Team management view */
         <div className="space-y-8">
           <div className="flex justify-between items-center flex-wrap gap-4">
@@ -919,6 +984,149 @@ export default function Settings() {
               </div>
             </div>
           )}
+        </div>
+      ) : (
+        /* Aba Atalhos Mobile */
+        <div className="space-y-8">
+          <section className="bg-white border border-slate-100 rounded-[32px] p-6 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+              <div>
+                <div className="flex items-center gap-3">
+                  <SlidersHorizontal className="text-[#2563EB]" size={24} />
+                  <h3 className="text-xl font-bold text-[#1F2937] font-headline tracking-tight">
+                    Atalhos da Barra Inferior (Mobile)
+                  </h3>
+                </div>
+                <p className="text-slate-500 font-medium text-xs sm:text-sm mt-1">
+                  Escolha até 4 atalhos favoritos para fixar no rodapé do celular. O 5º botão será sempre o <strong>Menu</strong> com acesso a todas as páginas.
+                </p>
+              </div>
+
+              <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider self-start sm:self-auto ${
+                navShortcuts.length === 4 
+                  ? 'bg-emerald-100 text-emerald-700' 
+                  : 'bg-blue-100 text-blue-700'
+              }`}>
+                {navShortcuts.length} de 4 selecionados
+              </span>
+            </div>
+
+            {navMessage && (
+              <div className={`mb-6 p-4 rounded-2xl text-xs font-bold flex items-center gap-2 ${
+                navMessage.type === 'success' 
+                  ? 'bg-green-50 text-green-700 border border-green-200' 
+                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+              }`}>
+                {navMessage.type === 'success' ? <CheckCircle2 size={16} /> : <span>⚠️</span>}
+                <span>{navMessage.text}</span>
+              </div>
+            )}
+
+            {/* Smartphone Live Preview */}
+            <div className="mb-8 p-5 bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl border border-slate-700/60 max-w-lg mx-auto shadow-xl">
+              <div className="flex items-center justify-between mb-3 px-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  📱 Pré-visualização da Barra Inferior no Celular
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">
+                  5 atalhos
+                </span>
+              </div>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-2 flex justify-around items-center border border-slate-200 dark:border-slate-800 shadow-inner">
+                {navShortcuts.map((path) => {
+                  const mod = ALL_MODULES.find(m => m.path === path);
+                  if (!mod) return null;
+                  return (
+                    <div key={path} className="flex flex-col items-center justify-center py-1 flex-1 text-center">
+                      <div className="text-[#2563EB]">{mod.getBottomIcon()}</div>
+                      <span className="text-[9px] font-bold text-slate-700 dark:text-slate-200 mt-1 truncate max-w-[60px]">
+                        {mod.shortLabel}
+                      </span>
+                    </div>
+                  );
+                })}
+                <div className="flex flex-col items-center justify-center py-1 flex-1 text-center text-slate-400">
+                  <div className="text-sm leading-none font-bold">•••</div>
+                  <span className="text-[9px] font-bold mt-1">Menu</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Interactive Module Grid */}
+            <div className="space-y-4 mb-8">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block ml-1">
+                Toque nos módulos para adicionar ou remover da barra inferior:
+              </label>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {ALL_MODULES.map((item) => {
+                  const isSelected = navShortcuts.includes(item.path);
+                  const orderIndex = navShortcuts.indexOf(item.path);
+
+                  return (
+                    <button
+                      key={item.path}
+                      type="button"
+                      onClick={() => handleToggleNavShortcut(item.path)}
+                      className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all text-left cursor-pointer ${
+                        isSelected
+                          ? 'bg-blue-50/90 border-[#2563EB] shadow-sm ring-2 ring-[#2563EB]/20'
+                          : 'bg-[#F8FAFC] border-slate-200 hover:bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className={`p-2 rounded-xl border shrink-0 ${item.color}`}>
+                          {item.icon}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-xs font-bold font-headline uppercase tracking-tight truncate ${
+                            isSelected ? 'text-[#2563EB]' : 'text-[#1F2937]'
+                          }`}>
+                            {item.label}
+                          </p>
+                          <p className="text-[10px] text-slate-400 truncate font-medium">
+                            "{item.shortLabel}" • {item.desc}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 ml-2">
+                        {isSelected ? (
+                          <div className="flex items-center gap-1 bg-[#2563EB] text-white px-2.5 py-1 rounded-xl text-[11px] font-black shadow-sm">
+                            <CheckCircle2 size={12} />
+                            <span>#{orderIndex + 1}</span>
+                          </div>
+                        ) : (
+                          <div className="w-6 h-6 rounded-xl border-2 border-slate-300 flex items-center justify-center text-slate-300" />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={handleSaveNavShortcuts}
+                className="flex-1 py-4 px-6 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-2xl font-bold text-xs uppercase tracking-widest transition-all cursor-pointer shadow-md shadow-blue-500/20 active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <Save size={16} />
+                <span>Salvar Atalhos Mobile ({navShortcuts.length}/4)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetNavShortcuts}
+                className="py-4 px-6 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <RotateCcw size={16} />
+                <span>Restaurar Padrão</span>
+              </button>
+            </div>
+          </section>
         </div>
       )}
       <AnimatePresence>

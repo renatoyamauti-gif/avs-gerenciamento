@@ -54,6 +54,9 @@ export default function EggCollection() {
   const [viewFilter, setViewFilter] = useState<'all' | 'baia' | 'raca'>('all');
 
   const countInputRef = useRef<HTMLInputElement>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const isSavingRef = useRef(false);
+  const saveActionRef = useRef<'close' | 'continue'>('close');
   
   const currentDate = new Date();
   const [viewDate, setViewDate] = useState(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
@@ -392,6 +395,25 @@ export default function EggCollection() {
     }
   }
 
+  async function refreshEggLogs() {
+    try {
+      const logsData = await dbService.getEggLogs();
+      if (logsData) {
+        setLogs(logsData);
+        setUniqueBaias(prev => {
+          const fromLogs = logsData.map((l: any) => l.baia).filter(Boolean);
+          return Array.from(new Set([...prev, ...fromLogs])).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+        });
+        setUniqueRacas(prev => {
+          const fromLogs = logsData.map((l: any) => l.raca).filter(Boolean);
+          return Array.from(new Set([...prev, ...fromLogs])).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar coletas de ovos:', error);
+    }
+  }
+
   // Handle URL Query parameters for QR Code collections
   useEffect(() => {
     const baiaParam = searchParams.get('baia');
@@ -424,6 +446,8 @@ export default function EggCollection() {
     setEditingLogId(null);
     setPrefilledBaia('');
     setPrefilledRaca('');
+    setIsSaving(false);
+    isSavingRef.current = false;
   };
 
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
@@ -433,97 +457,142 @@ export default function EggCollection() {
     e.preventDefault();
     if (editingDay === null) return;
 
-    const submitEvent = e.nativeEvent as SubmitEvent;
-    const submitter = submitEvent.submitter as HTMLButtonElement | null;
-    const shouldClose = submitter?.getAttribute('data-close') === 'true';
-
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    const count = parseInt(formData.get('count') as string) || 0;
-    if (count <= 0) return; // Prevent empty/zero submits
-
-    const pairsString = formData.get('pairs') as string;
-    const pairs = pairsString ? pairsString.split(',').map(p => p.trim()).filter(p => p !== '') : [];
-    const rawBaia = (formData.get('baia') as string) || '';
-    const rawRaca = (formData.get('raca') as string) || '';
-    const baia = rawBaia.trim();
-    const raca = rawRaca.trim();
-
-    if (originType === 'baia' && !baia) {
-      alert('Por favor, selecione ou informe a Baia de origem.');
-      return;
-    }
-    if (originType === 'raca' && !raca) {
-      alert('Por favor, selecione ou informe a Raça de origem.');
-      return;
-    }
-
-    const condition = formData.get('condition') as string || 'Normal';
-    const collectorId = formData.get('collector_id') as string;
-
-    const logData: any = {
-      day: editingDay,
-      month: viewDate.getMonth() + 1,
-      year: viewDate.getFullYear(),
-      count,
-      pairs,
-      baia: originType === 'baia' ? (baia || null) : null,
-      raca: originType === 'raca' ? (raca || null) : null,
-      condition,
-      collector_id: collectorId || null
-    };
-    
-    if (editingLogId) {
-      logData.id = editingLogId;
-    } else {
-      const existingLogs = logs.filter(l => 
-        l.day === editingDay && 
-        l.month === viewDate.getMonth() + 1 && 
-        l.year === viewDate.getFullYear() &&
-        (originType === 'baia' 
-          ? Boolean(l.baia) && normalizeBaia(l.baia) === normalizeBaia(baia)
-          : Boolean(l.raca) && normalizeBreed(l.raca) === normalizeBreed(raca))
-      );
-      
-      if (existingLogs.length > 0) {
-        const existing = existingLogs[0];
-        logData.id = existing.id;
-        logData.count = existing.count + count;
-        
-        if (existing.pairs && existing.pairs.length > 0) {
-          logData.pairs = Array.from(new Set([...existing.pairs, ...pairs]));
-        }
-        
-        // Aggregate condition
-        if (existing.condition && condition && !existing.condition.includes(condition)) {
-           logData.condition = `${existing.condition}, ${condition}`;
-        } else {
-           logData.condition = condition || existing.condition;
-        }
-      }
-    }
+    // Trava de execução síncrona contra múltiplos cliques repetidos
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
+    setIsSaving(true);
 
     try {
-      await dbService.saveEggLog(logData);
-      await Promise.all([loadLogs(), loadBaias(), loadRacas()]);
-      setEditingLogId(null);
-      form.reset(); // Keeps modal open but clears form for the next baia
+      const submitEvent = e.nativeEvent as SubmitEvent;
+      const submitter = submitEvent?.submitter as HTMLButtonElement | null;
+      // Compatibilidade robusta para mobile/iOS Safari caso submitter não esteja disponível
+      const shouldClose = submitter 
+        ? submitter.getAttribute('data-close') === 'true' 
+        : (saveActionRef.current !== 'continue');
+
+      const form = e.currentTarget;
+      const formData = new FormData(form);
+      const count = parseInt(formData.get('count') as string) || 0;
+      if (count <= 0) {
+        alert('Por favor, informe uma quantidade válida de ovos.');
+        return;
+      }
+
+      const pairsString = formData.get('pairs') as string;
+      const pairs = pairsString ? pairsString.split(',').map(p => p.trim()).filter(p => p !== '') : [];
+      const rawBaia = (formData.get('baia') as string) || '';
+      const rawRaca = (formData.get('raca') as string) || '';
+      const baia = rawBaia.trim();
+      const raca = rawRaca.trim();
+
+      if (originType === 'baia' && !baia) {
+        alert('Por favor, selecione ou informe a Baia de origem.');
+        return;
+      }
+      if (originType === 'raca' && !raca) {
+        alert('Por favor, selecione ou informe a Raça de origem.');
+        return;
+      }
+
+      const condition = formData.get('condition') as string || 'Normal';
+      const collectorId = formData.get('collector_id') as string;
+
+      const logData: any = {
+        day: editingDay,
+        month: viewDate.getMonth() + 1,
+        year: viewDate.getFullYear(),
+        count,
+        pairs,
+        baia: originType === 'baia' ? (baia || null) : null,
+        raca: originType === 'raca' ? (raca || null) : null,
+        condition,
+        collector_id: collectorId || null
+      };
       
+      if (editingLogId) {
+        logData.id = editingLogId;
+      } else {
+        const existingLogs = logs.filter(l => 
+          l.day === editingDay && 
+          l.month === viewDate.getMonth() + 1 && 
+          l.year === viewDate.getFullYear() &&
+          (originType === 'baia' 
+            ? Boolean(l.baia) && normalizeBaia(l.baia) === normalizeBaia(baia)
+            : Boolean(l.raca) && normalizeBreed(l.raca) === normalizeBreed(raca))
+        );
+        
+        if (existingLogs.length > 0) {
+          const existing = existingLogs[0];
+          logData.id = existing.id;
+          // Se existirem duplicatas anteriores geradas por cliques múltiplos, consolida os totais
+          const prevTotalCount = existingLogs.reduce((acc, curr) => acc + curr.count, 0);
+          logData.count = prevTotalCount + count;
+          
+          const allPairs = existingLogs.flatMap(l => l.pairs || []);
+          if (allPairs.length > 0 || pairs.length > 0) {
+            logData.pairs = Array.from(new Set([...allPairs, ...pairs]));
+          }
+          
+          // Limpa duplicatas órfãs anteriores se existirem
+          if (existingLogs.length > 1) {
+            for (let i = 1; i < existingLogs.length; i++) {
+              dbService.deleteEggLog(existingLogs[i].id).catch(console.error);
+            }
+          }
+          
+          // Aggregate condition
+          if (existing.condition && condition && !existing.condition.includes(condition)) {
+             logData.condition = `${existing.condition}, ${condition}`;
+          } else {
+             logData.condition = condition || existing.condition;
+          }
+        }
+      }
+
+      const savedResult = await dbService.saveEggLog(logData);
+
+      // Atualização otimista imediata no estado local logs para o calendário e contadores atualizarem instantaneamente
+      setLogs(prev => {
+        const targetId = logData.id || savedResult?.id;
+        if (targetId && prev.some(l => l.id === targetId)) {
+          return prev.map(l => l.id === targetId ? { ...l, ...logData, ...savedResult } : l);
+        } else if (savedResult) {
+          return [{ ...logData, ...savedResult }, ...prev];
+        }
+        return prev;
+      });
+
+      setEditingLogId(null);
+
+      // Fecha o modal imediatamente se solicitado, dando feedback instantâneo ao usuário
       if (shouldClose) {
         handleCloseModal();
+      } else {
+        form.reset(); // Mantém modal aberto e limpa campo de ovos para a próxima baia
+        setTimeout(() => {
+          countInputRef.current?.focus();
+        }, 50);
       }
+
+      // Sincroniza em segundo plano apenas os logs de coletas (rápido e leve)
+      await refreshEggLogs();
     } catch (error) {
       alert('Erro ao salvar coleta: ' + error);
+    } finally {
+      isSavingRef.current = false;
+      setIsSaving(false);
     }
   };
 
   const removeEntry = async (id: string) => {
     if (!confirm('Tem certeza que quer excluir/deletar esta coleta? Pois será irreversível.')) return;
     try {
+      setLogs(prev => prev.filter(l => l.id !== id));
       await dbService.deleteEggLog(id);
-      await loadLogs();
+      await refreshEggLogs();
     } catch (error) {
       alert('Erro ao excluir: ' + error);
+      await refreshEggLogs();
     }
   };
 
@@ -1343,7 +1412,7 @@ export default function EggCollection() {
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
               exit={{ opacity: 0 }}
-              onClick={() => setEditingDay(null)}
+              onClick={() => !isSaving && handleCloseModal()}
               className="absolute inset-0 bg-[#020617]/40 backdrop-blur-sm"
             ></motion.div>
             <motion.div 
@@ -1368,7 +1437,8 @@ export default function EggCollection() {
                 </div>
                 <button 
                   onClick={handleCloseModal}
-                  className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors"
+                  disabled={isSaving}
+                  className="bg-[#F8FAFC] p-2 text-slate-400 hover:text-[#EF4444] rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <X size={20} />
                 </button>
@@ -1538,8 +1608,9 @@ export default function EggCollection() {
                       name="count" 
                       type="number" 
                       min="1"
+                      disabled={isSaving}
                       defaultValue={logToEdit?.count || ""} 
-                      className="flex-1 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 outline-none text-center text-xl font-bold transition-all" 
+                      className="flex-1 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 outline-none text-center text-xl font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed" 
                     />
                     <Egg className="text-[#2563EB]" size={32} />
                   </div>
@@ -1549,8 +1620,9 @@ export default function EggCollection() {
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Condição dos Ovos</label>
                   <select 
                     name="condition" 
+                    disabled={isSaving}
                     defaultValue={logToEdit?.condition || "Normal"} 
-                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none"
+                    className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <option value="Normal">Normal</option>
                     <option value="Sujo">Sujo</option>
@@ -1584,8 +1656,9 @@ export default function EggCollection() {
                   <div className="flex gap-3">
                     <button
                       type="button"
+                      disabled={isSaving}
                       onClick={() => setOriginType('baia')}
-                      className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
                         originType === 'baia'
                           ? 'bg-[#EFF6FF] border-[#2563EB] text-[#2563EB] shadow-sm ring-1 ring-[#2563EB]/20'
                           : 'bg-[#F8FAFC] border-slate-200 text-slate-500 hover:border-slate-300'
@@ -1597,8 +1670,9 @@ export default function EggCollection() {
 
                     <button
                       type="button"
+                      disabled={isSaving}
                       onClick={() => setOriginType('raca')}
-                      className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
                         originType === 'raca'
                           ? 'bg-[#F5F3FF] border-[#8B5CF6] text-[#8B5CF6] shadow-sm ring-1 ring-[#8B5CF6]/20'
                           : 'bg-[#F8FAFC] border-slate-200 text-slate-500 hover:border-slate-300'
@@ -1625,10 +1699,11 @@ export default function EggCollection() {
                       name="baia" 
                       list="egg-baias-list"
                       required
+                      disabled={isSaving}
                       defaultValue={logToEdit?.baia || prefilledBaia} 
                       type="text" 
                       placeholder="Selecione ou digite a baia (Ex: Baia 01)" 
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" 
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none disabled:opacity-60 disabled:cursor-not-allowed" 
                     />
                     <datalist id="egg-baias-list">
                       {uniqueBaias.map(baia => (
@@ -1646,10 +1721,11 @@ export default function EggCollection() {
                       name="raca" 
                       list="egg-racas-list"
                       required
+                      disabled={isSaving}
                       defaultValue={logToEdit?.raca || prefilledRaca} 
                       type="text" 
                       placeholder="Selecione ou digite a raça (Ex: GSB, Índio Gigante)" 
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#8B5CF6]/50 focus:ring-4 focus:ring-[#8B5CF6]/10 transition-all outline-none" 
+                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#8B5CF6]/50 focus:ring-4 focus:ring-[#8B5CF6]/10 transition-all outline-none disabled:opacity-60 disabled:cursor-not-allowed" 
                     />
                     <datalist id="egg-racas-list">
                       {uniqueRacas.map(raca => (
@@ -1663,9 +1739,10 @@ export default function EggCollection() {
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Casais (Separe por vírgula)</label>
                   <textarea 
                     name="pairs" 
+                    disabled={isSaving}
                     defaultValue={logToEdit?.pairs?.join(', ') || ""}
                     placeholder="Ex: MC-04, AR-12, CN-14"
-                    className="w-full h-24 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-sm text-[#1F2937] focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 outline-none resize-none transition-all"
+                    className="w-full h-24 bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3 text-sm text-[#1F2937] focus:bg-white focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB]/50 outline-none resize-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -1675,14 +1752,24 @@ export default function EggCollection() {
                       <button 
                         type="submit" 
                         data-close="true"
-                        className="flex-1 px-6 py-4 bg-[#2563EB] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-center"
+                        disabled={isSaving}
+                        onClick={() => { saveActionRef.current = 'close'; }}
+                        className="flex-1 px-6 py-4 bg-[#2563EB] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-center disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none flex items-center justify-center gap-2"
                       >
-                        Salvar Alterações
+                        {isSaving ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            <span>Salvando...</span>
+                          </>
+                        ) : (
+                          'Salvar Alterações'
+                        )}
                       </button>
                       <button 
                         type="button"
                         onClick={handleCloseModal}
-                        className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-slate-200 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-center"
+                        disabled={isSaving}
+                        className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-slate-200 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-center disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         Cancelar
                       </button>
@@ -1692,15 +1779,33 @@ export default function EggCollection() {
                       <button 
                         type="submit" 
                         data-close="true"
-                        className="flex-1 px-6 py-4 bg-[#2563EB] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-center"
+                        disabled={isSaving}
+                        onClick={() => { saveActionRef.current = 'close'; }}
+                        className="flex-1 px-6 py-4 bg-[#2563EB] text-white rounded-2xl font-bold text-sm uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-center disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none flex items-center justify-center gap-2"
                       >
-                        Salvar e Fechar
+                        {isSaving && saveActionRef.current === 'close' ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            <span>Salvando...</span>
+                          </>
+                        ) : (
+                          'Salvar e Fechar'
+                        )}
                       </button>
                       <button 
                         type="submit" 
-                        className="flex-1 px-6 py-4 bg-slate-100 text-slate-700 border border-slate-200 rounded-2xl font-bold text-xs uppercase tracking-wider hover:bg-slate-200 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-center"
+                        disabled={isSaving}
+                        onClick={() => { saveActionRef.current = 'continue'; }}
+                        className="flex-1 px-6 py-4 bg-slate-100 text-slate-700 border border-slate-200 rounded-2xl font-bold text-xs uppercase tracking-wider hover:bg-slate-200 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer text-center disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none flex items-center justify-center gap-2"
                       >
-                        Salvar e Continuar Lançando
+                        {isSaving && saveActionRef.current === 'continue' ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            <span>Salvando...</span>
+                          </>
+                        ) : (
+                          'Salvar e Continuar Lançando'
+                        )}
                       </button>
                     </>
                   )}

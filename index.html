@@ -24,9 +24,24 @@
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js').then((registration) => {
             console.log('SW registered: ', registration);
+            registration.update();
           }).catch((registrationError) => {
             console.log('SW registration failed: ', registrationError);
           });
+        });
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            navigator.serviceWorker.ready.then((reg) => reg.update()).catch(() => {});
+          }
+        });
+
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
         });
       }
     </script>

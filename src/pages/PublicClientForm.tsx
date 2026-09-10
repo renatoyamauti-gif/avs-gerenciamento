@@ -14,6 +14,15 @@ import {
   Clock
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { 
+  isValidCpfOrCnpj, 
+  isValidCepFormat,
+  isValidPhone,
+  maskCpfCnpj, 
+  maskCep, 
+  maskPhone, 
+  lookupViaCep 
+} from '../lib/validation';
 
 export default function PublicClientForm() {
   const { userId } = useParams<{ userId: string }>();
@@ -37,11 +46,21 @@ export default function PublicClientForm() {
   const [state, setState] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
+  // Validation feedback states
+  const [cpfError, setCpfError] = useState<string | null>(null);
+  const [cepError, setCepError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [cepSuccess, setCepSuccess] = useState(false);
+
   // Status states
   const [loadingCep, setLoadingCep] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Derived state for valid CPF/CNPJ
+  const cleanCpfDigits = cpfCnpj.replace(/\D/g, '');
+  const isCpfValid = (cleanCpfDigits.length === 11 || cleanCpfDigits.length === 14) && isValidCpfOrCnpj(cleanCpfDigits);
 
   useEffect(() => {
     if (userId) {
@@ -71,34 +90,140 @@ export default function PublicClientForm() {
     }
   };
 
-  const handleCepLookup = async (cepValue: string) => {
-    const cleanCep = cepValue.replace(/\D/g, '');
+  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const masked = maskCpfCnpj(e.target.value);
+    setCpfCnpj(masked);
+    const clean = masked.replace(/\D/g, '');
+    
+    if (clean.length === 11 || clean.length === 14) {
+      if (isValidCpfOrCnpj(clean)) {
+        setCpfError(null);
+      } else {
+        setCpfError(clean.length === 11 ? 'CPF inválido. Confira os números.' : 'CNPJ inválido. Confira os números.');
+      }
+    } else {
+      setCpfError(null);
+    }
+  };
+
+  const handleCpfBlur = () => {
+    const clean = cpfCnpj.replace(/\D/g, '');
+    if (clean.length > 0) {
+      if (!isValidCpfOrCnpj(clean)) {
+        setCpfError(clean.length <= 11 ? 'CPF inválido ou incompleto.' : 'CNPJ inválido ou incompleto.');
+      } else {
+        setCpfError(null);
+      }
+    }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const masked = maskPhone(e.target.value);
+    setPhone(masked);
+    const clean = masked.replace(/\D/g, '');
+    if (clean.length >= 10) {
+      setPhoneError(null);
+    }
+  };
+
+  const handlePhoneBlur = () => {
+    const clean = phone.replace(/\D/g, '');
+    if (clean.length > 0 && !isValidPhone(clean)) {
+      setPhoneError('Telefone incompleto com DDD (mínimo 10 dígitos).');
+    } else {
+      setPhoneError(null);
+    }
+  };
+
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const masked = maskCep(e.target.value);
+    setPostalCode(masked);
+    const clean = masked.replace(/\D/g, '');
+    setCepError(null);
+    if (clean.length === 8) {
+      triggerCepLookup(clean);
+    } else {
+      setCepSuccess(false);
+    }
+  };
+
+  const triggerCepLookup = async (cleanCep: string) => {
     if (cleanCep.length !== 8) return;
 
     setLoadingCep(true);
+    setCepError(null);
+    setCepSuccess(false);
+
     try {
-      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-      const data = await response.json();
-      
-      if (data.erro) {
-        alert('CEP não encontrado.');
+      const result = await lookupViaCep(cleanCep);
+      if (!result.success || !result.data) {
+        setCepError(result.error || 'CEP não encontrado nos Correios.');
         return;
       }
 
-      setAddress(data.logradouro || '');
-      setDistrict(data.bairro || '');
-      setCity(data.localidade || '');
-      setState(data.uf || '');
-    } catch (err) {
+      const { logradouro, bairro, localidade, uf, complemento: apiComplemento } = result.data;
+      if (logradouro) setAddress(logradouro);
+      if (bairro) setDistrict(bairro);
+      if (localidade) setCity(localidade);
+      if (uf) setState(uf.toUpperCase());
+      if (apiComplemento && !complement) setComplement(apiComplemento);
+
+      setCepSuccess(true);
+    } catch (err: any) {
       console.error('Erro ao consultar CEP:', err);
+      setCepError('Erro de conexão ao buscar o CEP.');
     } finally {
       setLoadingCep(false);
+    }
+  };
+
+  const handleCepBlur = () => {
+    const clean = postalCode.replace(/\D/g, '');
+    if (clean.length > 0 && clean.length < 8) {
+      setCepError('CEP incompleto. Digite os 8 números.');
+    } else if (clean.length === 8 && !cepSuccess && !loadingCep) {
+      triggerCepLookup(clean);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+
+    const cleanCpf = cpfCnpj.replace(/\D/g, '');
+    if (!cleanCpf) {
+      setCpfError('Informe seu CPF ou CNPJ.');
+      setErrorMsg('Por favor, informe seu CPF ou CNPJ.');
+      return;
+    }
+    if (!isValidCpfOrCnpj(cleanCpf)) {
+      setCpfError(cleanCpf.length <= 11 ? 'CPF inválido.' : 'CNPJ inválido.');
+      setErrorMsg('O CPF/CNPJ digitado não é válido. Verifique os dígitos informados.');
+      return;
+    }
+
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!isValidPhone(cleanPhone)) {
+      setPhoneError('Telefone inválido.');
+      setErrorMsg('Por favor, informe um WhatsApp/telefone válido com DDD.');
+      return;
+    }
+
+    const cleanCep = postalCode.replace(/\D/g, '');
+    if (!isValidCepFormat(cleanCep)) {
+      setCepError('CEP deve conter 8 dígitos.');
+      setErrorMsg('Por favor, informe um CEP válido com 8 dígitos.');
+      return;
+    }
+    if (cepError) {
+      setErrorMsg('O CEP informado é inválido ou não foi localizado pelos Correios.');
+      return;
+    }
+
+    if (!address.trim() || !number.trim() || !district.trim() || !city.trim() || !state.trim()) {
+      setErrorMsg('Por favor, preencha todos os campos obrigatórios do endereço de entrega.');
+      return;
+    }
 
     if (!acceptedTerms) {
       setErrorMsg('Você precisa aceitar os termos e condições de envio para prosseguir.');
@@ -117,10 +242,10 @@ export default function PublicClientForm() {
         .from('clients')
         .insert([{
           name: name.trim(),
-          cpf_cnpj: cpfCnpj.replace(/\D/g, '') || null,
+          cpf_cnpj: cleanCpf,
           phone: phone.trim(),
           email: email.trim(),
-          postal_code: postalCode.replace(/\D/g, ''),
+          postal_code: cleanCep,
           address: address.trim(),
           number: number.trim(),
           complemento: complement.trim() || null,
@@ -245,7 +370,7 @@ export default function PublicClientForm() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               
-              {/* Personal Information Row */}
+              {/* Row 1: Nome Completo & CPF/CNPJ */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-450 uppercase tracking-widest ml-1 flex items-center gap-1">
@@ -261,39 +386,76 @@ export default function PublicClientForm() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-450 uppercase tracking-widest ml-1">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between ml-1">
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-450 uppercase tracking-widest">
                       CPF / CNPJ
                     </label>
+                    {isCpfValid && (
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                        <CheckCircle2 size={12} /> Válido
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
                     <input
                       required
                       type="text"
-                      placeholder="Apenas números"
+                      placeholder="000.000.000-00"
+                      maxLength={18}
                       value={cpfCnpj}
-                      onChange={(e) => setCpfCnpj(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-800 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-slate-900 focus:border-[#2563EB]/50 transition-all outline-none focus:ring-4 focus:ring-blue-500/5"
+                      onChange={handleCpfChange}
+                      onBlur={handleCpfBlur}
+                      className={`w-full bg-slate-50 dark:bg-slate-950 border rounded-2xl pl-4 pr-10 py-3 text-sm text-slate-800 dark:text-slate-100 font-medium transition-all outline-none focus:ring-4 ${
+                        cpfError 
+                          ? 'border-rose-400 dark:border-rose-600 focus:border-rose-500 focus:ring-rose-500/10' 
+                          : isCpfValid
+                            ? 'border-emerald-400 dark:border-emerald-600/60 focus:border-emerald-500 focus:ring-emerald-500/10'
+                            : 'border-slate-200 dark:border-slate-800 focus:border-[#2563EB]/50 focus:bg-white dark:focus:bg-slate-900 focus:ring-blue-500/5'
+                      }`}
                     />
+                    {isCpfValid && (
+                      <CheckCircle2 size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500" />
+                    )}
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-450 uppercase tracking-widest ml-1 flex items-center gap-1">
-                      <Phone size={12} /> WhatsApp
-                    </label>
-                    <input
-                      required
-                      type="tel"
-                      placeholder="(00) 00000-0000"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-800 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-slate-900 focus:border-[#2563EB]/50 transition-all outline-none focus:ring-4 focus:ring-blue-500/5"
-                    />
-                  </div>
+                  {cpfError && (
+                    <p className="text-[11px] text-rose-500 font-semibold mt-1 flex items-center gap-1 ml-1">
+                      <AlertCircle size={12} className="shrink-0" />
+                      <span>{cpfError}</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
-              {/* Email and CEP Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                <div className="sm:col-span-2 space-y-1.5">
+              {/* Row 2: WhatsApp & E-mail */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-450 uppercase tracking-widest ml-1 flex items-center gap-1">
+                    <Phone size={12} /> WhatsApp / Telefone
+                  </label>
+                  <input
+                    required
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    maxLength={15}
+                    value={phone}
+                    onChange={handlePhoneChange}
+                    onBlur={handlePhoneBlur}
+                    className={`w-full bg-slate-50 dark:bg-slate-950 border rounded-2xl px-4 py-3 text-sm text-slate-800 dark:text-slate-100 font-medium transition-all outline-none focus:ring-4 ${
+                      phoneError
+                        ? 'border-rose-400 dark:border-rose-600 focus:border-rose-500 focus:ring-rose-500/10'
+                        : 'border-slate-200 dark:border-slate-800 focus:border-[#2563EB]/50 focus:bg-white dark:focus:bg-slate-900 focus:ring-blue-500/5'
+                    }`}
+                  />
+                  {phoneError && (
+                    <p className="text-[11px] text-rose-500 font-semibold mt-1 flex items-center gap-1 ml-1">
+                      <AlertCircle size={12} className="shrink-0" />
+                      <span>{phoneError}</span>
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-455 uppercase tracking-widest ml-1 flex items-center gap-1">
                     <Mail size={12} /> E-mail
                   </label>
@@ -306,39 +468,55 @@ export default function PublicClientForm() {
                     className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-800 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-slate-900 focus:border-[#2563EB]/50 transition-all outline-none focus:ring-4 focus:ring-blue-500/5"
                   />
                 </div>
+              </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-455 uppercase tracking-widest ml-1">
-                    CEP
-                  </label>
+              {/* Row 3: CEP, Endereço e Número */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div className="sm:col-span-1 space-y-1.5">
+                  <div className="flex items-center justify-between ml-1">
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-455 uppercase tracking-widest">
+                      CEP
+                    </label>
+                    {cepSuccess && (
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                        <CheckCircle2 size={12} /> Localizado
+                      </span>
+                    )}
+                  </div>
                   <div className="relative">
                     <input
                       required
                       type="text"
-                      placeholder="Apenas números"
+                      placeholder="00000-000"
                       maxLength={9}
                       value={postalCode}
-                      onChange={(e) => {
-                        setPostalCode(e.target.value);
-                        if (e.target.value.replace(/\D/g, '').length === 8) {
-                          handleCepLookup(e.target.value);
-                        }
-                      }}
-                      onBlur={() => handleCepLookup(postalCode)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-4 pr-10 py-3 text-sm text-slate-800 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-slate-900 focus:border-[#2563EB]/50 transition-all outline-none focus:ring-4 focus:ring-blue-500/5"
+                      onChange={handleCepChange}
+                      onBlur={handleCepBlur}
+                      className={`w-full bg-slate-50 dark:bg-slate-950 border rounded-2xl pl-4 pr-10 py-3 text-sm text-slate-800 dark:text-slate-100 font-medium transition-all outline-none focus:ring-4 ${
+                        cepError
+                          ? 'border-rose-400 dark:border-rose-600 focus:border-rose-500 focus:ring-rose-500/10'
+                          : cepSuccess
+                            ? 'border-emerald-400 dark:border-emerald-600/60 focus:border-emerald-500 focus:ring-emerald-500/10'
+                            : 'border-slate-200 dark:border-slate-800 focus:border-[#2563EB]/50 focus:bg-white dark:focus:bg-slate-900 focus:ring-blue-500/5'
+                      }`}
                     />
-                    {loadingCep && (
-                      <RefreshCw className="absolute right-3.5 top-1/2 -translate-y-1/2 animate-spin text-slate-400" size={16} />
-                    )}
+                    {loadingCep ? (
+                      <RefreshCw className="absolute right-3.5 top-1/2 -translate-y-1/2 animate-spin text-[#2563EB]" size={16} />
+                    ) : cepSuccess ? (
+                      <CheckCircle2 size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500" />
+                    ) : null}
                   </div>
+                  {cepError && (
+                    <p className="text-[11px] text-rose-500 font-semibold mt-1 flex items-center gap-1 ml-1">
+                      <AlertCircle size={12} className="shrink-0" />
+                      <span>{cepError}</span>
+                    </p>
+                  )}
                 </div>
-              </div>
 
-              {/* Address and details row */}
-              <div className="grid grid-cols-4 gap-4">
-                <div className="col-span-2 space-y-1.5">
+                <div className="sm:col-span-2 space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-450 uppercase tracking-widest ml-1">
-                    Endereço
+                    Endereço (Rua, Avenida...)
                   </label>
                   <input
                     required
@@ -349,7 +527,8 @@ export default function PublicClientForm() {
                     className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-800 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-slate-900 focus:border-[#2563EB]/50 transition-all outline-none focus:ring-4 focus:ring-blue-500/5"
                   />
                 </div>
-                <div className="space-y-1.5">
+
+                <div className="sm:col-span-1 space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-450 tracking-widest uppercase ml-1 text-center block">
                     Número
                   </label>
@@ -358,26 +537,27 @@ export default function PublicClientForm() {
                     type="text"
                     value={number}
                     onChange={(e) => setNumber(e.target.value)}
-                    placeholder="S/N"
+                    placeholder="S/N ou nº"
                     className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-center text-slate-800 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-slate-900 focus:border-[#2563EB]/50 transition-all outline-none focus:ring-4 focus:ring-blue-500/5"
                   />
                 </div>
+              </div>
+
+              {/* Row 4: Complemento, Bairro, Cidade, Estado */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-450 tracking-widest uppercase ml-1">
                     Complemento
                   </label>
                   <input
                     type="text"
-                    placeholder="Ex: Apto 32"
+                    placeholder="Ex: Apto 32 / Bloco B"
                     value={complement}
                     onChange={(e) => setComplement(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-800 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-slate-900 focus:border-[#2563EB]/50 transition-all outline-none"
                   />
                 </div>
-              </div>
 
-              {/* District, City, State */}
-              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-450 uppercase tracking-widest ml-1">
                     Bairro
@@ -385,11 +565,13 @@ export default function PublicClientForm() {
                   <input
                     required
                     type="text"
+                    placeholder="Bairro"
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-800 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-slate-900 focus:border-[#2563EB]/50 transition-all outline-none"
                   />
                 </div>
+
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-450 uppercase tracking-widest ml-1">
                     Cidade
@@ -397,11 +579,13 @@ export default function PublicClientForm() {
                   <input
                     required
                     type="text"
+                    placeholder="Cidade"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-800 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-slate-900 focus:border-[#2563EB]/50 transition-all outline-none"
                   />
                 </div>
+
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-455 tracking-widest uppercase ml-1 text-center block">
                     Estado (UF)
@@ -413,7 +597,7 @@ export default function PublicClientForm() {
                     placeholder="UF"
                     value={state}
                     onChange={(e) => setState(e.target.value.toUpperCase())}
-                    className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-center text-slate-800 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-slate-900 focus:border-[#2563EB]/50 transition-all outline-none"
+                    className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-sm text-center font-bold text-slate-800 dark:text-slate-100 focus:bg-white dark:focus:bg-slate-900 focus:border-[#2563EB]/50 transition-all outline-none"
                   />
                 </div>
               </div>
@@ -463,7 +647,7 @@ export default function PublicClientForm() {
 
               <button
                 type="submit"
-                disabled={submitting || !acceptedTerms}
+                disabled={submitting || !acceptedTerms || !!cpfError || !!cepError}
                 className="w-full py-4 bg-[#2563EB] text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {submitting ? (

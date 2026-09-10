@@ -38,6 +38,7 @@ import { dbService } from '../lib/dbService';
 import { calculateEggStock, normalizeBreed, normalizeBaia } from '../lib/stockHelper';
 import { supabase } from '../lib/supabaseClient';
 import { exportToCSV } from '../lib/csvHelper';
+import { isValidCpfOrCnpj, maskCpfCnpj, maskCep, maskPhone } from '../lib/validation';
 
 interface ShippingOption {
   id: string | number;
@@ -920,18 +921,31 @@ export default function Remessas() {
     }
   };
 
-  // Save/Edit Client
+    // Save/Edit Client
   const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientName.trim()) {
       alert('Nome do cliente é obrigatório.');
       return;
     }
+
+    const cleanCpf = String(clientCpf || '').replace(/\D/g, '');
+    if (cleanCpf && !isValidCpfOrCnpj(cleanCpf)) {
+      alert('O CPF/CNPJ informado é inválido. Por favor, confira os números digitados.');
+      return;
+    }
+
+    const cleanCep = String(clientPostalCode || '').replace(/\D/g, '');
+    if (cleanCep && cleanCep.length !== 8) {
+      alert('O CEP deve conter 8 dígitos numéricos.');
+      return;
+    }
+
     setSavingClient(true);
     try {
       const clientData = {
-        name: clientName,
-        cpf_cnpj: clientCpf,
+        name: clientName.trim(),
+        cpf_cnpj: cleanCpf || null,
         phone: clientPhone,
         email: clientEmail,
         postal_code: String(clientPostalCode || '').replace(/\D/g, ''),
@@ -1660,6 +1674,13 @@ export default function Remessas() {
       return;
     }
 
+    const cleanCpf = String(senderCpf || '').replace(/\D/g, '');
+    if (cleanCpf && !isValidCpfOrCnpj(cleanCpf)) {
+      alert('Por favor, informe um CPF/CNPJ válido para o remetente.');
+      setSavingSender(false);
+      return;
+    }
+
     try {
       await dbService.updateProfile({
         sender_name: senderName,
@@ -2225,9 +2246,10 @@ export default function Remessas() {
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CPF / CNPJ</label>
                   <input
                     type="text"
-                    placeholder="Apenas números"
+                    placeholder="000.000.000-00"
+                    maxLength={18}
                     value={clientCpf}
-                    onChange={(e) => setClientCpf(e.target.value)}
+                    onChange={(e) => setClientCpf(maskCpfCnpj(e.target.value))}
                     className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
                   />
                 </div>
@@ -2236,9 +2258,10 @@ export default function Remessas() {
                   <input
                     required
                     type="text"
-                    placeholder="DDD + Número"
+                    placeholder="(00) 00000-0000"
+                    maxLength={15}
                     value={clientPhone}
-                    onChange={(e) => setClientPhone(e.target.value)}
+                    onChange={(e) => setClientPhone(maskPhone(e.target.value))}
                     className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none"
                   />
                 </div>
@@ -2263,13 +2286,14 @@ export default function Remessas() {
                   <input
                     required
                     type="text"
-                    placeholder="Ex: 22021001"
+                    placeholder="00000-000"
                     maxLength={9}
                     value={clientPostalCode}
                     onChange={(e) => {
-                      setClientPostalCode(e.target.value);
-                      if (e.target.value.replace(/\D/g, '').length === 8) {
-                        handleCepLookup(e.target.value);
+                      const masked = maskCep(e.target.value);
+                      setClientPostalCode(masked);
+                      if (masked.replace(/\D/g, '').length === 8) {
+                        handleCepLookup(masked);
                       }
                     }}
                     onBlur={() => handleCepLookup(clientPostalCode)}
@@ -4389,9 +4413,10 @@ export default function Remessas() {
                       <input 
                         required 
                         type="text" 
-                        placeholder="Apenas números" 
+                        placeholder="000.000.000-00" 
+                        maxLength={18}
                         value={senderCpf} 
-                        onChange={(e) => setSenderCpf(e.target.value)} 
+                        onChange={(e) => setSenderCpf(maskCpfCnpj(e.target.value))} 
                         className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
                       />
                     </div>
@@ -4400,9 +4425,10 @@ export default function Remessas() {
                       <input 
                         required 
                         type="text" 
-                        placeholder="DDD + Número" 
+                        placeholder="(00) 00000-0000" 
+                        maxLength={15}
                         value={senderPhone} 
-                        onChange={(e) => setSenderPhone(e.target.value)} 
+                        onChange={(e) => setSenderPhone(maskPhone(e.target.value))} 
                         className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
                       />
                     </div>
@@ -4864,11 +4890,11 @@ export default function Remessas() {
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CPF / CNPJ</label>
-                          <input required type="text" placeholder="Apenas números" value={recipientCpf} onChange={(e) => setRecipientCpf(e.target.value)} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-2.5 text-sm text-[#1F2937] font-medium outline-none focus:border-[#2563EB]/30 transition-all" />
+                          <input required type="text" placeholder="000.000.000-00" maxLength={18} value={recipientCpf} onChange={(e) => setRecipientCpf(maskCpfCnpj(e.target.value))} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-2.5 text-sm text-[#1F2937] font-medium outline-none focus:border-[#2563EB]/30 transition-all" />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Telefone</label>
-                          <input required type="text" placeholder="DDD + Número" value={recipientPhone} onChange={(e) => setRecipientPhone(e.target.value)} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-2.5 text-sm text-[#1F2937] font-medium outline-none focus:border-[#2563EB]/30 transition-all" />
+                          <input required type="text" placeholder="(00) 00000-0000" maxLength={15} value={recipientPhone} onChange={(e) => setRecipientPhone(maskPhone(e.target.value))} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-2.5 text-sm text-[#1F2937] font-medium outline-none focus:border-[#2563EB]/30 transition-all" />
                         </div>
                       </div>
                     </div>
