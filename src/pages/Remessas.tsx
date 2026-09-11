@@ -286,6 +286,7 @@ export default function Remessas() {
     ];
   });
   const [trackingError, setTrackingError] = useState<string | null>(null);
+  const [newTrackingDesc, setNewTrackingDesc] = useState('');
   const [notifications, setNotifications] = useState(() => notificationService.getNotifications());
 
   useEffect(() => {
