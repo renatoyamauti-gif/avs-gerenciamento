@@ -61,7 +61,7 @@ export default function Dashboard() {
       setLoading(true);
 
       // Load profile and all authorized data in parallel
-      const [profile, birds, eggLogs, maternityRecords, incubators, transactions, orders, products, racasData] = await Promise.all([
+      const [profile, birds, eggLogs, maternityRecords, incubators, transactions, orders, products, racasData, baiasData] = await Promise.all([
         dbService.getProfile().catch(() => null),
         dbService.getBirds().catch(() => []),
         dbService.getEggLogs().catch(() => []),
@@ -70,7 +70,8 @@ export default function Dashboard() {
         dbService.getTransactions().catch(() => []),
         dbService.getOrders().catch(() => []),
         dbService.getProducts().catch(() => []),
-        dbService.getRacas().catch(() => [])
+        dbService.getRacas().catch(() => []),
+        dbService.getBaias().catch(() => [])
       ]);
 
       if (profile) {
@@ -94,16 +95,32 @@ export default function Dashboard() {
         orders,
         products,
         birds,
-        racas: racasData
+        racas: racasData,
+        baias: baiasData
       });
 
       // Set eggs by Baia and by Raça (using collected count)
-      setEggsByBaia(Object.entries(computedStock.baias).map(([name, item]) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count));
-      setEggsByRaca(Object.entries(computedStock.racas).map(([name, item]) => ({ name, count: item.collected })).sort((a, b) => b.count - a.count));
+      setEggsByBaia(
+        Object.entries(computedStock.baias)
+          .map(([name, item]) => ({ name, count: item.collected }))
+          .filter(item => item.count > 0)
+          .sort((a, b) => b.count - a.count)
+      );
+      setEggsByRaca(
+        Object.entries(computedStock.racas)
+          .map(([name, item]) => ({ name, count: item.collected }))
+          .filter(item => item.count > 0)
+          .sort((a, b) => b.count - a.count)
+      );
 
-      // Calculate total available egg stock (sum of all positive available stocks per breed, including manual adjustments)
+      // Calculate total available egg stock (sum of all positive available stocks per breed and baia, including manual adjustments)
       let totalAvailable = 0;
-      Object.values(computedStock.racas).forEach((item: any) => {
+      Object.values(computedStock.racas || {}).forEach((item: any) => {
+        if (item.available > 0) {
+          totalAvailable += item.available;
+        }
+      });
+      Object.values(computedStock.baias || {}).forEach((item: any) => {
         if (item.available > 0) {
           totalAvailable += item.available;
         }
