@@ -20,6 +20,7 @@ import { useSubscription } from './hooks/useSubscription';
 import { useTheme } from './contexts/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import { hasPermission } from './lib/permissions';
+import { autoTrackingService } from './lib/autoTrackingService';
 
 // Helper com retry e limpeza automática de cache para evitar falha de carregamento de chunks após novos deploys
 function lazyWithRetry<T extends React.ComponentType<any>>(
@@ -93,6 +94,7 @@ export default function App() {
           const userProfile = await dbService.getProfile();
           setProfile(userProfile);
           dbService.syncOfflineQueue().catch(console.error);
+          autoTrackingService.init();
         }
       } catch (err) {
         console.error("Erro ao carregar sessão inicial:", err);
@@ -124,6 +126,7 @@ export default function App() {
           const userProfile = await dbService.getProfile();
           setProfile(userProfile);
           dbService.syncOfflineQueue().catch(console.error);
+          autoTrackingService.init();
         }
       } else if (event === 'USER_UPDATED') {
         const userProfile = await dbService.getProfile(true);

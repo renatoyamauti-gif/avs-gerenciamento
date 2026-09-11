@@ -47,6 +47,7 @@ import { supabase } from '../lib/supabaseClient';
 import { exportToCSV } from '../lib/csvHelper';
 import { isValidCpfOrCnpj, maskCpfCnpj, maskCep, maskPhone } from '../lib/validation';
 import { notificationService } from '../lib/notificationService';
+import { autoTrackingService } from '../lib/autoTrackingService';
 
 interface ShippingOption {
   id: string | number;
@@ -289,13 +290,26 @@ export default function Remessas() {
   });
   const [trackingError, setTrackingError] = useState<string | null>(null);
   const [newTrackingDesc, setNewTrackingDesc] = useState('');
+  const [isSyncingTracking, setIsSyncingTracking] = useState(false);
   const [notifications, setNotifications] = useState(() => notificationService.getNotifications());
 
   useEffect(() => {
     const handleNotifUpdate = () => {
       setNotifications(notificationService.getNotifications());
     };
+    const handleOrdersUpdate = () => {
+      loadOrdersClientsData();
+    };
+
     window.addEventListener('avs_notification_update', handleNotifUpdate);
+    window.addEventListener('avs_notifications_updated', handleNotifUpdate);
+    window.addEventListener('avs_orders_updated', handleOrdersUpdate);
+
+    return () => {
+      window.removeEventListener('avs_notification_update', handleNotifUpdate);
+      window.removeEventListener('avs_notifications_updated', handleNotifUpdate);
+      window.removeEventListener('avs_orders_updated', handleOrdersUpdate);
+    };
   }, []);
 
   // Collapsible Accordion States for Shipping Tab (Only Simulator starts open)
@@ -963,6 +977,24 @@ export default function Remessas() {
       await loadOrdersClientsData();
     } catch (err: any) {
       alert('Erro ao atualizar status: ' + err.message);
+    }
+  };
+
+  // Manual trigger for background tracking check
+  const handleManualTrackingSync = async () => {
+    setIsSyncingTracking(true);
+    try {
+      const count = await autoTrackingService.checkPendingOrders(true);
+      await loadOrdersClientsData();
+      if (count > 0) {
+        alert(`${count} ${count === 1 ? 'pedido atualizado como entregue!' : 'pedidos atualizados como entregues!'}`);
+      } else {
+        alert('Rastreios verificados. Nenhum novo pacote entregue no momento.');
+      }
+    } catch (err: any) {
+      alert('Erro ao sincronizar rastreios: ' + (err?.message || 'Falha na checagem'));
+    } finally {
+      setIsSyncingTracking(false);
     }
   };
 
@@ -3086,6 +3118,16 @@ export default function Remessas() {
               className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[#6B7280] dark:text-slate-400 py-3 px-5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-sm hover:border-[#2563EB] dark:hover:border-blue-500 hover:text-[#2563EB] dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               <Download size={14} /> Exportar CSV
+            </button>
+            <button
+              type="button"
+              onClick={handleManualTrackingSync}
+              disabled={isSyncingTracking}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[#6B7280] dark:text-slate-400 py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-sm hover:border-[#2563EB] dark:hover:border-blue-500 hover:text-[#2563EB] dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              title="Sincronizar status de todos os pedidos em trânsito com os Correios agora"
+            >
+              <RefreshCw size={14} className={isSyncingTracking ? 'animate-spin text-[#2563EB]' : 'text-slate-400'} />
+              {isSyncingTracking ? 'Checando...' : 'Sincronizar Rastreios'}
             </button>
             <button
               type="button"
