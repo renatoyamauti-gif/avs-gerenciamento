@@ -32,13 +32,19 @@ import {
   Download,
   Link,
   Share2,
-  Info
+  Info,
+  Copy,
+  MessageSquare,
+  PackageCheck,
+  Bell,
+  Send
 } from 'lucide-react';
 import { dbService } from '../lib/dbService';
 import { calculateEggStock, normalizeBreed, normalizeBaia } from '../lib/stockHelper';
 import { supabase } from '../lib/supabaseClient';
 import { exportToCSV } from '../lib/csvHelper';
 import { isValidCpfOrCnpj, maskCpfCnpj, maskCep, maskPhone } from '../lib/validation';
+import { notificationService } from '../lib/notificationService';
 
 interface ShippingOption {
   id: string | number;
@@ -280,378 +286,16 @@ export default function Remessas() {
     ];
   });
   const [trackingError, setTrackingError] = useState<string | null>(null);
-  const [newTrackingDesc, setNewTrackingDesc] = useState('');
+  const [notifications, setNotifications] = useState(() => notificationService.getNotifications());
 
-  const handleTrackPackage = async (codeToTrack: string) => {
-    const cleanCode = codeToTrack.trim().toUpperCase();
-    if (!cleanCode) return;
-
-    setIsTracking(true);
-    setTrackingError(null);
-    setTrackingResult(null);
-
-    const isCorreiosFormat = /^[A-Z]{2}\d{9}[A-Z]{2}$/i.test(cleanCode);
-    const cleanToken = token.replace(/\s+/g, '');
-
-    const getRawDateStr = (field: any): string => {
-      if (!field) return '';
-      if (typeof field === 'object') {
-        return field.date || field.datetime || '';
-      }
-      return String(field);
+  useEffect(() => {
+    const handleNotifUpdate = () => {
+      setNotifications(notificationService.getNotifications());
     };
+    window.addEventListener('avs_notification_update', handleNotifUpdate);
+    return () => window.removeEventListener('avs_notification_update', handleNotifUpdate);
+  }, []);
 
-    const getEventDateVal = (event: any): string => {
-      if (!event) return '';
-      const rawField = event.dtHrCriado || event.dataHora || event.dhEvento || event.dtEvento || event.date || '';
-      return getRawDateStr(rawField);
-    };
-
-    // Helpers to parse location and status from Correios events
-    const formatDate = (dateStrInput: any) => {
-      const dateStr = getRawDateStr(dateStrInput);
-      if (!dateStr) return '';
-
-      // Check if there is a timezone suffix (e.g. Z or +/-hh:mm or +/-hhmm at the end)
-      const hasTimezone = /[zZ]$|[\+\-]\d{2}:?\d{2}$/.test(dateStr);
-
-      if (hasTimezone) {
-        try {
-          const date = new Date(dateStr);
-          if (!isNaN(date.getTime())) {
-            const pad = (n: number) => n.toString().padStart(2, '0');
-            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-          }
-        } catch (e) {
-          // Fall through
-        }
-      }
-
-      // If it's a numeric string (timestamp), parse it as a number
-      if (/^\d+$/.test(dateStr)) {
-        try {
-          const date = new Date(parseInt(dateStr, 10));
-          if (!isNaN(date.getTime())) {
-            const pad = (n: number) => n.toString().padStart(2, '0');
-            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-          }
-        } catch (e) {
-          // Fall through
-        }
-      }
-
-      // If no timezone is specified, parse as a local string to avoid UTC shifting
-      // YYYY-MM-DDTHH:MM:SS
-      const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-      if (match) {
-        const [, year, month, day, hour, minute] = match;
-        return `${day}/${month}/${year} ${hour}:${minute}`;
-      }
-      
-      // YYYY-MM-DD HH:MM:SS
-      const match2 = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
-      if (match2) {
-        const [, year, month, day, hour, minute] = match2;
-        return `${day}/${month}/${year} ${hour}:${minute}`;
-      }
-
-      // YYYY-MM-DD
-      const matchDateOnly = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      if (matchDateOnly) {
-        const [, year, month, day] = matchDateOnly;
-        return `${day}/${month}/${year}`;
-      }
-
-      // DD/MM/YYYY HH:MM:SS or DD/MM/YYYY HH:MM
-      const matchBRDateTime = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})[\sT](\d{2}):(\d{2})/);
-      if (matchBRDateTime) {
-        const [, day, month, year, hour, minute] = matchBRDateTime;
-        return `${day}/${month}/${year} ${hour}:${minute}`;
-      }
-
-      // DD/MM/YYYY
-      const matchBRDateOnly = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-      if (matchBRDateOnly) {
-        return dateStr;
-      }
-
-      try {
-        const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return dateStr;
-        const pad = (n: number) => n.toString().padStart(2, '0');
-        return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-      } catch (e) {
-        return dateStr;
-      }
-    };
-
-    const formatLocation = (unidade: any) => {
-      if (!unidade) return 'Unidade dos Correios';
-      const cidade = unidade.endereco?.cidade || unidade.cidade || '';
-      const uf = unidade.endereco?.uf || unidade.uf || '';
-      const tipo = unidade.tipo || '';
-      let loc = tipo;
-      if (cidade) loc = loc ? `${loc} - ${cidade}` : cidade;
-      if (uf) loc = loc ? `${loc}/${uf}` : uf;
-      return loc || 'Unidade dos Correios';
-    };
-
-    const getEventStatus = (desc: string) => {
-      const lower = desc.toLowerCase();
-      if (lower.includes('entregue') || lower.includes('entrega efetuada')) return 'success';
-      if (lower.includes('postado') || lower.includes('objeto recebido')) return 'posted';
-      return 'info';
-    };
-
-    // 1. Try Correios Direct API if active
-    if (isCorreiosFormat && correiosUser && correiosPassword && correiosEnabled) {
-      try {
-        const bearerToken = await validateCorreiosToken({
-          user: correiosUser,
-          password: correiosPassword,
-          contract: correiosContract,
-          sandbox: correiosSandbox,
-          skipStateUpdate: true
-        });
-
-        if (bearerToken) {
-          const coUrl = `${getCorreiosBaseUrl(correiosSandbox)}/srorastro/v1/objetos/${cleanCode}?resultado=T`;
-          const response = await fetchWithProxy(coUrl, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${bearerToken}`,
-              'Accept': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const objeto = data.objetos?.[0];
-            if (objeto) {
-              if (Array.isArray(objeto.eventos) && objeto.eventos.length > 0) {
-                const events = objeto.eventos.map((e: any) => ({
-                  date: formatDate(getEventDateVal(e)),
-                  location: formatLocation(e.unidade),
-                  desc: e.descricao || 'Atualização de status',
-                  status: getEventStatus(e.descricao || '')
-                }));
-
-                // Sort events by date descending (newest first)
-                const parseToTime = (str: string) => {
-                  const match = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
-                  if (match) {
-                    const [, day, month, year, hour, minute] = match;
-                    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute)).getTime();
-                  }
-                  return new Date(str).getTime();
-                };
-                events.sort((a: any, b: any) => parseToTime(b.date) - parseToTime(a.date));
-
-                // Determine overall status based on the newest event
-                const latestEvent = events[0];
-                const overallStatus = latestEvent.status === 'success' 
-                  ? 'delivered' 
-                  : latestEvent.status === 'posted' 
-                    ? 'posted' 
-                    : 'in_transit';
-
-                const description = newTrackingDesc || objeto.mensagem || `Objeto Correios (${cleanCode})`;
-
-                setTrackingResult({
-                  code: cleanCode,
-                  description,
-                  status: overallStatus,
-                  events
-                });
-
-                setRecentTrackings(prev => {
-                  const exists = prev.some(t => t.code === cleanCode);
-                  if (exists) return prev;
-                  const updated = [{ code: cleanCode, description, status: overallStatus }, ...prev].slice(0, 5);
-                  localStorage.setItem('avs_recent_trackings', JSON.stringify(updated));
-                  return updated;
-                });
-
-                setNewTrackingDesc('');
-                setIsTracking(false);
-                return;
-              } else {
-                // Objeto retornado, mas sem eventos (ex: não postado, erro de não encontrado)
-                const errMsg = objeto.mensagem || 'Objeto não encontrado na base de dados dos Correios.';
-                setTrackingError(errMsg);
-                setIsTracking(false);
-                return;
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Erro na consulta direta aos Correios:', err);
-      }
-    }
-
-    // 2. Try Melhor Envio API if active
-    if (cleanToken) {
-      try {
-        const meUrl = `${getBaseUrl(sandbox)}/api/v2/me/shipment/tracking`;
-        const response = await fetchWithProxy(meUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${cleanToken}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'User-Agent': 'AVSGerenciamento/1.0.0 (suporte@avsgerenciamento.local)'
-          },
-          body: JSON.stringify({ orders: [cleanCode] })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          let meInfo = null;
-          if (data[cleanCode]) {
-            meInfo = data[cleanCode];
-          } else if (data.orders && Array.isArray(data.orders)) {
-            meInfo = data.orders[0];
-          } else {
-            const firstKey = Object.keys(data)[0];
-            if (firstKey && data[firstKey] && typeof data[firstKey] === 'object') {
-              meInfo = data[firstKey];
-            }
-          }
-
-          if (meInfo) {
-            if (meInfo.error) {
-              setTrackingError(meInfo.error);
-              setIsTracking(false);
-              return;
-            }
-
-            if (Array.isArray(meInfo.history) && meInfo.history.length > 0) {
-              const events = meInfo.history.map((h: any) => ({
-                date: formatDate(h.date || h.created_at || new Date().toISOString()),
-                location: h.location || h.unidade || 'Unidade de Tratamento',
-                desc: h.description || h.status || 'Status atualizado',
-                status: getEventStatus(h.description || h.status || '')
-              }));
-
-              // Sort events by date descending (newest first)
-              events.sort((a: any, b: any) => {
-                const parseToTime = (str: string) => {
-                  const match = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
-                  if (match) {
-                    const [, day, month, year, hour, minute] = match;
-                    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute)).getTime();
-                  }
-                  return new Date(str).getTime();
-                };
-                return parseToTime(b.date) - parseToTime(a.date);
-              });
-
-              const overallStatus = meInfo.status === 'delivered' 
-                ? 'delivered' 
-                : meInfo.status === 'posted' 
-                  ? 'posted' 
-                  : 'in_transit';
-
-              const description = newTrackingDesc || `Objeto Melhor Envio (${cleanCode})`;
-
-              setTrackingResult({
-                code: cleanCode,
-                description,
-                status: overallStatus,
-                events
-              });
-
-              setRecentTrackings(prev => {
-                const exists = prev.some(t => t.code === cleanCode);
-                if (exists) return prev;
-                const updated = [{ code: cleanCode, description, status: overallStatus }, ...prev].slice(0, 5);
-                localStorage.setItem('avs_recent_trackings', JSON.stringify(updated));
-                return updated;
-              });
-
-              setNewTrackingDesc('');
-              setIsTracking(false);
-              return;
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Erro na consulta via Melhor Envio:', err);
-      }
-    }
-
-    // 3. Fallback to highly detailed simulation if offline or test code
-    setTimeout(() => {
-      let events = [];
-      let currentStatus = 'posted';
-      let description = '';
-
-      const now = new Date();
-      const formatMockDate = (offsetDays: number, hour: number, minute: number) => {
-        const d = new Date(now);
-        d.setDate(d.getDate() - offsetDays);
-        d.setHours(hour, minute, 0);
-        const pad = (n: number) => n.toString().padStart(2, '0');
-        return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      };
-
-      if (cleanCode.includes('827361') || cleanCode.startsWith('ME')) {
-        currentStatus = 'delivered';
-        description = newTrackingDesc || 'Maria Silva (GSB)';
-        events = [
-          { date: formatMockDate(1, 14, 30), location: 'São Paulo - SP', desc: 'Objeto entregue ao destinatário', status: 'success' },
-          { date: formatMockDate(1, 9, 15), location: 'São Paulo - SP', desc: 'Objeto saiu para entrega ao destinatário', status: 'info' },
-          { date: formatMockDate(2, 22, 40), location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto encaminhado para Unidade de Distribuição', status: 'info' },
-          { date: formatMockDate(3, 11, 20), location: 'Unidade de Postagem - Campinas/SP', desc: 'Objeto postado pelo remetente', status: 'posted' }
-        ];
-      } else if (cleanCode.includes('928471')) {
-        currentStatus = 'in_transit';
-        description = newTrackingDesc || 'João Souza (Índio Gigante)';
-        events = [
-          { date: formatMockDate(1, 11, 0), location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto encaminhado para Unidade de Tratamento em São Paulo/SP', status: 'info' },
-          { date: formatMockDate(2, 16, 45), location: 'Unidade de Postagem - Bauru/SP', desc: 'Objeto postado pelo remetente', status: 'posted' }
-        ];
-      } else if (cleanCode.length === 13 && cleanCode.endsWith('BR')) {
-        // Detailed Correios standard timeline simulation
-        currentStatus = 'delivered';
-        description = newTrackingDesc || `Objeto Correios (${cleanCode})`;
-        
-        events = [
-          { date: formatMockDate(1, 14, 30), location: 'Unidade de Distribuição - São Paulo/SP', desc: 'Objeto entregue ao destinatário', status: 'success' },
-          { date: formatMockDate(1, 9, 15), location: 'Unidade de Distribuição - São Paulo/SP', desc: 'Objeto saiu para entrega ao destinatário', status: 'info' },
-          { date: formatMockDate(2, 22, 40), location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto encaminhado para Unidade de Distribuição em São Paulo/SP', status: 'info' },
-          { date: formatMockDate(3, 14, 10), location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto recebido na Unidade de Tratamento', status: 'info' },
-          { date: formatMockDate(4, 11, 20), location: 'Unidade de Postagem - Rio de Janeiro/RJ', desc: 'Objeto postado pelo remetente', status: 'posted' }
-        ];
-      } else {
-        currentStatus = 'in_transit';
-        description = newTrackingDesc || `Objeto em trânsito (${cleanCode})`;
-        events = [
-          { date: formatMockDate(0, 15, 0), location: 'Unidade de Tratamento - Cajamar/SP', desc: 'Objeto encaminhado para Unidade de Distribuição', status: 'info' },
-          { date: formatMockDate(1, 10, 0), location: 'Unidade de Postagem', desc: 'Objeto postado pelo remetente', status: 'posted' }
-        ];
-      }
-
-      setTrackingResult({
-        code: cleanCode,
-        description,
-        status: currentStatus,
-        events
-      });
-
-      setRecentTrackings(prev => {
-        const exists = prev.some(t => t.code === cleanCode);
-        if (exists) return prev;
-        const updated = [{ code: cleanCode, description: description || `Envio ${cleanCode}`, status: currentStatus }, ...prev].slice(0, 5);
-        localStorage.setItem('avs_recent_trackings', JSON.stringify(updated));
-        return updated;
-      });
-
-      setNewTrackingDesc('');
-      setIsTracking(false);
-    }, 1200);
-  };
 
   // Label Generation State
   const [selectedService, setSelectedService] = useState<ShippingOption | null>(null);
@@ -1190,6 +834,10 @@ export default function Remessas() {
       // Sincronizar com financeiro
       await syncOrderWithFinance(saved, clientName);
 
+      if (orderStatus === 'Entregue' && (!editingOrder || editingOrder.status !== 'Entregue')) {
+        notificationService.addDeliveryNotification(saved, clientName);
+      }
+
       await loadOrdersClientsData();
 
       // Reset Order Form
@@ -1300,10 +948,304 @@ export default function Remessas() {
       const clientName = clientObj?.name || 'Cliente';
       await syncOrderWithFinance(saved, clientName);
 
+      if (newStatus === 'Entregue' && order.status !== 'Entregue') {
+        notificationService.addDeliveryNotification(saved, clientName);
+      }
+
       await loadOrdersClientsData();
     } catch (err: any) {
       alert('Erro ao atualizar status: ' + err.message);
     }
+  };
+
+  // Track package using Direct Correios API, Melhor Envio API, or Order status fallback
+  const handleTrackPackage = async (codeToTrack: string, customDesc?: string) => {
+    const cleanCode = codeToTrack.trim().toUpperCase();
+    if (!cleanCode) return;
+
+    setIsTracking(true);
+    setTrackingError(null);
+    setTrackingResult(null);
+
+    // Look up if this code matches an order in the database
+    const matchedOrder = orders.find((o: any) => o.tracking_code && o.tracking_code.trim().toUpperCase() === cleanCode);
+    const matchedClient = matchedOrder ? getOrderClient(matchedOrder) : null;
+    const clientName = matchedClient?.name || '';
+    const inferredDesc = customDesc || (matchedOrder ? (clientName ? `${clientName} (Pedido #${matchedOrder.id.slice(0, 8)})` : `Pedido #${matchedOrder.id.slice(0, 8)}`) : '');
+
+    const isCorreiosFormat = /^[A-Z]{2}\d{9}[A-Z]{2}$/i.test(cleanCode);
+    const cleanToken = token.replace(/\s+/g, '');
+
+    const getRawDateStr = (field: any): string => {
+      if (!field) return '';
+      if (typeof field === 'object') {
+        return field.date || field.datetime || '';
+      }
+      return String(field);
+    };
+
+    const getEventDateVal = (event: any): string => {
+      if (!event) return '';
+      const rawField = event.dtHrCriado || event.dataHora || event.dhEvento || event.dtEvento || event.date || '';
+      return getRawDateStr(rawField);
+    };
+
+    const formatDate = (dateStrInput: any) => {
+      const dateStr = getRawDateStr(dateStrInput);
+      if (!dateStr) return '';
+      const hasTimezone = /[zZ]$|[\+\-]\d{2}:?\d{2}$/.test(dateStr);
+      if (hasTimezone) {
+        try {
+          const date = new Date(dateStr);
+          if (!isNaN(date.getTime())) {
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+          }
+        } catch (e) {}
+      }
+      if (/^\d+$/.test(dateStr)) {
+        try {
+          const date = new Date(parseInt(dateStr, 10));
+          if (!isNaN(date.getTime())) {
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+          }
+        } catch (e) {}
+      }
+      const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+      if (match) {
+        const [, year, month, day, hour, minute] = match;
+        return `${day}/${month}/${year} ${hour}:${minute}`;
+      }
+      const match2 = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+      if (match2) {
+        const [, year, month, day, hour, minute] = match2;
+        return `${day}/${month}/${year} ${hour}:${minute}`;
+      }
+      const matchDateOnly = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (matchDateOnly) {
+        const [, year, month, day] = matchDateOnly;
+        return `${day}/${month}/${year}`;
+      }
+      const matchBRDateTime = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})[\sT](\d{2}):(\d{2})/);
+      if (matchBRDateTime) {
+        const [, day, month, year, hour, minute] = matchBRDateTime;
+        return `${day}/${month}/${year} ${hour}:${minute}`;
+      }
+      return dateStr;
+    };
+
+    const formatLocation = (unidade: any) => {
+      if (!unidade) return 'Unidade dos Correios';
+      const cidade = unidade.endereco?.cidade || unidade.cidade || '';
+      const uf = unidade.endereco?.uf || unidade.uf || '';
+      const tipo = unidade.tipo || '';
+      let loc = tipo;
+      if (cidade) loc = loc ? `${loc} - ${cidade}` : cidade;
+      if (uf) loc = loc ? `${loc}/${uf}` : uf;
+      return loc || 'Unidade dos Correios';
+    };
+
+    const getEventStatus = (desc: string) => {
+      const lower = desc.toLowerCase();
+      if (lower.includes('entregue') || lower.includes('entrega efetuada')) return 'success';
+      if (lower.includes('postado') || lower.includes('objeto recebido')) return 'posted';
+      return 'info';
+    };
+
+    // 1. Try Correios Direct API if active
+    if (isCorreiosFormat && correiosUser && correiosPassword && correiosEnabled) {
+      try {
+        const bearerToken = await validateCorreiosToken({
+          user: correiosUser,
+          password: correiosPassword,
+          contract: correiosContract,
+          sandbox: correiosSandbox,
+          skipStateUpdate: true
+        });
+
+        if (bearerToken) {
+          const coUrl = `${getCorreiosBaseUrl(correiosSandbox)}/srorastro/v1/objetos/${cleanCode}?resultado=T`;
+          const response = await fetchWithProxy(coUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${bearerToken}`,
+              'Accept': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const objeto = data.objetos?.[0];
+            if (objeto && Array.isArray(objeto.eventos) && objeto.eventos.length > 0) {
+              const events = objeto.eventos.map((e: any) => ({
+                date: formatDate(getEventDateVal(e)),
+                location: formatLocation(e.unidade),
+                desc: e.descricao || 'Atualização de status',
+                status: getEventStatus(e.descricao || '')
+              }));
+
+              const parseToTime = (str: string) => {
+                const m = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+                if (m) {
+                  const [, day, month, year, hour, minute] = m;
+                  return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute)).getTime();
+                }
+                return new Date(str).getTime();
+              };
+              events.sort((a: any, b: any) => parseToTime(b.date) - parseToTime(a.date));
+
+              const latestEvent = events[0];
+              const overallStatus = latestEvent.status === 'success' ? 'delivered' : (latestEvent.status === 'posted' ? 'posted' : 'in_transit');
+
+              // If delivered, notify!
+              if (overallStatus === 'delivered' && matchedOrder && matchedOrder.status !== 'Entregue') {
+                handleUpdateOrderStatus(matchedOrder, 'Entregue');
+              }
+
+              const description = inferredDesc || objeto.mensagem || `Objeto Correios (${cleanCode})`;
+              setTrackingResult({
+                code: cleanCode,
+                description,
+                status: overallStatus,
+                events,
+                matchedOrder,
+                matchedClient
+              });
+
+              setRecentTrackings(prev => {
+                const exists = prev.some(t => t.code === cleanCode);
+                if (exists) return prev;
+                const updated = [{ code: cleanCode, description, status: overallStatus }, ...prev].slice(0, 5);
+                localStorage.setItem('avs_recent_trackings', JSON.stringify(updated));
+                return updated;
+              });
+
+              setIsTracking(false);
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Erro na consulta direta aos Correios:', err);
+      }
+    }
+
+    // 2. Try Melhor Envio API if active
+    if (cleanToken) {
+      try {
+        const meUrl = `${getBaseUrl(sandbox)}/api/v2/me/shipment/tracking`;
+        const response = await fetchWithProxy(meUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${cleanToken}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'User-Agent': 'AVSGerenciamento/1.0.0 (suporte@avsgerenciamento.local)'
+          },
+          body: JSON.stringify({ orders: [cleanCode] })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          let meInfo = data[cleanCode] || (Array.isArray(data.orders) ? data.orders[0] : (data[Object.keys(data)[0]]));
+          if (meInfo && Array.isArray(meInfo.history) && meInfo.history.length > 0) {
+            const events = meInfo.history.map((h: any) => ({
+              date: formatDate(h.date || h.created_at || new Date().toISOString()),
+              location: h.location || h.unidade || 'Unidade de Tratamento',
+              desc: h.description || h.status || 'Status atualizado',
+              status: getEventStatus(h.description || h.status || '')
+            }));
+
+            const overallStatus = meInfo.status === 'delivered' ? 'delivered' : (meInfo.status === 'posted' ? 'posted' : 'in_transit');
+
+            if (overallStatus === 'delivered' && matchedOrder && matchedOrder.status !== 'Entregue') {
+              handleUpdateOrderStatus(matchedOrder, 'Entregue');
+            }
+
+            const description = inferredDesc || `Objeto Melhor Envio (${cleanCode})`;
+            setTrackingResult({
+              code: cleanCode,
+              description,
+              status: overallStatus,
+              events,
+              matchedOrder,
+              matchedClient
+            });
+
+            setRecentTrackings(prev => {
+              const exists = prev.some(t => t.code === cleanCode);
+              if (exists) return prev;
+              const updated = [{ code: cleanCode, description, status: overallStatus }, ...prev].slice(0, 5);
+              localStorage.setItem('avs_recent_trackings', JSON.stringify(updated));
+              return updated;
+            });
+
+            setIsTracking(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Erro na consulta via Melhor Envio:', err);
+      }
+    }
+
+    // 3. Fallback tracking based on real Order status in the system + Official Correios link
+    setTimeout(() => {
+      let events = [];
+      let currentStatus: 'in_transit' | 'delivered' | 'posted' = 'in_transit';
+      const description = inferredDesc || (matchedOrder ? (clientName ? `${clientName} (Pedido)` : 'Pedido em Andamento') : `Objeto ${cleanCode}`);
+
+      const now = new Date();
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const formatMockDate = (offsetDays: number, hour: number, minute: number) => {
+        const d = new Date(now);
+        d.setDate(d.getDate() - offsetDays);
+        d.setHours(hour, minute, 0);
+        return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      };
+
+      if (matchedOrder?.status === 'Entregue') {
+        currentStatus = 'delivered';
+        events = [
+          { date: formatDate(matchedOrder.updated_at || matchedOrder.created_at || new Date().toISOString()), location: 'Endereço do Destinatário', desc: 'Objeto entregue ao destinatário', status: 'success' },
+          { date: formatMockDate(1, 9, 30), location: 'Unidade de Distribuição', desc: 'Objeto saiu para entrega ao destinatário', status: 'info' },
+          { date: formatDate(matchedOrder.created_at || new Date().toISOString()), location: 'Unidade de Postagem', desc: 'Objeto postado pelo remetente', status: 'posted' }
+        ];
+      } else if (matchedOrder?.status === 'Enviado') {
+        currentStatus = 'in_transit';
+        events = [
+          { date: formatMockDate(0, 14, 20), location: 'Unidade de Tratamento dos Correios', desc: 'Objeto em trânsito para o destinatário', status: 'info' },
+          { date: formatDate(matchedOrder.created_at || new Date().toISOString()), location: 'Unidade de Postagem', desc: 'Objeto postado pelo remetente', status: 'posted' }
+        ];
+      } else {
+        // Objeto em trânsito padrão (NUNCA entregue por engano!)
+        currentStatus = 'in_transit';
+        events = [
+          { date: formatMockDate(0, 11, 45), location: 'Unidade dos Correios', desc: 'Objeto em trânsito - Consulte os Correios para mais detalhes', status: 'info' },
+          { date: formatMockDate(1, 15, 30), location: 'Unidade de Postagem', desc: 'Objeto postado pelo remetente', status: 'posted' }
+        ];
+      }
+
+      setTrackingResult({
+        code: cleanCode,
+        description,
+        status: currentStatus,
+        events,
+        matchedOrder,
+        matchedClient
+      });
+
+      setRecentTrackings(prev => {
+        const exists = prev.some(t => t.code === cleanCode);
+        if (exists) return prev;
+        const updated = [{ code: cleanCode, description: description || `Envio ${cleanCode}`, status: currentStatus }, ...prev].slice(0, 5);
+        localStorage.setItem('avs_recent_trackings', JSON.stringify(updated));
+        return updated;
+      });
+
+      setIsTracking(false);
+    }, 600);
   };
 
   // "Gerar Envio" Trigger from order list
@@ -3159,6 +3101,41 @@ export default function Remessas() {
           </div>
         </div>
 
+        {/* Delivery Notification Alert Banner */}
+        {(() => {
+          const unreadDeliveries = notifications.filter((n: any) => !n.read && n.type === 'delivery');
+          if (unreadDeliveries.length === 0) return null;
+          return (
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/20">
+                  <PackageCheck size={18} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-emerald-900 dark:text-emerald-200">
+                    {unreadDeliveries.length} {unreadDeliveries.length === 1 ? 'Pedido marcado como entregue!' : 'Pedidos marcados como entregues!'}
+                  </h4>
+                  <p className="text-[11px] text-emerald-700 dark:text-emerald-300 mt-0.5">
+                    Avisos de entrega recentes. Avise seus clientes pelo WhatsApp para confirmar o recebimento e solicitar avaliação.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    notificationService.markAllAsRead();
+                    setNotifications(notificationService.getNotifications());
+                  }}
+                  className="text-xs font-bold text-emerald-700 hover:text-emerald-900 dark:text-emerald-300 dark:hover:text-emerald-100 underline whitespace-nowrap"
+                >
+                  Marcar como lidos
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
         {filteredOrders.length === 0 ? (
           <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center text-slate-400 space-y-3">
             <ClipboardList className="mx-auto text-slate-300" size={40} />
@@ -3187,6 +3164,67 @@ export default function Remessas() {
                         <td className="px-6 py-4">
                           <div className="font-bold text-[#1F2937]">{client?.name || 'Sem Cliente'}</div>
                           <div className="text-xs text-slate-400">{client?.phone || client?.email}</div>
+                          {order.tracking_code && (
+                            <div className="mt-2 inline-flex flex-wrap items-center gap-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-xl text-xs">
+                              <span className="font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                <Truck size={12} className="text-[#2563EB]" />
+                                <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{order.tracking_code}</span>
+                              </span>
+                              <div className="flex items-center gap-1 ml-1 border-l border-slate-200 dark:border-slate-700 pl-1.5">
+                                {/* Correios Official Direct Link */}
+                                <a
+                                  href={`https://rastreamento.correios.com.br/app/index.php?codigo=${encodeURIComponent(order.tracking_code)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 hover:bg-amber-100 text-amber-700 rounded-md transition-colors"
+                                  title="Rastrear no Portal Oficial dos Correios"
+                                >
+                                  <ExternalLink size={12} />
+                                </a>
+                                {/* Copy code */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(order.tracking_code);
+                                    alert(`Código ${order.tracking_code} copiado!`);
+                                  }}
+                                  className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md transition-colors"
+                                  title="Copiar Código"
+                                >
+                                  <Copy size={12} />
+                                </button>
+                                {/* WhatsApp Message */}
+                                {client?.phone && (
+                                  <a
+                                    href={`https://wa.me/55${client.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                                      order.status === 'Entregue'
+                                        ? `Olá ${client.name || ''}, seu pedido consta como entregue pelos Correios (Rastreio: ${order.tracking_code})! Chegou tudo certinho?`
+                                        : `Olá ${client.name || ''}, seu pedido foi despachado! Você pode rastrear pelo link dos Correios: https://rastreamento.correios.com.br/app/index.php?codigo=${order.tracking_code} (Código: ${order.tracking_code})`
+                                    )}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1 hover:bg-green-100 text-green-600 rounded-md transition-colors"
+                                    title="Enviar Rastreio no WhatsApp"
+                                  >
+                                    <MessageSquare size={12} />
+                                  </a>
+                                )}
+                                {/* View in Simulator */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveTab('shipping');
+                                    setTrackingCode(order.tracking_code);
+                                    handleTrackPackage(order.tracking_code);
+                                  }}
+                                  className="p-1 hover:bg-blue-100 text-[#2563EB] rounded-md transition-colors text-[10px] font-bold"
+                                  title="Rastrear no sistema"
+                                >
+                                  Rastrear
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 font-semibold text-slate-700">
                           <div className="flex flex-col gap-1.5">
@@ -3352,21 +3390,49 @@ export default function Remessas() {
                           {new Date(order.created_at).toLocaleDateString('pt-BR')}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-1.5">
                             {order.status === 'Pendente' && (
                               <button
                                 type="button"
                                 onClick={() => handleGerarEnvio(order)}
-                                className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold px-3.5 py-2 rounded-xl uppercase tracking-wider transition-colors shadow-sm active:scale-95"
+                                className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl uppercase tracking-wider transition-colors shadow-sm active:scale-95"
                                 title="Preencher simulador e etiquetas com dados deste pedido"
                               >
                                 <Truck size={12} /> Gerar Envio
                               </button>
                             )}
+
+                            {order.status !== 'Entregue' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateOrderStatus(order, 'Entregue')}
+                                className="flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2.5 py-1.5 rounded-xl transition-all shadow-sm active:scale-95"
+                                title="Marcar como entregue e disparar alerta de notificação"
+                              >
+                                <PackageCheck size={12} />
+                                <span className="hidden sm:inline">Entregue</span>
+                              </button>
+                            ) : (
+                              client?.phone && (
+                                <a
+                                  href={`https://wa.me/55${client.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                                    `Olá ${client.name || ''}, seu pedido consta como entregue pelos Correios! Esperamos que esteja tudo perfeito. Qualquer dúvida estamos à disposição!`
+                                  )}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2.5 py-1.5 rounded-xl transition-all shadow-sm"
+                                  title="Avisar cliente via WhatsApp"
+                                >
+                                  <MessageSquare size={12} />
+                                  <span className="hidden sm:inline">Avisar</span>
+                                </a>
+                              )
+                            )}
+
                             <button
                               type="button"
                               onClick={() => handleStartEditOrder(order)}
-                              className="text-slate-400 hover:text-[#2563EB] p-2 hover:bg-slate-100 rounded-xl transition-all"
+                              className="text-slate-400 hover:text-[#2563EB] p-1.5 hover:bg-slate-100 rounded-xl transition-all"
                               title="Editar pedido"
                             >
                               <Edit2 size={14} />
@@ -3374,7 +3440,7 @@ export default function Remessas() {
                             <button
                               type="button"
                               onClick={() => handleDeleteOrder(order.id)}
-                              className="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-xl transition-all"
+                              className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded-xl transition-all"
                               title="Excluir pedido"
                             >
                               <Trash2 size={14} />
@@ -5194,6 +5260,89 @@ export default function Remessas() {
                           {trackingResult.status === 'delivered' ? 'Entregue' : 'Em Trânsito'}
                         </span>
                       </div>
+                    </div>
+
+                    {/* Action Buttons Toolbar */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1 pb-2 border-b border-slate-100 dark:border-slate-800">
+                      {/* Official Correios Direct Link */}
+                      <a
+                        href={`https://rastreamento.correios.com.br/app/index.php?codigo=${encodeURIComponent(trackingResult.code)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 bg-[#FFCC00] hover:bg-[#FACC15] text-[#003B71] text-xs font-black px-3 py-1.5 rounded-xl uppercase tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer"
+                        title="Abrir no portal oficial de rastreamento dos Correios"
+                      >
+                        <ExternalLink size={12} />
+                        Portal Correios Oficial
+                      </a>
+
+                      {/* LinkCorreios Alternative */}
+                      <a
+                        href={`https://www.linkcorreios.com.br/?id=${encodeURIComponent(trackingResult.code)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-[#2563EB] text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all shadow-sm"
+                        title="Ver no LinkCorreios"
+                      >
+                        <ExternalLink size={12} />
+                        LinkCorreios
+                      </a>
+
+                      {/* Copy Code */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(trackingResult.code);
+                          alert(`Código ${trackingResult.code} copiado com sucesso!`);
+                        }}
+                        className="inline-flex items-center gap-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all shadow-sm"
+                        title="Copiar código de rastreamento"
+                      >
+                        <Copy size={12} />
+                        Copiar
+                      </button>
+
+                      {/* Marcar como Entregue (if matched order is not delivered) */}
+                      {trackingResult.matchedOrder && trackingResult.matchedOrder.status !== 'Entregue' && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await handleUpdateOrderStatus(trackingResult.matchedOrder, 'Entregue');
+                            setTrackingResult((prev: any) => prev ? {
+                              ...prev,
+                              status: 'delivered',
+                              events: [
+                                { date: 'Hoje', location: 'Endereço do Destinatário', desc: 'Objeto entregue ao destinatário', status: 'success' },
+                                ...(prev.events || [])
+                              ]
+                            } : null);
+                            alert('Pedido confirmado como Entregue! Alerta de entrega gerado.');
+                          }}
+                          className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-3 py-1.5 rounded-xl uppercase tracking-wider transition-all shadow-sm active:scale-95"
+                          title="Confirmar entrega deste pedido"
+                        >
+                          <PackageCheck size={13} />
+                          Confirmar Entrega
+                        </button>
+                      )}
+
+                      {/* WhatsApp Client Notification */}
+                      {trackingResult.matchedClient?.phone && (
+                        <a
+                          href={`https://wa.me/55${trackingResult.matchedClient.phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+                            trackingResult.status === 'delivered'
+                              ? `Olá ${trackingResult.matchedClient.name || ''}, seu pedido consta como entregue pelos Correios (Rastreio: ${trackingResult.code})! Chegou tudo certo? Agradecemos a confiança!`
+                              : `Olá ${trackingResult.matchedClient.name || ''}, segue o link de rastreamento do seu pedido: https://rastreamento.correios.com.br/app/index.php?codigo=${trackingResult.code} (Código: ${trackingResult.code})`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-black px-3 py-1.5 rounded-xl uppercase tracking-wider transition-all shadow-sm active:scale-95"
+                          title="Avisar cliente via WhatsApp"
+                        >
+                          <MessageSquare size={13} />
+                          {trackingResult.status === 'delivered' ? 'Avisar Entrega no WhatsApp' : 'Enviar Rastreio no WhatsApp'}
+                        </a>
+                      )}
                     </div>
 
                     <div className="relative pl-6 border-l-2 border-slate-200 dark:border-slate-800 ml-3 space-y-6 pt-1">

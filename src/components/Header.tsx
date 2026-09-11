@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { IMAGES } from '../constants';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabaseClient';
+import NotificationBell from './NotificationBell';
 
 interface HeaderProps {
   profile?: any;
@@ -134,10 +135,7 @@ const Header = ({ profile }: HeaderProps) => {
         </button>
 
         {/* Notification Bell */}
-        <div className="relative group">
-          <Bell className="text-slate-400 hover:text-[#2563EB] dark:hover:text-blue-400 cursor-pointer transition-colors size-5" />
-          <span className="absolute top-0 right-0 w-2 h-2 bg-[#EF4444] rounded-full border border-white dark:border-slate-900"></span>
-        </div>
+        <NotificationBell />
 
         {/* Profile Avatar */}
         {profile?.role === 'tratador' ? (

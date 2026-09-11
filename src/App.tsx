@@ -9,6 +9,7 @@ import { Plus, LogOut, Heart, Menu, Sun, Moon, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
+import NotificationBell from './components/NotificationBell';
 import Auth from './components/Auth';
 import BottomNav from './components/BottomNav';
 import { supabase } from './lib/supabaseClient';
@@ -233,7 +234,8 @@ export default function App() {
               <div className="text-2xl font-black text-white font-headline tracking-tighter italic">
                 AVS <span className="text-[8px] text-[#DBEAFE] tracking-[0.2em] uppercase">GERENCIAMENTO</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <NotificationBell isMobile />
                 <button
                   onClick={toggleTheme}
                   className="p-2 rounded-full text-white hover:bg-white/10 transition-colors cursor-pointer"
