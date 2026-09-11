@@ -17,6 +17,8 @@ import {
   Calendar,
   ExternalLink,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Users,
   Plus,
   Trash2,
@@ -294,11 +296,16 @@ export default function Remessas() {
       setNotifications(notificationService.getNotifications());
     };
     window.addEventListener('avs_notification_update', handleNotifUpdate);
-    return () => window.removeEventListener('avs_notification_update', handleNotifUpdate);
   }, []);
 
+  // Collapsible Accordion States for Shipping Tab (Only Simulator starts open)
+  const [isMelhorEnvioOpen, setIsMelhorEnvioOpen] = useState(false);
+  const [isSuperfreteOpen, setIsSuperfreteOpen] = useState(false);
+  const [isCorreiosOpen, setIsCorreiosOpen] = useState(false);
+  const [isSenderOpen, setIsSenderOpen] = useState(false);
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(true);
+  const [isTrackingOpen, setIsTrackingOpen] = useState(false);
 
-  // Label Generation State
   const [selectedService, setSelectedService] = useState<ShippingOption | null>(null);
   const [generatingLabel, setGeneratingLabel] = useState(false);
   const [labelResult, setLabelResult] = useState<any>(null);
@@ -964,6 +971,7 @@ export default function Remessas() {
     const cleanCode = codeToTrack.trim().toUpperCase();
     if (!cleanCode) return;
 
+    setIsTrackingOpen(true);
     setIsTracking(true);
     setTrackingError(null);
     setTrackingResult(null);
@@ -3812,837 +3820,903 @@ export default function Remessas() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left column - Integration settings */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="order-2 lg:order-1 lg:col-span-1 space-y-4">
           {/* Card 1: Melhor Envio API Connection */}
-          {isMelhorEnvioConfigured && !isEditingMelhorEnvio ? (
-            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-3">
-                  <Truck className="text-[#2563EB]" size={20} />
+          <div id="melhor-envio-card" className="bg-white border border-slate-100 rounded-3xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all">
+            <button
+              type="button"
+              onClick={() => setIsMelhorEnvioOpen(prev => !prev)}
+              className="w-full flex items-center justify-between gap-3 text-left cursor-pointer select-none"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-2xl bg-blue-50 text-[#2563EB]">
+                  <Truck size={20} />
+                </div>
+                <div>
                   <h3 className="font-bold text-[#1F2937] text-base">Melhor Envio</h3>
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    {isMelhorEnvioConfigured ? `Conectado (${sandbox ? 'Sandbox' : 'Produção'})` : 'Cotação com transportadoras'}
+                  </p>
                 </div>
-                <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${sandbox ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
-                  {sandbox ? 'Sandbox' : 'Produção'}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                  isMelhorEnvioConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {isMelhorEnvioConfigured ? 'Ativo' : 'Configurar'}
                 </span>
-              </div>
-
-              {/* Status Indicator Button */}
-              <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-105 rounded-2xl">
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                  </span>
-                  <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Conexão Ativa</span>
-                </div>
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100/50 px-2.5 py-0.5 rounded-full uppercase font-mono">OK</span>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                {connectedUser && (
-                  <div className="bg-[#F8FAFC] border border-slate-100 p-3 rounded-2xl space-y-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Usuário</p>
-                    <p className="font-bold text-[#1F2937]">{connectedUser.name}</p>
-                    <p className="text-slate-500 font-mono text-[10px]">{connectedUser.email}</p>
-                  </div>
-                )}
-
-                <div className="bg-[#F8FAFC] border border-slate-100 p-3 rounded-2xl flex justify-between items-center">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">CEP de Origem</span>
-                    <span className="font-bold text-[#1F2937]">{originPostalCode}</span>
-                  </div>
-                  <MapPin size={16} className="text-slate-400" />
+                <div className="p-1 rounded-full hover:bg-slate-100 text-slate-400">
+                  {isMelhorEnvioOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                 </div>
               </div>
+            </button>
 
-              <button
-                onClick={() => setIsEditingMelhorEnvio(true)}
-                className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-350 text-slate-600 hover:bg-slate-50 py-3.5 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm"
-              >
-                <Settings size={14} /> Editar Conexão
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
-                <div className="flex items-center gap-3">
-                  <Settings className="text-[#2563EB]" size={20} />
-                  <h3 className="font-bold text-[#1F2937] text-lg">Integração Melhor Envio</h3>
-                </div>
-                {isMelhorEnvioConfigured && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-emerald-100 text-emerald-800">Ativo</span>
-                )}
-              </div>
-
-              <form onSubmit={handleSaveMelhorEnvio} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">CEP de Origem</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <input
-                      required
-                      type="text"
-                      placeholder="Ex: 01310-100"
-                      value={originPostalCode}
-                      onChange={(e) => setOriginPostalCode(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Token de API Melhor Envio</label>
-                  <div className="relative">
-                    <Key className="absolute left-3 top-4 text-slate-400" size={16} />
-                    <textarea
-                      required
-                      rows={3}
-                      placeholder="Cole seu token gerado no painel do Melhor Envio..."
-                      value={token}
-                      onChange={(e) => setToken(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-[#1F2937] text-xs font-mono focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none resize-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
-                  <div>
-                    <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider block">Ambiente Sandbox</span>
-                    <span className="text-[10px] text-slate-400 font-medium">Ativar para realizar testes simulados.</span>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={sandbox} 
-                      onChange={(e) => setSandbox(e.target.checked)} 
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
-                  </label>
-                </div>
-
-                {validationStatus === 'validating' && (
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
-                    <RefreshCw className="animate-spin text-slate-400" size={16} />
-                    Validando Token...
-                  </div>
-                )}
-
-                {validationStatus === 'success' && connectedUser && (
-                  <div className="bg-[#E8F5E9] border border-[#A5D6A7] rounded-2xl p-4 flex gap-3 text-[#2E7D32] text-xs font-medium">
-                    <CheckCircle2 className="shrink-0 mt-0.5" size={18} />
-                    <div>
-                      <span className="font-bold block uppercase tracking-wider">Conectado com sucesso!</span>
-                      <p className="mt-1">Usuário: **{connectedUser.name}**</p>
-                      <p>E-mail: {connectedUser.email}</p>
+            {isMelhorEnvioOpen && (
+              <div className="mt-5 pt-4 border-t border-slate-100 space-y-5">
+                {isMelhorEnvioConfigured && !isEditingMelhorEnvio ? (
+                  <>
+                    {/* Status Indicator Button */}
+                    <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-100 rounded-2xl">
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                        </span>
+                        <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Conexão Ativa</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100/50 px-2.5 py-0.5 rounded-full uppercase font-mono">OK</span>
                     </div>
-                  </div>
-                )}
 
-                {validationStatus === 'error' && validationError && (
-                  <div className="bg-[#FFEBEE] border border-[#FFCDD2] rounded-2xl p-4 flex gap-3 text-[#C62828] text-xs font-medium">
-                    <AlertCircle className="shrink-0 mt-0.5" size={18} />
-                    <div>
-                      <span className="font-bold block uppercase tracking-wider">Falha na Conexão</span>
-                      <p className="mt-1">{validationError}</p>
+                    <div className="space-y-3 text-xs">
+                      {connectedUser && (
+                        <div className="bg-[#F8FAFC] border border-slate-100 p-3 rounded-2xl space-y-1">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Usuário</p>
+                          <p className="font-bold text-[#1F2937]">{connectedUser.name}</p>
+                          <p className="text-slate-500 font-mono text-[10px]">{connectedUser.email}</p>
+                        </div>
+                      )}
+
+                      <div className="bg-[#F8FAFC] border border-slate-100 p-3 rounded-2xl flex justify-between items-center">
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">CEP de Origem</span>
+                          <span className="font-bold text-[#1F2937]">{originPostalCode}</span>
+                        </div>
+                        <MapPin size={16} className="text-slate-400" />
+                      </div>
                     </div>
-                  </div>
-                )}
 
-                <div className="flex gap-2">
-                  {isMelhorEnvioConfigured && (
                     <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditingMelhorEnvio(false);
-                        setValidationError(null);
-                      }}
-                      className="w-1/3 border border-slate-200 hover:border-slate-300 text-slate-600 py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95"
+                      onClick={() => setIsEditingMelhorEnvio(true)}
+                      className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-350 text-slate-600 hover:bg-slate-50 py-3.5 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm"
                     >
-                      Cancelar
+                      <Settings size={14} /> Editar Conexão
                     </button>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={savingSettings}
-                    className={`flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] active:scale-95 transition-all disabled:opacity-50 ${isMelhorEnvioConfigured ? 'w-2/3' : 'w-full'}`}
-                  >
-                    {savingSettings ? <RefreshCw className="animate-spin" size={14} /> : 'Salvar & Validar'}
-                  </button>
-                </div>
-              </form>
-            </div>
+                  </>
+                ) : (
+                  <>
+                    <form onSubmit={handleSaveMelhorEnvio} className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">CEP de Origem</label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                          <input
+                            required
+                            type="text"
+                            placeholder="Ex: 01310-100"
+                            value={originPostalCode}
+                            onChange={(e) => setOriginPostalCode(e.target.value)}
+                            className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none"
+                          />
+                        </div>
+                      </div>
 
-            <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-3xl p-6 space-y-4">
-              <h4 className="font-bold text-[#1E40AF] text-sm uppercase tracking-wider">Como gerar seu Token?</h4>
-              <ol className="list-decimal list-inside text-xs text-[#1E40AF] space-y-2 leading-relaxed">
-                <li>Acesse o painel do seu <strong>Melhor Envio</strong> (Sandbox ou Produção).</li>
-                <li>No menu lateral esquerdo, vá em <strong>Gerenciar &gt; Tokens</strong> ou em <strong>Integrações &gt; Permissões de Acesso</strong>.</li>
-                <li>Clique no botão <strong>Novo Token</strong> ou <strong>Gerar Novo Token</strong>.</li>
-                <li>Defina um nome para o token, clique no botão <strong>Selecionar todos</strong> (para conceder todas as permissões) e depois em <strong>Gerar</strong>.</li>
-                <li>Copie o token gerado imediatamente e cole no campo acima.</li>
-              </ol>
-              <a 
-                href={sandbox ? "https://sandbox.melhorenvio.com.br" : "https://melhorenvio.com.br"} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-xs font-bold text-[#2563EB] hover:underline flex items-center gap-1 mt-2"
-              >
-                Acessar Melhor Envio <ExternalLink size={12} />
-              </a>
-            </div>
-          </div>
-        )}
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Token de API Melhor Envio</label>
+                        <div className="relative">
+                          <Key className="absolute left-3 top-4 text-slate-400" size={16} />
+                          <textarea
+                            required
+                            rows={3}
+                            placeholder="Cole seu token gerado no painel do Melhor Envio..."
+                            value={token}
+                            onChange={(e) => setToken(e.target.value)}
+                            className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-[#1F2937] text-xs font-mono focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none resize-none"
+                          />
+                        </div>
+                      </div>
 
-          {/* Card: SuperFrete API Connection */}
-          {isSuperfreteConfigured && !isEditingSuperfrete ? (
-            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-3">
-                  <Truck className="text-[#2563EB]" size={20} />
-                  <h3 className="font-bold text-[#1F2937] text-base">SuperFrete</h3>
-                </div>
-                <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${superfreteSandbox ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
-                  {superfreteSandbox ? 'Sandbox' : 'Produção'}
-                </span>
-              </div>
+                      <div className="flex items-center justify-between p-3 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
+                        <div>
+                          <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider block">Ambiente Sandbox</span>
+                          <span className="text-[10px] text-slate-400 font-medium">Ativar para realizar testes simulados.</span>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={sandbox} 
+                            onChange={(e) => setSandbox(e.target.checked)} 
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
+                        </label>
+                      </div>
 
-              {/* Status Indicator Button */}
-              <div className={`flex items-center justify-between p-3 border rounded-2xl ${superfreteEnabled ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-3 w-3">
-                    {superfreteEnabled && (
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    )}
-                    <span className={`relative inline-flex rounded-full h-3 w-3 ${superfreteEnabled ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                  </span>
-                  <span className={`text-xs font-bold uppercase tracking-wider ${superfreteEnabled ? 'text-emerald-800' : 'text-amber-800'}`}>
-                    {superfreteEnabled ? 'Integração Ativa' : 'Desativada'}
-                  </span>
-                </div>
-                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${superfreteEnabled ? 'text-emerald-600 bg-emerald-100/50' : 'text-amber-600 bg-amber-100/50'}`}>
-                  {superfreteEnabled ? 'OK' : 'PAUSADO'}
-                </span>
-              </div>
+                      {validationStatus === 'validating' && (
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+                          <RefreshCw className="animate-spin text-slate-400" size={16} />
+                          Validando Token...
+                        </div>
+                      )}
 
-              <div className="space-y-3 text-xs">
-                {superfreteConnectedUser && (
-                  <div className="bg-[#F8FAFC] border border-slate-100 p-3 rounded-2xl space-y-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Usuário</p>
-                    <p className="font-bold text-[#1F2937]">{superfreteConnectedUser.name}</p>
-                  </div>
-                )}
-              </div>
+                      {validationStatus === 'success' && connectedUser && (
+                        <div className="bg-[#E8F5E9] border border-[#A5D6A7] rounded-2xl p-4 flex gap-3 text-[#2E7D32] text-xs font-medium">
+                          <CheckCircle2 className="shrink-0 mt-0.5" size={18} />
+                          <div>
+                            <span className="font-bold block uppercase tracking-wider">Conectado com sucesso!</span>
+                            <p className="mt-1">Usuário: **{connectedUser.name}**</p>
+                            <p>E-mail: {connectedUser.email}</p>
+                          </div>
+                        </div>
+                      )}
 
-              <button
-                onClick={() => setIsEditingSuperfrete(true)}
-                className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-350 text-slate-600 hover:bg-slate-50 py-3.5 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm"
-              >
-                <Settings size={14} /> Editar Conexão
-              </button>
-            </div>
-          ) : (
-            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
-                <div className="flex items-center gap-3">
-                  <Settings className="text-[#2563EB]" size={20} />
-                  <h3 className="font-bold text-[#1F2937] text-lg">Integração SuperFrete</h3>
-                </div>
-                {isSuperfreteConfigured && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-emerald-100 text-emerald-800">Ativo</span>
-                )}
-              </div>
+                      {validationStatus === 'error' && validationError && (
+                        <div className="bg-[#FFEBEE] border border-[#FFCDD2] rounded-2xl p-4 flex gap-3 text-[#C62828] text-xs font-medium">
+                          <AlertCircle className="shrink-0 mt-0.5" size={18} />
+                          <div>
+                            <span className="font-bold block uppercase tracking-wider">Falha na Conexão</span>
+                            <p className="mt-1">{validationError}</p>
+                          </div>
+                        </div>
+                      )}
 
-              <form onSubmit={handleSaveSuperfrete} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Token de API SuperFrete</label>
-                  <div className="relative">
-                    <Key className="absolute left-3 top-4 text-slate-400" size={16} />
-                    <textarea
-                      required
-                      rows={3}
-                      placeholder="Cole seu token gerado no painel do SuperFrete..."
-                      value={superfreteToken}
-                      onChange={(e) => setSuperfreteToken(e.target.value)}
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-[#1F2937] text-xs font-mono focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none resize-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
-                  <div>
-                    <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider block">Ambiente Sandbox</span>
-                    <span className="text-[10px] text-slate-400 font-medium">Ativar para realizar testes simulados.</span>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={superfreteSandbox} 
-                      onChange={(e) => setSuperfreteSandbox(e.target.checked)} 
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
-                  <div>
-                    <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider block">Ativar Integração</span>
-                    <span className="text-[10px] text-slate-400 font-medium">Habilitar SuperFrete nas cotações.</span>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={superfreteEnabled} 
-                      onChange={(e) => setSuperfreteEnabled(e.target.checked)} 
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
-                  </label>
-                </div>
-
-                {superfreteValidationStatus === 'validating' && (
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
-                    <RefreshCw className="animate-spin text-slate-400" size={16} />
-                    Validando Token...
-                  </div>
-                )}
-
-                {superfreteValidationStatus === 'success' && superfreteConnectedUser && (
-                  <div className="bg-[#E8F5E9] border border-[#A5D6A7] rounded-2xl p-4 flex gap-3 text-[#2E7D32] text-xs font-medium">
-                    <CheckCircle2 className="shrink-0 mt-0.5" size={18} />
-                    <div>
-                      <span className="font-bold block uppercase tracking-wider">Conectado com sucesso!</span>
-                      <p className="mt-1">Usuário: **{superfreteConnectedUser.name}**</p>
-                    </div>
-                  </div>
-                )}
-
-                {superfreteValidationStatus === 'error' && superfreteValidationError && (
-                  <div className="bg-[#FFEBEE] border border-[#FFCDD2] rounded-2xl p-4 flex gap-3 text-[#C62828] text-xs font-medium">
-                    <AlertCircle className="shrink-0 mt-0.5" size={18} />
-                    <div>
-                      <span className="font-bold block uppercase tracking-wider">Falha na Conexão</span>
-                      <p className="mt-1">{superfreteValidationError}</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  {isSuperfreteConfigured && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditingSuperfrete(false);
-                        setSuperfreteValidationError(null);
-                      }}
-                      className="w-1/3 border border-slate-200 hover:border-slate-350 text-slate-600 py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95"
-                    >
-                      Cancelar
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={savingSettings}
-                    className={`flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] active:scale-95 transition-all disabled:opacity-50 ${isSuperfreteConfigured ? 'w-2/3' : 'w-full'}`}
-                  >
-                    {savingSettings ? <RefreshCw className="animate-spin" size={14} /> : 'Salvar & Validar'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* Card: Correios Contrato API Connection */}
-          {isCorreiosConfigured && !isEditingCorreios ? (
-            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-3">
-                  <Truck className="text-[#2563EB]" size={20} />
-                  <h3 className="font-bold text-[#1F2937] text-base">Correios Contrato</h3>
-                </div>
-                <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${correiosSandbox ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
-                  {correiosSandbox ? 'Sandbox' : 'Produção'}
-                </span>
-              </div>
-
-              {/* Status Indicator Button */}
-              <div className={`flex items-center justify-between p-3 border rounded-2xl ${correiosEnabled ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-3 w-3">
-                    {correiosEnabled && (
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    )}
-                    <span className={`relative inline-flex rounded-full h-3 w-3 ${correiosEnabled ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                  </span>
-                  <span className={`text-xs font-bold uppercase tracking-wider ${correiosEnabled ? 'text-emerald-800' : 'text-amber-800'}`}>
-                    {correiosEnabled ? 'Integração Ativa' : 'Desativada'}
-                  </span>
-                </div>
-                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${correiosEnabled ? 'text-emerald-600 bg-emerald-100/50' : 'text-amber-600 bg-amber-100/50'}`}>
-                  {correiosEnabled ? 'OK' : 'PAUSADO'}
-                </span>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                <div className="bg-[#F8FAFC] border border-slate-100 p-3 rounded-2xl space-y-2">
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Usuário</p>
-                    <p className="font-bold text-[#1F2937]">{correiosUser}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contrato</p>
-                      <p className="font-semibold text-slate-700">{correiosContract || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cartão</p>
-                      <p className="font-semibold text-slate-700">{correiosCard || '-'}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cód. PAC</p>
-                      <p className="font-semibold text-slate-700">{correiosPacCode || '03298'}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cód. SEDEX</p>
-                      <p className="font-semibold text-slate-700">{correiosSedexCode || '03220'}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setIsEditingCorreios(true)}
-                className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-350 text-slate-600 hover:bg-slate-50 py-3.5 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm"
-              >
-                <Settings size={14} /> Editar Conexão
-              </button>
-            </div>
-          ) : (
-            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
-                <div className="flex items-center gap-3">
-                  <Settings className="text-[#2563EB]" size={20} />
-                  <h3 className="font-bold text-[#1F2937] text-lg">Integração Correios</h3>
-                </div>
-                {isCorreiosConfigured && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-emerald-100 text-emerald-800">Ativo</span>
-                )}
-              </div>
-
-              <form onSubmit={handleSaveCorreios} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Usuário (CWS)</label>
-                    <input 
-                      required 
-                      type="text" 
-                      value={correiosUser} 
-                      onChange={(e) => setCorreiosUser(e.target.value)} 
-                      placeholder="Geralmente CNPJ"
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Senha / Cód. Acesso</label>
-                    <input 
-                      required 
-                      type="password" 
-                      value={correiosPassword} 
-                      onChange={(e) => setCorreiosPassword(e.target.value)} 
-                      placeholder="Código do Portal CWS"
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nº do Contrato</label>
-                    <input 
-                      required 
-                      type="text" 
-                      value={correiosContract} 
-                      onChange={(e) => setCorreiosContract(e.target.value)} 
-                      placeholder="Ex: 9912345678"
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nº do Cartão de Postagem</label>
-                    <input 
-                      required 
-                      type="text" 
-                      value={correiosCard} 
-                      onChange={(e) => setCorreiosCard(e.target.value)} 
-                      placeholder="Ex: 0075123456"
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cód. Serviço PAC</label>
-                    <input 
-                      required 
-                      type="text" 
-                      value={correiosPacCode} 
-                      onChange={(e) => setCorreiosPacCode(e.target.value)} 
-                      placeholder="Padrão: 03298"
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cód. Serviço SEDEX</label>
-                    <input 
-                      required 
-                      type="text" 
-                      value={correiosSedexCode} 
-                      onChange={(e) => setCorreiosSedexCode(e.target.value)} 
-                      placeholder="Padrão: 03220"
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
-                  <div>
-                    <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider block">Ambiente Sandbox (Homologação)</span>
-                    <span className="text-[10px] text-slate-400 font-medium">Usar servidores de teste dos Correios.</span>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={correiosSandbox} 
-                      onChange={(e) => setCorreiosSandbox(e.target.checked)} 
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
-                  <div>
-                    <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider block">Ativar Integração</span>
-                    <span className="text-[10px] text-slate-400 font-medium">Habilitar tarifas diretas nas cotações.</span>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={correiosEnabled} 
-                      onChange={(e) => setCorreiosEnabled(e.target.checked)} 
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
-                  </label>
-                </div>
-
-                {correiosValidationStatus === 'validating' && (
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
-                    <RefreshCw className="animate-spin text-slate-400" size={16} />
-                    Autenticando com os Correios...
-                  </div>
-                )}
-
-                {correiosValidationStatus === 'success' && (
-                  <div className="bg-[#E8F5E9] border border-[#A5D6A7] rounded-2xl p-4 flex gap-3 text-[#2E7D32] text-xs font-medium">
-                    <CheckCircle2 className="shrink-0 mt-0.5" size={18} />
-                    <div>
-                      <span className="font-bold block uppercase tracking-wider">Conectado com sucesso!</span>
-                      <p className="mt-1">Contrato e credenciais validados junto à API dos Correios.</p>
-                    </div>
-                  </div>
-                )}
-
-                {correiosValidationStatus === 'error' && correiosValidationError && (
-                  <div className="bg-[#FFEBEE] border border-[#FFCDD2] rounded-2xl p-4 flex gap-3 text-[#C62828] text-xs font-medium">
-                    <AlertCircle className="shrink-0 mt-0.5" size={18} />
-                    <div>
-                      <span className="font-bold block uppercase tracking-wider">Falha na Autenticação</span>
-                      <p className="mt-1">{correiosValidationError}</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  {isCorreiosConfigured && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditingCorreios(false);
-                        setCorreiosValidationError(null);
-                      }}
-                      className="w-1/3 border border-slate-200 hover:border-slate-350 text-slate-600 py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95"
-                    >
-                      Cancelar
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={savingSettings}
-                    className={`flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] active:scale-95 transition-all disabled:opacity-50 ${isCorreiosConfigured ? 'w-2/3' : 'w-full'}`}
-                  >
-                    {savingSettings ? <RefreshCw className="animate-spin" size={14} /> : 'Salvar & Validar'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* Card 2: Dados do Remetente */}
-          {isSenderConfigured && !isEditingSender ? (
-            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-3">
-                  <MapPin className="text-[#2563EB]" size={20} />
-                  <h3 className="font-bold text-[#1F2937] text-base">Remetente Cadastrado</h3>
-                </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-emerald-100 text-emerald-800">Salvo</span>
-              </div>
-
-              <div className="space-y-4">
-                {/* Sender Details Summary */}
-                <div className="bg-[#F8FAFC] border border-slate-100 rounded-2xl p-4 space-y-3 text-xs">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Nome / Criador</span>
-                    <span className="font-bold text-[#1F2937]">{senderName}</span>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">CPF / CNPJ</span>
-                      <span className="font-medium text-slate-600">{senderCpf}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Telefone</span>
-                      <span className="font-medium text-slate-600">{senderPhone}</span>
-                    </div>
-                  </div>
-
-                  {senderEmail && (
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">E-mail</span>
-                      <span className="font-medium text-slate-600">{senderEmail}</span>
-                    </div>
-                  )}
-
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Endereço de Origem</span>
-                    <span className="font-medium text-slate-600 block leading-relaxed">
-                      {senderAddress}, {senderNumber} <br />
-                      {senderDistrict} - {senderCity} / {senderState} <br />
-                      <span className="font-bold text-[#1F2937]">CEP: {senderPostalCode || originPostalCode || 'Não informado'}</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setIsEditingSender(true)}
-                className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-350 text-slate-600 hover:bg-slate-50 py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm"
-              >
-                <Settings size={14} /> Editar Remetente
-              </button>
-            </div>
-          ) : (
-            <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
-                <div className="flex items-center gap-3">
-                  <MapPin className="text-[#2563EB]" size={20} />
-                  <h3 className="font-bold text-[#1F2937] text-lg">Dados do Remetente</h3>
-                </div>
-                {isSenderConfigured && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-emerald-100 text-emerald-800">Salvo</span>
-                )}
-              </div>
-
-              <form onSubmit={handleSaveSender} className="space-y-4">
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome do Criador</label>
-                    <input 
-                      required 
-                      type="text" 
-                      value={senderName} 
-                      onChange={(e) => setSenderName(e.target.value)} 
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CPF / CNPJ</label>
-                      <input 
-                        required 
-                        type="text" 
-                        placeholder="000.000.000-00" 
-                        maxLength={18}
-                        value={senderCpf} 
-                        onChange={(e) => setSenderCpf(maskCpfCnpj(e.target.value))} 
-                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Telefone</label>
-                      <input 
-                        required 
-                        type="text" 
-                        placeholder="(00) 00000-0000" 
-                        maxLength={15}
-                        value={senderPhone} 
-                        onChange={(e) => setSenderPhone(maskPhone(e.target.value))} 
-                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">E-mail</label>
-                    <input 
-                      required 
-                      type="email" 
-                      value={senderEmail} 
-                      onChange={(e) => setSenderEmail(e.target.value)} 
-                      className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <div className="sm:col-span-1 space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between">
-                        <span>CEP de Origem</span>
-                        {loadingSenderCep && (
-                          <span className="text-[#2563EB] flex items-center gap-1 font-normal lowercase text-[10px]">
-                            <RefreshCw className="animate-spin" size={10} /> buscando...
-                          </span>
+                      <div className="flex gap-2">
+                        {isMelhorEnvioConfigured && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsEditingMelhorEnvio(false);
+                              setValidationError(null);
+                            }}
+                            className="w-1/3 border border-slate-200 hover:border-slate-300 text-slate-600 py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95"
+                          >
+                            Cancelar
+                          </button>
                         )}
-                      </label>
-                      <input 
-                        required 
-                        type="text" 
-                        placeholder="00000-000" 
-                        maxLength={9}
-                        value={senderPostalCode} 
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const raw = val.replace(/\D/g, '').slice(0, 8);
-                          const formatted = raw.length > 5 ? `${raw.slice(0, 5)}-${raw.slice(5)}` : raw;
-                          setSenderPostalCode(formatted);
-                          setOriginPostalCode(formatted);
-                          if (raw.length === 8) {
-                            handleSenderCepLookup(raw);
-                          }
-                        }} 
-                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                      />
-                    </div>
-                    <div className="sm:col-span-2 space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Endereço (Rua / Logradouro)</label>
-                      <input 
-                        required 
-                        type="text" 
-                        placeholder="Rua, Av, Rodovia..." 
-                        value={senderAddress} 
-                        onChange={(e) => setSenderAddress(e.target.value)} 
-                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                      />
-                    </div>
-                  </div>
+                        <button
+                          type="submit"
+                          disabled={savingSettings}
+                          className={`flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] active:scale-95 transition-all disabled:opacity-50 ${isMelhorEnvioConfigured ? 'w-2/3' : 'w-full'}`}
+                        >
+                          {savingSettings ? <RefreshCw className="animate-spin" size={14} /> : 'Salvar & Validar'}
+                        </button>
+                      </div>
+                    </form>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Número</label>
-                      <input 
-                        required 
-                        type="text" 
-                        placeholder="Nº ou S/N"
-                        value={senderNumber} 
-                        onChange={(e) => setSenderNumber(e.target.value)} 
-                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-center text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                      />
+                    <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-2xl p-4 sm:p-5 space-y-3 mt-4">
+                      <h4 className="font-bold text-[#1E40AF] text-xs uppercase tracking-wider">Como gerar seu Token?</h4>
+                      <ol className="list-decimal list-inside text-xs text-[#1E40AF] space-y-1.5 leading-relaxed">
+                        <li>Acesse o painel do seu <strong>Melhor Envio</strong>.</li>
+                        <li>Vá em <strong>Gerenciar &gt; Tokens</strong> ou <strong>Permissões</strong>.</li>
+                        <li>Clique em <strong>Novo Token</strong>, marque <strong>Selecionar todos</strong> e gere.</li>
+                        <li>Copie e cole o token acima.</li>
+                      </ol>
+                      <a 
+                        href={sandbox ? "https://sandbox.melhorenvio.com.br" : "https://melhorenvio.com.br"} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs font-bold text-[#2563EB] hover:underline flex items-center gap-1 mt-1"
+                      >
+                        Acessar Melhor Envio <ExternalLink size={12} />
+                      </a>
                     </div>
-                    <div className="col-span-2 space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bairro</label>
-                      <input 
-                        required 
-                        type="text" 
-                        placeholder="Bairro"
-                        value={senderDistrict} 
-                        onChange={(e) => setSenderDistrict(e.target.value)} 
-                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                      />
-                    </div>
-                  </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="col-span-2 space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cidade</label>
-                      <input 
-                        required 
-                        type="text" 
-                        placeholder="Cidade"
-                        value={senderCity} 
-                        onChange={(e) => setSenderCity(e.target.value)} 
-                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estado (UF)</label>
-                      <input 
-                        required 
-                        type="text" 
-                        maxLength={2} 
-                        placeholder="UF" 
-                        value={senderState} 
-                        onChange={(e) => setSenderState(e.target.value.toUpperCase())} 
-                        className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-center text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
-                      />
-                    </div>
-                  </div>
+
+          {/* Card 2: SuperFrete API Connection */}
+          <div id="superfrete-card" className="bg-white border border-slate-100 rounded-3xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all">
+            <button
+              type="button"
+              onClick={() => setIsSuperfreteOpen(prev => !prev)}
+              className="w-full flex items-center justify-between gap-3 text-left cursor-pointer select-none"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-2xl bg-purple-50 text-purple-600">
+                  <Truck size={20} />
                 </div>
+                <div>
+                  <h3 className="font-bold text-[#1F2937] text-base">SuperFrete</h3>
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    {isSuperfreteConfigured ? `Conectado (${superfreteSandbox ? 'Sandbox' : 'Produção'})` : 'Cotação com Correios & Logística'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                  isSuperfreteConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {isSuperfreteConfigured ? 'Ativo' : 'Configurar'}
+                </span>
+                <div className="p-1 rounded-full hover:bg-slate-100 text-slate-400">
+                  {isSuperfreteOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
+              </div>
+            </button>
 
-                <div className="flex gap-2 pt-2">
-                  {isSenderConfigured && (
+            {isSuperfreteOpen && (
+              <div className="mt-5 pt-4 border-t border-slate-100 space-y-5">
+                {isSuperfreteConfigured && !isEditingSuperfrete ? (
+                  <>
+                    {/* Status Indicator Button */}
+                    <div className={`flex items-center justify-between p-3 border rounded-2xl ${superfreteEnabled ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-3 w-3">
+                          {superfreteEnabled && (
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          )}
+                          <span className={`relative inline-flex rounded-full h-3 w-3 ${superfreteEnabled ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                        </span>
+                        <span className={`text-xs font-bold uppercase tracking-wider ${superfreteEnabled ? 'text-emerald-800' : 'text-amber-800'}`}>
+                          {superfreteEnabled ? 'Integração Ativa' : 'Desativada'}
+                        </span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${superfreteEnabled ? 'text-emerald-600 bg-emerald-100/50' : 'text-amber-600 bg-amber-100/50'}`}>
+                        {superfreteEnabled ? 'OK' : 'PAUSADO'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-3 text-xs">
+                      {superfreteConnectedUser && (
+                        <div className="bg-[#F8FAFC] border border-slate-100 p-3 rounded-2xl space-y-1">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Usuário</p>
+                          <p className="font-bold text-[#1F2937]">{superfreteConnectedUser.name}</p>
+                        </div>
+                      )}
+                    </div>
+
                     <button
-                      type="button"
-                      onClick={() => setIsEditingSender(false)}
-                      className="w-1/3 border border-slate-200 hover:border-slate-350 text-slate-600 py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95"
+                      onClick={() => setIsEditingSuperfrete(true)}
+                      className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-350 text-slate-600 hover:bg-slate-50 py-3.5 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm"
                     >
-                      Cancelar
+                      <Settings size={14} /> Editar Conexão
                     </button>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={savingSender}
-                    className={`flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] active:scale-95 transition-all disabled:opacity-50 ${isSenderConfigured ? 'w-2/3' : 'w-full'}`}
-                  >
-                    {savingSender ? <RefreshCw className="animate-spin" size={14} /> : 'Salvar Dados'}
-                  </button>
+                  </>
+                ) : (
+                  <form onSubmit={handleSaveSuperfrete} className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Token de API SuperFrete</label>
+                      <div className="relative">
+                        <Key className="absolute left-3 top-4 text-slate-400" size={16} />
+                        <textarea
+                          required
+                          rows={3}
+                          placeholder="Cole seu token gerado no painel do SuperFrete..."
+                          value={superfreteToken}
+                          onChange={(e) => setSuperfreteToken(e.target.value)}
+                          className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-[#1F2937] text-xs font-mono focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none resize-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
+                      <div>
+                        <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider block">Ambiente Sandbox</span>
+                        <span className="text-[10px] text-slate-400 font-medium">Ativar para realizar testes simulados.</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={superfreteSandbox} 
+                          onChange={(e) => setSuperfreteSandbox(e.target.checked)} 
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
+                      <div>
+                        <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider block">Ativar Integração</span>
+                        <span className="text-[10px] text-slate-400 font-medium">Habilitar SuperFrete nas cotações.</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={superfreteEnabled} 
+                          onChange={(e) => setSuperfreteEnabled(e.target.checked)} 
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
+                      </label>
+                    </div>
+
+                    {superfreteValidationStatus === 'validating' && (
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+                        <RefreshCw className="animate-spin text-slate-400" size={16} />
+                        Validando Token...
+                      </div>
+                    )}
+
+                    {superfreteValidationStatus === 'success' && superfreteConnectedUser && (
+                      <div className="bg-[#E8F5E9] border border-[#A5D6A7] rounded-2xl p-4 flex gap-3 text-[#2E7D32] text-xs font-medium">
+                        <CheckCircle2 className="shrink-0 mt-0.5" size={18} />
+                        <div>
+                          <span className="font-bold block uppercase tracking-wider">Conectado com sucesso!</span>
+                          <p className="mt-1">Usuário: **{superfreteConnectedUser.name}**</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {superfreteValidationStatus === 'error' && superfreteValidationError && (
+                      <div className="bg-[#FFEBEE] border border-[#FFCDD2] rounded-2xl p-4 flex gap-3 text-[#C62828] text-xs font-medium">
+                        <AlertCircle className="shrink-0 mt-0.5" size={18} />
+                        <div>
+                          <span className="font-bold block uppercase tracking-wider">Falha na Conexão</span>
+                          <p className="mt-1">{superfreteValidationError}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      {isSuperfreteConfigured && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingSuperfrete(false);
+                            setSuperfreteValidationError(null);
+                          }}
+                          className="w-1/3 border border-slate-200 hover:border-slate-350 text-slate-600 py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                      <button
+                        type="submit"
+                        disabled={savingSettings}
+                        className={`flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] active:scale-95 transition-all disabled:opacity-50 ${isSuperfreteConfigured ? 'w-2/3' : 'w-full'}`}
+                      >
+                        {savingSettings ? <RefreshCw className="animate-spin" size={14} /> : 'Salvar & Validar'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Card 3: Correios Contrato API Connection */}
+          <div id="correios-card" className="bg-white border border-slate-100 rounded-3xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all">
+            <button
+              type="button"
+              onClick={() => setIsCorreiosOpen(prev => !prev)}
+              className="w-full flex items-center justify-between gap-3 text-left cursor-pointer select-none"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-2xl bg-amber-50 text-amber-600">
+                  <Truck size={20} />
                 </div>
-              </form>
-            </div>
-          )}
+                <div>
+                  <h3 className="font-bold text-[#1F2937] text-base">Correios Contrato</h3>
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    {isCorreiosConfigured ? `Contrato Ativo (${correiosSandbox ? 'Sandbox' : 'Produção'})` : 'Tarifas diretas do contrato CWS'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                  isCorreiosConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {isCorreiosConfigured ? 'Ativo' : 'Configurar'}
+                </span>
+                <div className="p-1 rounded-full hover:bg-slate-100 text-slate-400">
+                  {isCorreiosOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
+              </div>
+            </button>
+
+            {isCorreiosOpen && (
+              <div className="mt-5 pt-4 border-t border-slate-100 space-y-5">
+                {isCorreiosConfigured && !isEditingCorreios ? (
+                  <>
+                    {/* Status Indicator Button */}
+                    <div className={`flex items-center justify-between p-3 border rounded-2xl ${correiosEnabled ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-3 w-3">
+                          {correiosEnabled && (
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          )}
+                          <span className={`relative inline-flex rounded-full h-3 w-3 ${correiosEnabled ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                        </span>
+                        <span className={`text-xs font-bold uppercase tracking-wider ${correiosEnabled ? 'text-emerald-800' : 'text-amber-800'}`}>
+                          {correiosEnabled ? 'Integração Ativa' : 'Desativada'}
+                        </span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono ${correiosEnabled ? 'text-emerald-600 bg-emerald-100/50' : 'text-amber-600 bg-amber-100/50'}`}>
+                        {correiosEnabled ? 'OK' : 'PAUSADO'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-3 text-xs">
+                      <div className="bg-[#F8FAFC] border border-slate-100 p-3 rounded-2xl space-y-2">
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Usuário</p>
+                          <p className="font-bold text-[#1F2937]">{correiosUser}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Contrato</p>
+                            <p className="font-semibold text-slate-700">{correiosContract || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cartão</p>
+                            <p className="font-semibold text-slate-700">{correiosCard || '-'}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cód. PAC</p>
+                            <p className="font-semibold text-slate-700">{correiosPacCode || '03298'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cód. SEDEX</p>
+                            <p className="font-semibold text-slate-700">{correiosSedexCode || '03220'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setIsEditingCorreios(true)}
+                      className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-350 text-slate-600 hover:bg-slate-50 py-3.5 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+                    >
+                      <Settings size={14} /> Editar Conexão
+                    </button>
+                  </>
+                ) : (
+                  <form onSubmit={handleSaveCorreios} className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Usuário (CWS)</label>
+                        <input 
+                          required 
+                          type="text" 
+                          value={correiosUser} 
+                          onChange={(e) => setCorreiosUser(e.target.value)} 
+                          placeholder="Geralmente CNPJ"
+                          className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Senha / Cód. Acesso</label>
+                        <input 
+                          required 
+                          type="password" 
+                          value={correiosPassword} 
+                          onChange={(e) => setCorreiosPassword(e.target.value)} 
+                          placeholder="Código do Portal CWS"
+                          className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nº do Contrato</label>
+                        <input 
+                          required 
+                          type="text" 
+                          value={correiosContract} 
+                          onChange={(e) => setCorreiosContract(e.target.value)} 
+                          placeholder="Ex: 9912345678"
+                          className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nº do Cartão de Postagem</label>
+                        <input 
+                          required 
+                          type="text" 
+                          value={correiosCard} 
+                          onChange={(e) => setCorreiosCard(e.target.value)} 
+                          placeholder="Ex: 0075123456"
+                          className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cód. Serviço PAC</label>
+                        <input 
+                          required 
+                          type="text" 
+                          value={correiosPacCode} 
+                          onChange={(e) => setCorreiosPacCode(e.target.value)} 
+                          placeholder="Padrão: 03298"
+                          className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cód. Serviço SEDEX</label>
+                        <input 
+                          required 
+                          type="text" 
+                          value={correiosSedexCode} 
+                          onChange={(e) => setCorreiosSedexCode(e.target.value)} 
+                          placeholder="Padrão: 03220"
+                          className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
+                      <div>
+                        <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider block">Ambiente Sandbox (Homologação)</span>
+                        <span className="text-[10px] text-slate-400 font-medium">Usar servidores de teste dos Correios.</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={correiosSandbox} 
+                          onChange={(e) => setCorreiosSandbox(e.target.checked)} 
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-[#F8FAFC] border border-slate-100 rounded-2xl">
+                      <div>
+                        <span className="text-xs font-bold text-[#1F2937] uppercase tracking-wider block">Ativar Integração</span>
+                        <span className="text-[10px] text-slate-400 font-medium">Habilitar tarifas diretas nas cotações.</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={correiosEnabled} 
+                          onChange={(e) => setCorreiosEnabled(e.target.checked)} 
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#2563EB]"></div>
+                      </label>
+                    </div>
+
+                    {correiosValidationStatus === 'validating' && (
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-50 border border-slate-200 p-3 rounded-2xl">
+                        <RefreshCw className="animate-spin text-slate-400" size={16} />
+                        Autenticando com os Correios...
+                      </div>
+                    )}
+
+                    {correiosValidationStatus === 'success' && (
+                      <div className="bg-[#E8F5E9] border border-[#A5D6A7] rounded-2xl p-4 flex gap-3 text-[#2E7D32] text-xs font-medium">
+                        <CheckCircle2 className="shrink-0 mt-0.5" size={18} />
+                        <div>
+                          <span className="font-bold block uppercase tracking-wider">Conectado com sucesso!</span>
+                          <p className="mt-1">Contrato e credenciais validados junto à API dos Correios.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {correiosValidationStatus === 'error' && correiosValidationError && (
+                      <div className="bg-[#FFEBEE] border border-[#FFCDD2] rounded-2xl p-4 flex gap-3 text-[#C62828] text-xs font-medium">
+                        <AlertCircle className="shrink-0 mt-0.5" size={18} />
+                        <div>
+                          <span className="font-bold block uppercase tracking-wider">Falha na Autenticação</span>
+                          <p className="mt-1">{correiosValidationError}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      {isCorreiosConfigured && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingCorreios(false);
+                            setCorreiosValidationError(null);
+                          }}
+                          className="w-1/3 border border-slate-200 hover:border-slate-350 text-slate-600 py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                      <button
+                        type="submit"
+                        disabled={savingSettings}
+                        className={`flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] active:scale-95 transition-all disabled:opacity-50 ${isCorreiosConfigured ? 'w-2/3' : 'w-full'}`}
+                      >
+                        {savingSettings ? <RefreshCw className="animate-spin" size={14} /> : 'Salvar & Validar'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Card 4: Dados do Remetente */}
+          <div id="sender-card" className="bg-white border border-slate-100 rounded-3xl p-5 sm:p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all">
+            <button
+              type="button"
+              onClick={() => setIsSenderOpen(prev => !prev)}
+              className="w-full flex items-center justify-between gap-3 text-left cursor-pointer select-none"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-2xl bg-emerald-50 text-emerald-600">
+                  <MapPin size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[#1F2937] text-base">Dados do Remetente</h3>
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    {isSenderConfigured ? `${senderName || 'Criatório'} (${senderCity || 'Origem'}/${senderState || ''})` : 'Origem para cálculo e etiquetas'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                  isSenderConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {isSenderConfigured ? 'Salvo' : 'Cadastrar'}
+                </span>
+                <div className="p-1 rounded-full hover:bg-slate-100 text-slate-400">
+                  {isSenderOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
+              </div>
+            </button>
+
+            {isSenderOpen && (
+              <div className="mt-5 pt-4 border-t border-slate-100 space-y-5">
+                {isSenderConfigured && !isEditingSender ? (
+                  <>
+                    <div className="space-y-4">
+                      {/* Sender Details Summary */}
+                      <div className="bg-[#F8FAFC] border border-slate-100 rounded-2xl p-4 space-y-3 text-xs">
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Nome / Criador</span>
+                          <span className="font-bold text-[#1F2937]">{senderName}</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">CPF / CNPJ</span>
+                            <span className="font-medium text-slate-600">{senderCpf}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Telefone</span>
+                            <span className="font-medium text-slate-600">{senderPhone}</span>
+                          </div>
+                        </div>
+
+                        {senderEmail && (
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">E-mail</span>
+                            <span className="font-medium text-slate-600">{senderEmail}</span>
+                          </div>
+                        )}
+
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Endereço de Origem</span>
+                          <span className="font-medium text-slate-600 block leading-relaxed">
+                            {senderAddress}, {senderNumber} <br />
+                            {senderDistrict} - {senderCity} / {senderState} <br />
+                            <span className="font-bold text-[#1F2937]">CEP: {senderPostalCode || originPostalCode || 'Não informado'}</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setIsEditingSender(true)}
+                      className="w-full flex items-center justify-center gap-2 border border-slate-200 hover:border-slate-350 text-slate-600 hover:bg-slate-50 py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+                    >
+                      <Settings size={14} /> Editar Remetente
+                    </button>
+                  </>
+                ) : (
+                  <form onSubmit={handleSaveSender} className="space-y-4">
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome do Criador</label>
+                        <input 
+                          required 
+                          type="text" 
+                          value={senderName} 
+                          onChange={(e) => setSenderName(e.target.value)} 
+                          className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CPF / CNPJ</label>
+                          <input 
+                            required 
+                            type="text" 
+                            placeholder="000.000.000-00" 
+                            maxLength={18}
+                            value={senderCpf} 
+                            onChange={(e) => setSenderCpf(maskCpfCnpj(e.target.value))} 
+                            className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Telefone</label>
+                          <input 
+                            required 
+                            type="text" 
+                            placeholder="(00) 00000-0000" 
+                            maxLength={15}
+                            value={senderPhone} 
+                            onChange={(e) => setSenderPhone(maskPhone(e.target.value))} 
+                            className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">E-mail</label>
+                        <input 
+                          required 
+                          type="email" 
+                          value={senderEmail} 
+                          onChange={(e) => setSenderEmail(e.target.value)} 
+                          className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="sm:col-span-1 space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between">
+                            <span>CEP de Origem</span>
+                            {loadingSenderCep && (
+                              <span className="text-[#2563EB] flex items-center gap-1 font-normal lowercase text-[10px]">
+                                <RefreshCw className="animate-spin" size={10} /> buscando...
+                              </span>
+                            )}
+                          </label>
+                          <input 
+                            required 
+                            type="text" 
+                            placeholder="00000-000" 
+                            maxLength={9}
+                            value={senderPostalCode} 
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const raw = val.replace(/\D/g, '').slice(0, 8);
+                              const formatted = raw.length > 5 ? `${raw.slice(0, 5)}-${raw.slice(5)}` : raw;
+                              setSenderPostalCode(formatted);
+                              setOriginPostalCode(formatted);
+                              if (raw.length === 8) {
+                                handleSenderCepLookup(raw);
+                              }
+                            }} 
+                            className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] font-medium focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                          />
+                        </div>
+                        <div className="sm:col-span-2 space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Endereço (Rua / Logradouro)</label>
+                          <input 
+                            required 
+                            type="text" 
+                            placeholder="Rua, Av, Rodovia..." 
+                            value={senderAddress} 
+                            onChange={(e) => setSenderAddress(e.target.value)} 
+                            className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Número</label>
+                          <input 
+                            required 
+                            type="text" 
+                            placeholder="Nº ou S/N"
+                            value={senderNumber} 
+                            onChange={(e) => setSenderNumber(e.target.value)} 
+                            className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-center text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                          />
+                        </div>
+                        <div className="col-span-2 space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bairro</label>
+                          <input 
+                            required 
+                            type="text" 
+                            placeholder="Bairro"
+                            value={senderDistrict} 
+                            onChange={(e) => setSenderDistrict(e.target.value)} 
+                            className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="col-span-2 space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cidade</label>
+                          <input 
+                            required 
+                            type="text" 
+                            placeholder="Cidade"
+                            value={senderCity} 
+                            onChange={(e) => setSenderCity(e.target.value)} 
+                            className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estado (UF)</label>
+                          <input 
+                            required 
+                            type="text" 
+                            maxLength={2} 
+                            placeholder="UF" 
+                            value={senderState} 
+                            onChange={(e) => setSenderState(e.target.value.toUpperCase())} 
+                            className="w-full bg-[#F8FAFC] border border-slate-200 rounded-xl px-3 py-2 text-sm text-center text-[#1F2937] focus:bg-white focus:border-[#2563EB]/50 transition-all outline-none" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      {isSenderConfigured && (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingSender(false)}
+                          className="w-1/3 border border-slate-200 hover:border-slate-350 text-slate-600 py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all active:scale-95"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                      <button
+                        type="submit"
+                        disabled={savingSender}
+                        className={`flex items-center justify-center gap-2 bg-[#2563EB] text-white py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-md hover:bg-[#1D4ED8] active:scale-95 transition-all disabled:opacity-50 ${isSenderConfigured ? 'w-2/3' : 'w-full'}`}
+                      >
+                        {savingSender ? <RefreshCw className="animate-spin" size={14} /> : 'Salvar Dados'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Center/Right column - Simulator and Label purchase */}
-        <div className="lg:col-span-2 space-y-6">
-          <div id="shipping-simulator-card" className="bg-white border border-slate-100 rounded-3xl p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-            <div className="flex items-center justify-between gap-3 mb-6 border-b border-slate-100 pb-4">
+        {/* Center/Right column - Simulator and Label purchase: order-1 on mobile so it displays first, lg:order-2 on desktop */}
+        <div className="order-1 lg:order-2 lg:col-span-2 space-y-6">
+          <div id="shipping-simulator-card" className="bg-white border border-slate-100 rounded-3xl p-5 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all">
+            <button
+              type="button"
+              onClick={() => setIsSimulatorOpen(prev => !prev)}
+              className="w-full flex items-center justify-between gap-3 text-left cursor-pointer select-none"
+            >
               <div className="flex items-center gap-3">
-                <Calculator className="text-[#2563EB]" size={20} />
-                <h3 className="font-bold text-[#1F2937] text-lg">Simular Valores e Prazos</h3>
+                <div className="p-2.5 rounded-2xl bg-blue-50 text-[#2563EB]">
+                  <Calculator size={22} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[#1F2937] text-lg">Simular Valores e Prazos</h3>
+                  <p className="text-xs text-slate-400 font-medium">Cotação instantânea Correios & Transportadoras</p>
+                </div>
               </div>
-              <span className="text-[10px] font-bold px-3 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-full uppercase tracking-wider">
-                Correios & Transportadoras
-              </span>
-            </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold px-3 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-full uppercase tracking-wider hidden sm:inline-block">
+                  Correios & Transportadoras
+                </span>
+                <div className="p-1 rounded-full hover:bg-slate-100 text-slate-400">
+                  {isSimulatorOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </div>
+              </div>
+            </button>
 
-            <form onSubmit={handleCalculateShipping} className="space-y-6">
+            {isSimulatorOpen && (
+              <div className="mt-6 pt-6 border-t border-slate-100">
+                <form onSubmit={handleCalculateShipping} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center justify-between">
@@ -4849,6 +4923,8 @@ export default function Remessas() {
                 </div>
               </div>
             )}
+              </div>
+            )}
           </div>
 
           {/* Label Generator Form */}
@@ -4882,6 +4958,7 @@ export default function Remessas() {
                         <button
                           type="button"
                           onClick={() => {
+                            setIsMelhorEnvioOpen(true);
                             setIsEditingMelhorEnvio(true);
                             const el = document.getElementById('melhor-envio-card');
                             el?.scrollIntoView({ behavior: 'smooth' });
@@ -4893,6 +4970,7 @@ export default function Remessas() {
                         <button
                           type="button"
                           onClick={() => {
+                            setIsSuperfreteOpen(true);
                             setIsEditingSuperfrete(true);
                             const el = document.getElementById('superfrete-card');
                             el?.scrollIntoView({ behavior: 'smooth' });
@@ -4922,8 +5000,10 @@ export default function Remessas() {
                           <button
                             type="button"
                             onClick={() => {
+                              setIsSenderOpen(true);
                               setIsEditingSender(true);
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                              const el = document.getElementById('sender-card');
+                              el?.scrollIntoView({ behavior: 'smooth' });
                             }}
                             className="text-[10px] font-bold text-[#2563EB] hover:underline"
                           >
@@ -5137,14 +5217,35 @@ export default function Remessas() {
         </AnimatePresence>
 
           {/* Tracking Widget */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] space-y-6 transition-colors duration-200">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div id="tracking-card" className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-5 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all duration-200">
+            <button
+              type="button"
+              onClick={() => setIsTrackingOpen(prev => !prev)}
+              className="w-full flex items-center justify-between gap-3 text-left cursor-pointer select-none"
+            >
               <div className="flex items-center gap-3">
-                <Truck className="text-[#2563EB] dark:text-blue-500" size={20} />
-                <h3 className="font-bold text-[#1F2937] dark:text-slate-100 text-lg">Rastrear Envios</h3>
+                <div className="p-2.5 rounded-2xl bg-blue-50 text-[#2563EB] dark:bg-slate-800 dark:text-blue-400">
+                  <Truck size={22} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[#1F2937] dark:text-slate-100 text-lg">Rastrear Envios</h3>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+                    {trackingResult ? `Rastreando ${trackingResult.code}` : 'Consultar status e histórico de entregas'}
+                  </p>
+                </div>
               </div>
-              <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md uppercase tracking-wider">Simulador Integrado</span>
-            </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md uppercase tracking-wider hidden sm:inline-block">
+                  Simulador Integrado
+                </span>
+                <div className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+                  {isTrackingOpen ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </div>
+              </div>
+            </button>
+
+            {isTrackingOpen && (
+              <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Left Form Panel */}
@@ -5382,6 +5483,8 @@ export default function Remessas() {
                 )}
               </div>
             </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
