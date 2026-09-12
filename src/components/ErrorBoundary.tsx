@@ -46,7 +46,7 @@ export class ErrorBoundary extends Component<Props, State> {
       error,
       errorInfo: null,
       isChunkError: isChunk,
-      showDetails: false,
+      showDetails: true,
       isReloading: false
     };
   }
@@ -154,6 +154,29 @@ export class ErrorBoundary extends Component<Props, State> {
                 Início
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  localStorage.removeItem('avs_delivery_notifications');
+                  localStorage.removeItem('avs_last_auto_tracking_time');
+                  sessionStorage.clear();
+                  if ('caches' in window) {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map(k => caches.delete(k)));
+                  }
+                  if ('serviceWorker' in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(regs.map(r => r.unregister()));
+                  }
+                } catch {}
+                window.location.href = '/?clear=' + Date.now();
+              }}
+              className="w-full mt-2 py-2.5 text-[11px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 uppercase tracking-widest cursor-pointer border border-dashed border-slate-200 dark:border-slate-700 rounded-xl"
+            >
+              🧹 Limpar Cache Local e Reiniciar
+            </button>
 
             {/* Technical details accordion */}
             <div className="border-t border-slate-100 dark:border-slate-800/80 pt-4 mt-4">
