@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Truck, 
@@ -300,52 +300,6 @@ export default function Remessas() {
   const [activeTrackingModalCode, setActiveTrackingModalCode] = useState<string>('');
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
 
-  useEffect(() => {
-    const handleNotifUpdate = () => {
-      setNotifications(notificationService.getNotifications());
-    };
-    const handleOrdersUpdate = () => {
-      loadOrdersClientsData();
-    };
-    const handleOpenModal = (e: any) => {
-      const detail = e.detail;
-      if (detail?.trackingCode) {
-        const cleanDetailCode = String(detail.trackingCode).trim().toUpperCase();
-        const matched = orders.find((o: any) => String(o.tracking_code || '').trim().toUpperCase() === cleanDetailCode);
-        setActiveTrackingModalCode(cleanDetailCode);
-        setActiveTrackingModalOrder(matched || null);
-        setIsTrackingModalOpen(true);
-      }
-    };
-
-    window.addEventListener('avs_notification_update', handleNotifUpdate);
-    window.addEventListener('avs_notifications_updated', handleNotifUpdate);
-    window.addEventListener('avs_orders_updated', handleOrdersUpdate);
-    window.addEventListener('avs_open_tracking_modal', handleOpenModal);
-
-    // Abre modal automaticamente se veio de clique em notificação de outra página
-    try {
-      const pendingOpen = sessionStorage.getItem('avs_auto_open_tracking');
-      if (pendingOpen) {
-        sessionStorage.removeItem('avs_auto_open_tracking');
-        const data = JSON.parse(pendingOpen);
-        if (data?.trackingCode) {
-          const cleanDetailCode = String(data.trackingCode).trim().toUpperCase();
-          const matched = orders.find((o: any) => String(o.tracking_code || '').trim().toUpperCase() === cleanDetailCode);
-          setActiveTrackingModalCode(cleanDetailCode);
-          setActiveTrackingModalOrder(matched || null);
-          setIsTrackingModalOpen(true);
-        }
-      }
-    } catch {}
-
-    return () => {
-      window.removeEventListener('avs_notification_update', handleNotifUpdate);
-      window.removeEventListener('avs_notifications_updated', handleNotifUpdate);
-      window.removeEventListener('avs_orders_updated', handleOrdersUpdate);
-      window.removeEventListener('avs_open_tracking_modal', handleOpenModal);
-    };
-  }, [orders]);
 
   // Collapsible Accordion States for Shipping Tab (Only Simulator starts open)
   const [isMelhorEnvioOpen, setIsMelhorEnvioOpen] = useState(false);
@@ -436,6 +390,60 @@ export default function Remessas() {
   const [clientSearch, setClientSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
   const [productSearch, setProductSearch] = useState('');
+
+  const ordersRef = useRef<any[]>(orders);
+  useEffect(() => {
+    ordersRef.current = orders;
+  }, [orders]);
+
+  useEffect(() => {
+    const handleNotifUpdate = () => {
+      setNotifications(notificationService.getNotifications());
+    };
+    const handleOrdersUpdate = () => {
+      loadOrdersClientsData();
+    };
+    const handleOpenModal = (e: any) => {
+      const detail = e.detail;
+      if (detail?.trackingCode) {
+        const cleanDetailCode = String(detail.trackingCode).trim().toUpperCase();
+        const currentOrders = ordersRef.current || orders;
+        const matched = currentOrders.find((o: any) => String(o.tracking_code || '').trim().toUpperCase() === cleanDetailCode);
+        setActiveTrackingModalCode(cleanDetailCode);
+        setActiveTrackingModalOrder(matched || null);
+        setIsTrackingModalOpen(true);
+      }
+    };
+
+    window.addEventListener('avs_notification_update', handleNotifUpdate);
+    window.addEventListener('avs_notifications_updated', handleNotifUpdate);
+    window.addEventListener('avs_orders_updated', handleOrdersUpdate);
+    window.addEventListener('avs_open_tracking_modal', handleOpenModal);
+
+    // Abre modal automaticamente se veio de clique em notificação de outra página
+    try {
+      const pendingOpen = sessionStorage.getItem('avs_auto_open_tracking');
+      if (pendingOpen) {
+        sessionStorage.removeItem('avs_auto_open_tracking');
+        const data = JSON.parse(pendingOpen);
+        if (data?.trackingCode) {
+          const cleanDetailCode = String(data.trackingCode).trim().toUpperCase();
+          const currentOrders = ordersRef.current || orders;
+          const matched = currentOrders.find((o: any) => String(o.tracking_code || '').trim().toUpperCase() === cleanDetailCode);
+          setActiveTrackingModalCode(cleanDetailCode);
+          setActiveTrackingModalOrder(matched || null);
+          setIsTrackingModalOpen(true);
+        }
+      }
+    } catch {}
+
+    return () => {
+      window.removeEventListener('avs_notification_update', handleNotifUpdate);
+      window.removeEventListener('avs_notifications_updated', handleNotifUpdate);
+      window.removeEventListener('avs_orders_updated', handleOrdersUpdate);
+      window.removeEventListener('avs_open_tracking_modal', handleOpenModal);
+    };
+  }, [orders]);
 
   useEffect(() => {
     loadSettings();
