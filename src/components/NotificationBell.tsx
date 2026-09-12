@@ -15,7 +15,7 @@ export default function NotificationBell({ isMobile = false }: NotificationBellP
   const navigate = useNavigate();
   const location = useLocation();
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => n && !n.read).length;
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -79,8 +79,8 @@ export default function NotificationBell({ isMobile = false }: NotificationBellP
         }));
       } catch {}
 
-      if (location.pathname !== '/remessas') {
-        navigate('/remessas');
+      if (location.pathname !== '/shipping') {
+        navigate('/shipping');
       } else {
         window.dispatchEvent(new CustomEvent('avs_open_tracking_modal', { 
           detail: { trackingCode: n.trackingCode, orderId: n.orderId } 
@@ -182,7 +182,7 @@ export default function NotificationBell({ isMobile = false }: NotificationBellP
                 <p className="text-[10px] text-slate-400">Você será avisado aqui assim que um pedido for entregue!</p>
               </div>
             ) : (
-              notifications.map((n) => (
+              notifications.filter((n): n is AppNotification => !!n && typeof n === 'object' && !!n.id).map((n) => (
                 <div 
                   key={n.id}
                   onClick={() => handleItemClick(n)}

@@ -25,17 +25,21 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   public static getDerivedStateFromError(error: Error): State {
-    const errorMsg = error?.message || '';
-    const errorName = error?.name || '';
+    const errorMsg = String(error?.message || '');
+    const errorName = String(error?.name || '');
+    const fullError = `${errorName} ${errorMsg}`.toLowerCase();
     
     // Check if error is related to dynamic imports, chunk hash mismatch, or Vite build rotation
     const isChunk = 
       errorName === 'ChunkLoadError' ||
-      errorMsg.includes('Failed to fetch dynamically imported module') ||
-      errorMsg.includes('Importing a module script failed') ||
-      errorMsg.includes('Loading chunk') ||
-      errorMsg.includes("Unexpected token '<'") ||
-      errorMsg.includes('is not a valid JavaScript MIME type');
+      fullError.includes('failed to fetch dynamically imported module') ||
+      fullError.includes('importing a module script failed') ||
+      fullError.includes('loading chunk') ||
+      fullError.includes('load failed') ||
+      fullError.includes('failed to load') ||
+      fullError.includes('dynamically imported') ||
+      fullError.includes("unexpected token '<'") ||
+      fullError.includes('is not a valid javascript mime type');
 
     return {
       hasError: true,
@@ -65,6 +69,10 @@ export class ErrorBoundary extends Component<Props, State> {
   private handleHardReload = async () => {
     this.setState({ isReloading: true });
     try {
+      try {
+        sessionStorage.clear();
+      } catch {}
+
       // Clear CacheStorage
       if ('caches' in window) {
         const cacheKeys = await caches.keys();
@@ -81,14 +89,18 @@ export class ErrorBoundary extends Component<Props, State> {
     } catch (e) {
       console.warn('Error clearing caches:', e);
     } finally {
-      window.location.reload();
+      const url = new URL(window.location.origin + window.location.pathname);
+      url.searchParams.set('v', String(Date.now()));
+      window.location.href = url.toString();
     }
   };
 
   private handleGoHome = () => {
-    sessionStorage.removeItem('avs_auto_chunk_reload');
+    try {
+      sessionStorage.clear();
+    } catch {}
     this.setState({ hasError: false, error: null, errorInfo: null });
-    window.location.href = '/';
+    window.location.href = '/?v=' + Date.now();
   };
 
   public render() {

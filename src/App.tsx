@@ -27,27 +27,33 @@ function lazyWithRetry<T extends React.ComponentType<any>>(
   componentImport: () => Promise<{ default: T }>
 ) {
   return lazy(async () => {
-    const pageHasAlreadyBeenForceRefreshed = JSON.parse(
-      window.sessionStorage.getItem('avs_chunk_retry_refreshed') || 'false'
-    );
-
     try {
       const module = await componentImport();
-      window.sessionStorage.setItem('avs_chunk_retry_refreshed', 'false');
+      window.sessionStorage.setItem('avs_chunk_retry_count', '0');
       return module;
     } catch (error: any) {
       console.warn('Dynamic import chunk error:', error);
-      if (!pageHasAlreadyBeenForceRefreshed) {
-        window.sessionStorage.setItem('avs_chunk_retry_refreshed', 'true');
+      const retryCount = Number(window.sessionStorage.getItem('avs_chunk_retry_count') || '0');
+      if (retryCount < 2) {
+        window.sessionStorage.setItem('avs_chunk_retry_count', String(retryCount + 1));
         if ('caches' in window) {
           try {
             const keys = await caches.keys();
             await Promise.all(keys.map(k => caches.delete(k)));
           } catch {}
         }
-        window.location.reload();
+        if ('serviceWorker' in navigator) {
+          try {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r => r.unregister()));
+          } catch {}
+        }
+        const url = new URL(window.location.origin + window.location.pathname);
+        url.searchParams.set('t', String(Date.now()));
+        window.location.replace(url.toString());
         return new Promise<{ default: T }>(() => {});
       }
+      window.sessionStorage.removeItem('avs_chunk_retry_count');
       throw error;
     }
   });

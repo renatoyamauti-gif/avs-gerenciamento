@@ -18,23 +18,29 @@ export const notificationService = {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.filter((n: any) => n && typeof n === 'object' && !!n.id);
+        }
       }
     } catch {}
     return [];
   },
 
   getUnreadCount(): number {
-    return this.getNotifications().filter(n => !n.read).length;
+    return this.getNotifications().filter(n => n && !n.read).length;
   },
 
   addDeliveryNotification(order: any, clientName?: string): AppNotification {
     const notifications = this.getNotifications();
     const tracking = order.tracking_code ? String(order.tracking_code).trim().toUpperCase() : '';
-    const client = clientName || order.clients?.name || order.client?.name || 'Cliente';
+    const client = clientName || 
+      (Array.isArray(order.clients) ? order.clients[0]?.name : order.clients?.name) || 
+      order.client?.name || 
+      order.client_name || 
+      'Cliente';
     
     // Evita duplicar notificação idêntica para o mesmo pedido
-    const existing = notifications.find(n => n.orderId === order.id && n.type === 'delivery');
+    const existing = notifications.find(n => n && n.orderId === order.id && n.type === 'delivery');
     if (existing) {
       return existing;
     }
@@ -61,28 +67,15 @@ export const notificationService = {
     // Dispara evento para sincronizar todos os componentes abertos
     window.dispatchEvent(new CustomEvent('avs_notifications_updated', { detail: updated }));
 
-    // Dispara notificação nativa do navegador se tiver permissão
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'granted') {
-        try {
-          new Notification(newNotif.title, {
-            body: newNotif.message,
-            icon: '/icon-192.png'
-          });
-        } catch {}
-      } else if (Notification.permission === 'default') {
-        Notification.requestPermission().then(permission => {
-          if (permission === 'granted') {
-            try {
-              new Notification(newNotif.title, {
-                body: newNotif.message,
-                icon: '/icon-192.png'
-              });
-            } catch {}
-          }
-        }).catch(() => {});
+    // Dispara notificação nativa silenciosa somente se já autorizada explicitamente pelo usuário
+    try {
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification(newNotif.title, {
+          body: newNotif.message,
+          icon: '/icon-192.png'
+        });
       }
-    }
+    } catch {}
 
     return newNotif;
   },
@@ -126,7 +119,11 @@ export const notificationService = {
 
     for (const order of deliveredOrders) {
       const tracking = order.tracking_code ? String(order.tracking_code).trim().toUpperCase() : '';
-      const client = order.clients?.name || order.client?.name || order.client_name || 'Cliente';
+      const client = 
+        (Array.isArray(order.clients) ? order.clients[0]?.name : order.clients?.name) || 
+        order.client?.name || 
+        order.client_name || 
+        'Cliente';
       const dateStr = order.updated_at || order.created_at || new Date().toISOString();
 
       newNotifications.push({
