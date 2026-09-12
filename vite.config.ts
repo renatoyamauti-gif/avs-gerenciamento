@@ -73,6 +73,11 @@ export default defineConfig(({mode}) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/correios-prod/, ''),
         },
+        '/api/melhorrastreio': {
+          target: 'https://api.melhorrastreio.com.br',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/melhorrastreio/, ''),
+        },
       },
     },
   };

@@ -48,6 +48,8 @@ import { exportToCSV } from '../lib/csvHelper';
 import { isValidCpfOrCnpj, maskCpfCnpj, maskCep, maskPhone } from '../lib/validation';
 import { notificationService } from '../lib/notificationService';
 import { autoTrackingService } from '../lib/autoTrackingService';
+import { correiosTrackingService } from '../lib/correiosTrackingService';
+import TrackingModal from '../components/TrackingModal';
 
 interface ShippingOption {
   id: string | number;
@@ -293,6 +295,11 @@ export default function Remessas() {
   const [isSyncingTracking, setIsSyncingTracking] = useState(false);
   const [notifications, setNotifications] = useState(() => notificationService.getNotifications());
 
+  // Dedicated Tracking Modal State
+  const [activeTrackingModalOrder, setActiveTrackingModalOrder] = useState<any | null>(null);
+  const [activeTrackingModalCode, setActiveTrackingModalCode] = useState<string>('');
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+
   useEffect(() => {
     const handleNotifUpdate = () => {
       setNotifications(notificationService.getNotifications());
@@ -300,17 +307,45 @@ export default function Remessas() {
     const handleOrdersUpdate = () => {
       loadOrdersClientsData();
     };
+    const handleOpenModal = (e: any) => {
+      const detail = e.detail;
+      if (detail?.trackingCode) {
+        const cleanDetailCode = String(detail.trackingCode).trim().toUpperCase();
+        const matched = orders.find((o: any) => String(o.tracking_code || '').trim().toUpperCase() === cleanDetailCode);
+        setActiveTrackingModalCode(cleanDetailCode);
+        setActiveTrackingModalOrder(matched || null);
+        setIsTrackingModalOpen(true);
+      }
+    };
 
     window.addEventListener('avs_notification_update', handleNotifUpdate);
     window.addEventListener('avs_notifications_updated', handleNotifUpdate);
     window.addEventListener('avs_orders_updated', handleOrdersUpdate);
+    window.addEventListener('avs_open_tracking_modal', handleOpenModal);
+
+    // Abre modal automaticamente se veio de clique em notificação de outra página
+    try {
+      const pendingOpen = sessionStorage.getItem('avs_auto_open_tracking');
+      if (pendingOpen) {
+        sessionStorage.removeItem('avs_auto_open_tracking');
+        const data = JSON.parse(pendingOpen);
+        if (data?.trackingCode) {
+          const cleanDetailCode = String(data.trackingCode).trim().toUpperCase();
+          const matched = orders.find((o: any) => String(o.tracking_code || '').trim().toUpperCase() === cleanDetailCode);
+          setActiveTrackingModalCode(cleanDetailCode);
+          setActiveTrackingModalOrder(matched || null);
+          setIsTrackingModalOpen(true);
+        }
+      }
+    } catch {}
 
     return () => {
       window.removeEventListener('avs_notification_update', handleNotifUpdate);
       window.removeEventListener('avs_notifications_updated', handleNotifUpdate);
       window.removeEventListener('avs_orders_updated', handleOrdersUpdate);
+      window.removeEventListener('avs_open_tracking_modal', handleOpenModal);
     };
-  }, []);
+  }, [orders]);
 
   // Collapsible Accordion States for Shipping Tab (Only Simulator starts open)
   const [isMelhorEnvioOpen, setIsMelhorEnvioOpen] = useState(false);
@@ -441,6 +476,7 @@ export default function Remessas() {
       });
       setClients(validClients);
       setOrders(populatedOrders);
+      notificationService.syncFromOrders(populatedOrders);
       setRacas(racasData || []);
       setEggLogs(eggLogsData || []);
       setIncubators(incubatorsData || []);
@@ -1093,6 +1129,43 @@ export default function Remessas() {
       if (lower.includes('postado') || lower.includes('objeto recebido')) return 'posted';
       return 'info';
     };
+
+    // 0. Try Public Real-time Correios Tracking API first (Universal & Free, No Contract Required)
+    if (correiosTrackingService.isCorreiosFormat(cleanCode)) {
+      try {
+        const publicData = await correiosTrackingService.track(cleanCode);
+        if (publicData && publicData.events && publicData.events.length > 0) {
+          const overallStatus = publicData.status;
+
+          if (overallStatus === 'delivered' && matchedOrder && matchedOrder.status !== 'Entregue') {
+            await handleUpdateOrderStatus(matchedOrder, 'Entregue');
+          }
+
+          const description = inferredDesc || `Objeto Correios (${cleanCode})`;
+          setTrackingResult({
+            code: cleanCode,
+            description,
+            status: overallStatus,
+            events: publicData.events,
+            matchedOrder,
+            matchedClient
+          });
+
+          setRecentTrackings(prev => {
+            const exists = prev.some(t => t.code === cleanCode);
+            if (exists) return prev;
+            const updated = [{ code: cleanCode, description, status: overallStatus }, ...prev].slice(0, 5);
+            localStorage.setItem('avs_recent_trackings', JSON.stringify(updated));
+            return updated;
+          });
+
+          setIsTracking(false);
+          return;
+        }
+      } catch (err) {
+        console.debug('Erro na consulta pública aos Correios:', err);
+      }
+    }
 
     // 1. Try Correios Direct API if active
     if (isCorreiosFormat && correiosUser && correiosPassword && correiosEnabled) {
@@ -3260,17 +3333,18 @@ export default function Remessas() {
                                     <MessageSquare size={12} />
                                   </a>
                                 )}
-                                {/* View in Simulator */}
+                                {/* View Tracking in Modal */}
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setActiveTab('shipping');
-                                    setTrackingCode(order.tracking_code);
-                                    handleTrackPackage(order.tracking_code);
+                                    setActiveTrackingModalOrder(order);
+                                    setActiveTrackingModalCode(order.tracking_code);
+                                    setIsTrackingModalOpen(true);
                                   }}
-                                  className="p-1 hover:bg-blue-100 text-[#2563EB] rounded-md transition-colors text-[10px] font-bold"
-                                  title="Rastrear no sistema"
+                                  className="p-1 hover:bg-blue-100 dark:hover:bg-blue-950 text-[#2563EB] dark:text-blue-400 rounded-md transition-colors text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                                  title="Rastrear objeto em tempo real"
                                 >
+                                  <Truck size={12} />
                                   Rastrear
                                 </button>
                               </div>
@@ -5533,6 +5607,24 @@ export default function Remessas() {
       ) : (
         renderOrdersClients()
       )}
+
+      {/* Modal de Rastreamento em Tempo Real */}
+      <TrackingModal
+        isOpen={isTrackingModalOpen}
+        onClose={() => {
+          setIsTrackingModalOpen(false);
+          setActiveTrackingModalOrder(null);
+          setActiveTrackingModalCode('');
+        }}
+        trackingCode={activeTrackingModalCode}
+        order={activeTrackingModalOrder}
+        clientName={activeTrackingModalOrder ? getOrderClient(activeTrackingModalOrder)?.name : undefined}
+        clientPhone={activeTrackingModalOrder ? getOrderClient(activeTrackingModalOrder)?.phone : undefined}
+        onMarkDelivered={async (ord) => {
+          await handleUpdateOrderStatus(ord, 'Entregue');
+          await loadOrdersClientsData();
+        }}
+      />
     </motion.div>
   );
 }

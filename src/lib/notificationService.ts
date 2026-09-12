@@ -108,5 +108,46 @@ export const notificationService = {
       localStorage.removeItem(STORAGE_KEY);
     } catch {}
     window.dispatchEvent(new CustomEvent('avs_notifications_updated', { detail: [] }));
+  },
+
+  syncFromOrders(orders: any[]) {
+    if (!Array.isArray(orders) || orders.length === 0) return;
+
+    const currentList = this.getNotifications();
+    const existingOrderIds = new Set(currentList.map(n => n.orderId).filter(Boolean));
+    const newNotifications: AppNotification[] = [];
+
+    // Busca pedidos com status 'Entregue' que ainda não possuem notificação
+    const deliveredOrders = orders.filter(
+      (o: any) => o && o.status === 'Entregue' && o.id && !existingOrderIds.has(o.id)
+    );
+
+    if (deliveredOrders.length === 0) return;
+
+    for (const order of deliveredOrders) {
+      const tracking = order.tracking_code ? String(order.tracking_code).trim().toUpperCase() : '';
+      const client = order.clients?.name || order.client?.name || order.client_name || 'Cliente';
+      const dateStr = order.updated_at || order.created_at || new Date().toISOString();
+
+      newNotifications.push({
+        id: `notif_order_${order.id}`,
+        type: 'delivery',
+        title: 'Pedido Entregue! 📦',
+        message: `A remessa para ${client}${tracking ? ` (Rastreio: ${tracking})` : ''} foi marcada como entregue!`,
+        orderId: order.id,
+        trackingCode: tracking,
+        clientName: client,
+        createdAt: dateStr,
+        read: false
+      });
+    }
+
+    if (newNotifications.length > 0) {
+      const merged = [...newNotifications, ...currentList].slice(0, 50);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      } catch {}
+      window.dispatchEvent(new CustomEvent('avs_notifications_updated', { detail: merged }));
+    }
   }
 };

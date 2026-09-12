@@ -25,6 +25,10 @@
       "destination": "https://api.correios.com.br/:path*"
     },
     {
+      "source": "/api/melhorrastreio/:path*",
+      "destination": "https://api.melhorrastreio.com.br/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

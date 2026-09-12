@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, Trash2, PackageCheck, ExternalLink, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { notificationService, AppNotification } from '../lib/notificationService';
+import { dbService } from '../lib/dbService';
 
 interface NotificationBellProps {
   isMobile?: boolean;
@@ -11,6 +12,8 @@ export default function NotificationBell({ isMobile = false }: NotificationBellP
   const [notifications, setNotifications] = useState<AppNotification[]>(() => notificationService.getNotifications());
   const [isOpen, setIsOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -18,6 +21,13 @@ export default function NotificationBell({ isMobile = false }: NotificationBellP
     const handleUpdate = () => {
       setNotifications(notificationService.getNotifications());
     };
+
+    // Sincroniza imediatamente pedidos já entregues com a central de notificações
+    dbService.getOrders().then(orders => {
+      if (Array.isArray(orders) && orders.length > 0) {
+        notificationService.syncFromOrders(orders);
+      }
+    }).catch(() => {});
 
     window.addEventListener('avs_notifications_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
@@ -30,7 +40,7 @@ export default function NotificationBell({ isMobile = false }: NotificationBellP
 
   // Fecha o popover ao clicar fora
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
@@ -38,9 +48,11 @@ export default function NotificationBell({ isMobile = false }: NotificationBellP
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [isOpen]);
 
@@ -54,6 +66,27 @@ export default function NotificationBell({ isMobile = false }: NotificationBellP
 
   const handleClearAll = () => {
     notificationService.clearAll();
+  };
+
+  const handleItemClick = (n: AppNotification) => {
+    notificationService.markAsRead(n.id);
+    if (n.trackingCode) {
+      setIsOpen(false);
+      try {
+        sessionStorage.setItem('avs_auto_open_tracking', JSON.stringify({ 
+          trackingCode: n.trackingCode, 
+          orderId: n.orderId 
+        }));
+      } catch {}
+
+      if (location.pathname !== '/remessas') {
+        navigate('/remessas');
+      } else {
+        window.dispatchEvent(new CustomEvent('avs_open_tracking_modal', { 
+          detail: { trackingCode: n.trackingCode, orderId: n.orderId } 
+        }));
+      }
+    }
   };
 
   const formatTime = (isoString: string) => {
@@ -152,7 +185,7 @@ export default function NotificationBell({ isMobile = false }: NotificationBellP
               notifications.map((n) => (
                 <div 
                   key={n.id}
-                  onClick={() => notificationService.markAsRead(n.id)}
+                  onClick={() => handleItemClick(n)}
                   className={`p-3.5 transition-colors flex items-start gap-3 cursor-pointer ${
                     !n.read 
                       ? 'bg-blue-50/60 dark:bg-blue-950/20 hover:bg-blue-50 dark:hover:bg-blue-950/30' 
@@ -183,14 +216,17 @@ export default function NotificationBell({ isMobile = false }: NotificationBellP
 
                     {n.trackingCode && (
                       <div className="mt-2 flex items-center gap-2">
-                        <Link
-                          to="/remessas"
-                          onClick={() => setIsOpen(false)}
-                          className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleItemClick(n);
+                          }}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                         >
-                          <span>Ver em Remessas</span>
+                          <span>Rastrear Remessa</span>
                           <ExternalLink size={10} />
-                        </Link>
+                        </button>
                       </div>
                     )}
                   </div>
