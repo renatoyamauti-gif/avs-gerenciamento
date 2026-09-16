@@ -14,7 +14,11 @@ interface State {
   isReloading: boolean;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
+export class ErrorBoundary extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+  }
+
   public state: State = {
     hasError: false,
     error: null,
@@ -53,7 +57,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary captured error:', error, errorInfo);
-    this.setState({ errorInfo });
+    (this as any).setState({ errorInfo });
 
     // Auto-reload once if it's a chunk error and we haven't already attempted an auto-reload
     const autoReloadKey = 'avs_auto_chunk_reload';
@@ -67,7 +71,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleHardReload = async () => {
-    this.setState({ isReloading: true });
+    (this as any).setState({ isReloading: true });
     try {
       try {
         sessionStorage.clear();
@@ -99,7 +103,7 @@ export class ErrorBoundary extends Component<Props, State> {
     try {
       sessionStorage.clear();
     } catch {}
-    this.setState({ hasError: false, error: null, errorInfo: null });
+    (this as any).setState({ hasError: false, error: null, errorInfo: null });
     window.location.href = '/?v=' + Date.now();
   };
 
@@ -109,70 +113,44 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex items-center justify-center p-4 transition-colors">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 p-6 sm:p-8 text-center animate-in fade-in zoom-in-95 duration-200">
-            {/* Icon */}
-            <div className={`mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-md ${
-              isChunkError 
-                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800' 
-                : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800'
-            }`}>
-              {isChunkError ? (
-                <RefreshCw size={32} className={isReloading ? 'animate-spin' : ''} />
-              ) : (
-                <AlertTriangle size={32} />
-              )}
+          <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 p-8 rounded-3xl max-w-lg w-full text-center shadow-2xl">
+            <div className="w-16 h-16 bg-red-50 dark:bg-red-950/50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-100 dark:border-red-900/50">
+              <AlertTriangle className="text-red-500" size={32} />
             </div>
 
-            {/* Title & Description */}
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 font-headline uppercase tracking-tight mb-3">
-              {isChunkError ? 'Atualização do Sistema' : 'Algo deu errado'}
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
+              {isChunkError ? 'Nova versão do sistema disponível!' : 'Algo inesperado aconteceu'}
             </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-8 leading-relaxed font-medium">
+
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
               {isChunkError 
-                ? 'Uma versão mais recente do sistema foi carregada. Clique no botão abaixo para recarregar com as atualizações mais recentes.'
-                : 'Ocorreu um erro temporário ao renderizar esta página. Clique em recarregar ou volte para o painel principal.'
-              }
+                ? 'Uma atualização foi publicada. Clique no botão abaixo para atualizar o aplicativo para a versão mais recente.' 
+                : 'Ocorreu uma falha ao renderizar esta parte da página. Tente recarregar para resolver o problema.'}
             </p>
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
-              <button
-                type="button"
+            <div className="space-y-3">
+              <button 
                 onClick={this.handleHardReload}
                 disabled={isReloading}
-                className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-[#2563EB] hover:bg-blue-700 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-500/25 transition-all cursor-pointer disabled:opacity-70"
+                className="w-full py-3.5 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold rounded-2xl transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer text-sm"
               >
-                <RefreshCw size={16} className={isReloading ? 'animate-spin' : ''} />
-                {isReloading ? 'Atualizando...' : 'Recarregar Aplicativo'}
+                <RefreshCw size={18} className={isReloading ? 'animate-spin' : ''} />
+                <span>{isReloading ? 'Atualizando sistema...' : 'Recarregar e Atualizar Agora'}</span>
               </button>
-              <button
-                type="button"
+
+              <button 
                 onClick={this.handleGoHome}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all cursor-pointer"
+                disabled={isReloading}
+                className="w-full py-3.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer text-sm"
               >
-                <Home size={16} />
-                Início
+                <Home size={18} />
+                <span>Voltar para o Início</span>
               </button>
             </div>
 
             <button
               type="button"
-              onClick={async () => {
-                try {
-                  localStorage.removeItem('avs_delivery_notifications');
-                  localStorage.removeItem('avs_last_auto_tracking_time');
-                  sessionStorage.clear();
-                  if ('caches' in window) {
-                    const keys = await caches.keys();
-                    await Promise.all(keys.map(k => caches.delete(k)));
-                  }
-                  if ('serviceWorker' in navigator) {
-                    const regs = await navigator.serviceWorker.getRegistrations();
-                    await Promise.all(regs.map(r => r.unregister()));
-                  }
-                } catch {}
-                window.location.href = '/?clear=' + Date.now();
-              }}
+              onClick={this.handleHardReload}
               className="w-full mt-2 py-2.5 text-[11px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 uppercase tracking-widest cursor-pointer border border-dashed border-slate-200 dark:border-slate-700 rounded-xl"
             >
               🧹 Limpar Cache Local e Reiniciar
@@ -182,7 +160,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="border-t border-slate-100 dark:border-slate-800/80 pt-4 mt-4">
               <button
                 type="button"
-                onClick={() => this.setState(prev => ({ showDetails: !prev.showDetails }))}
+                onClick={() => (this as any).setState((prev: State) => ({ showDetails: !prev.showDetails }))}
                 className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 uppercase tracking-wider transition-colors cursor-pointer"
               >
                 <span>{showDetails ? 'Ocultar detalhes técnicos' : 'Ver detalhes técnicos'}</span>
@@ -205,7 +183,7 @@ export class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    return this.props.children;
+    return (this as any).props.children;
   }
 }
 

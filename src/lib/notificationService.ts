@@ -1,11 +1,12 @@
 export interface AppNotification {
   id: string;
-  type: 'delivery' | 'order' | 'system';
+  type: 'delivery' | 'order' | 'system' | 'shipping';
   title: string;
   message: string;
   orderId?: string;
   trackingCode?: string;
   clientName?: string;
+  statusType?: 'Enviado' | 'Entregue' | 'Atualizacao';
   createdAt: string;
   read: boolean;
 }
@@ -30,7 +31,12 @@ export const notificationService = {
     return this.getNotifications().filter(n => n && !n.read).length;
   },
 
-  addDeliveryNotification(order: any, clientName?: string): AppNotification {
+  addShippingNotification(
+    order: any, 
+    clientName?: string, 
+    status: 'Enviado' | 'Entregue' = 'Entregue', 
+    details?: string
+  ): AppNotification {
     const notifications = this.getNotifications();
     const tracking = order.tracking_code ? String(order.tracking_code).trim().toUpperCase() : '';
     const client = clientName || 
@@ -39,17 +45,23 @@ export const notificationService = {
       order.client_name || 
       'Cliente';
     
-    // Evita duplicar notificação idêntica para o mesmo pedido
-    const existing = notifications.find(n => n && n.orderId === order.id && n.type === 'delivery');
+    // Evita duplicar notificação idêntica para o mesmo pedido e status
+    const existing = notifications.find(
+      n => n && n.orderId === order.id && (n.statusType === status || (status === 'Entregue' && n.type === 'delivery'))
+    );
     if (existing) {
       return existing;
     }
 
+    const isDelivered = status === 'Entregue';
     const newNotif: AppNotification = {
-      id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      type: 'delivery',
-      title: 'Pedido Entregue! 📦',
-      message: `A remessa para ${client}${tracking ? ` (Rastreio: ${tracking})` : ''} foi marcada como entregue com sucesso!`,
+      id: `notif_${status.toLowerCase()}_${order.id || Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      type: isDelivered ? 'delivery' : 'shipping',
+      statusType: status,
+      title: isDelivered ? 'Pedido Entregue! 📦' : 'Pedido a Caminho! 🚚',
+      message: isDelivered
+        ? `A remessa para ${client}${tracking ? ` (Rastreio: ${tracking})` : ''} foi entregue com sucesso!`
+        : (details || `A remessa para ${client}${tracking ? ` (Rastreio: ${tracking})` : ''} foi postada e está a caminho!`),
       orderId: order.id,
       trackingCode: tracking,
       clientName: client,
@@ -57,7 +69,7 @@ export const notificationService = {
       read: false
     };
 
-    const updated = [newNotif, ...notifications].slice(0, 40);
+    const updated = [newNotif, ...notifications].slice(0, 50);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     } catch (e) {
@@ -78,6 +90,10 @@ export const notificationService = {
     } catch {}
 
     return newNotif;
+  },
+
+  addDeliveryNotification(order: any, clientName?: string): AppNotification {
+    return this.addShippingNotification(order, clientName, 'Entregue');
   },
 
   markAsRead(id: string) {

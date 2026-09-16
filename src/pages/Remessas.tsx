@@ -485,6 +485,7 @@ export default function Remessas() {
       setClients(validClients);
       setOrders(populatedOrders);
       notificationService.syncFromOrders(populatedOrders);
+      autoTrackingService.checkPendingOrders().catch(() => {});
       setRacas(racasData || []);
       setEggLogs(eggLogsData || []);
       setIncubators(incubatorsData || []);
@@ -901,7 +902,13 @@ export default function Remessas() {
       await syncOrderWithFinance(saved, clientName);
 
       if (orderStatus === 'Entregue' && (!editingOrder || editingOrder.status !== 'Entregue')) {
-        notificationService.addDeliveryNotification(saved, clientName);
+        notificationService.addShippingNotification(saved, clientName, 'Entregue');
+      } else if (orderStatus === 'Enviado' && (!editingOrder || editingOrder.status !== 'Enviado')) {
+        notificationService.addShippingNotification(saved, clientName, 'Enviado');
+      }
+
+      if (orderTrackingCode && orderTrackingCode.trim().length >= 6) {
+        autoTrackingService.checkPendingOrders(true).catch(() => {});
       }
 
       await loadOrdersClientsData();
@@ -1015,7 +1022,9 @@ export default function Remessas() {
       await syncOrderWithFinance(saved, clientName);
 
       if (newStatus === 'Entregue' && order.status !== 'Entregue') {
-        notificationService.addDeliveryNotification(saved, clientName);
+        notificationService.addShippingNotification(saved, clientName, 'Entregue');
+      } else if (newStatus === 'Enviado' && order.status !== 'Enviado') {
+        notificationService.addShippingNotification(saved, clientName, 'Enviado');
       }
 
       await loadOrdersClientsData();
@@ -1031,9 +1040,9 @@ export default function Remessas() {
       const count = await autoTrackingService.checkPendingOrders(true);
       await loadOrdersClientsData();
       if (count > 0) {
-        alert(`${count} ${count === 1 ? 'pedido atualizado como entregue!' : 'pedidos atualizados como entregues!'}`);
+        alert(`${count} ${count === 1 ? 'pedido atualizado com novas informações de rastreio!' : 'pedidos atualizados com novas informações de rastreio!'}`);
       } else {
-        alert('Rastreios verificados. Nenhum novo pacote entregue no momento.');
+        alert('Rastreios verificados. Todos os pedidos já estão com os status mais recentes.');
       }
     } catch (err: any) {
       alert('Erro ao sincronizar rastreios: ' + (err?.message || 'Falha na checagem'));
@@ -1147,6 +1156,8 @@ export default function Remessas() {
 
           if (overallStatus === 'delivered' && matchedOrder && matchedOrder.status !== 'Entregue') {
             await handleUpdateOrderStatus(matchedOrder, 'Entregue');
+          } else if ((overallStatus === 'in_transit' || overallStatus === 'posted') && matchedOrder && matchedOrder.status === 'Pendente') {
+            await handleUpdateOrderStatus(matchedOrder, 'Enviado');
           }
 
           const description = inferredDesc || `Objeto Correios (${cleanCode})`;

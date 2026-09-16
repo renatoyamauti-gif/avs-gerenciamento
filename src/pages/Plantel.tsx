@@ -325,6 +325,94 @@ export default function Plantel() {
     }
   };
 
+  const [updatingBirdFeedId, setUpdatingBirdFeedId] = useState<string | null>(null);
+
+  // Atualização direta e rápida de ração diária (+ / - e digitação direta)
+  const handleUpdateDailyFeed = async (bird: Bird, deltaOrNewVal: number, isAbsolute = false) => {
+    const currentDaily = Math.round((bird.monthly_feed_grams || 0) / 30);
+    const newDaily = Math.max(0, isAbsolute ? deltaOrNewVal : currentDaily + deltaOrNewVal);
+    if (newDaily === currentDaily && !isAbsolute) return;
+
+    const newMonthlyGrams = newDaily * 30;
+    const recipe = recipes.find(r => r.id === bird.feed_recipe_id);
+    const costPerKg = recipe?.price_per_kg || 0;
+    const newMonthlyCost = (newMonthlyGrams / 1000) * costPerKg;
+
+    const updatedBird: Bird = {
+      ...bird,
+      monthly_feed_grams: newMonthlyGrams,
+      monthly_feed_cost: newMonthlyCost
+    };
+
+    setBirds(prev => prev.map(b => b.id === bird.id ? updatedBird : b));
+    setUpdatingBirdFeedId(bird.id);
+
+    try {
+      await dbService.saveBird(updatedBird);
+    } catch (err) {
+      console.error('Erro ao atualizar ração da ave:', err);
+      setBirds(prev => prev.map(b => b.id === bird.id ? bird : b));
+    } finally {
+      setUpdatingBirdFeedId(null);
+    }
+  };
+
+  // Atualização direta e rápida de milho diário (+ / - e digitação direta)
+  const handleUpdateDailyCorn = async (bird: Bird, deltaOrNewVal: number, isAbsolute = false) => {
+    const currentDaily = Math.round(bird.corn_daily_grams || 0);
+    const newDaily = Math.max(0, isAbsolute ? deltaOrNewVal : currentDaily + deltaOrNewVal);
+    if (newDaily === currentDaily && !isAbsolute) return;
+
+    // Se a ave não tiver preço de milho por kg, busca o preço de referência de outra ave cadastrada
+    const cornPrice = bird.corn_price_per_kg || birds.find(b => b.corn_price_per_kg && b.corn_price_per_kg > 0)?.corn_price_per_kg || 0;
+
+    const updatedBird: Bird = {
+      ...bird,
+      corn_daily_grams: newDaily,
+      corn_price_per_kg: cornPrice
+    };
+
+    setBirds(prev => prev.map(b => b.id === bird.id ? updatedBird : b));
+    setUpdatingBirdFeedId(bird.id);
+
+    try {
+      await dbService.saveBird(updatedBird);
+    } catch (err) {
+      console.error('Erro ao atualizar milho da ave:', err);
+      setBirds(prev => prev.map(b => b.id === bird.id ? bird : b));
+    } finally {
+      setUpdatingBirdFeedId(null);
+    }
+  };
+
+  // Atualização direta da ração selecionada
+  const handleUpdateBirdRecipe = async (bird: Bird, newRecipeId: string) => {
+    if (bird.feed_recipe_id === newRecipeId) return;
+
+    const recipe = recipes.find(r => r.id === newRecipeId);
+    const costPerKg = recipe?.price_per_kg || 0;
+    const monthlyGrams = bird.monthly_feed_grams || 0;
+    const newMonthlyCost = (monthlyGrams / 1000) * costPerKg;
+
+    const updatedBird: Bird = {
+      ...bird,
+      feed_recipe_id: newRecipeId || undefined,
+      monthly_feed_cost: newMonthlyCost
+    };
+
+    setBirds(prev => prev.map(b => b.id === bird.id ? updatedBird : b));
+    setUpdatingBirdFeedId(bird.id);
+
+    try {
+      await dbService.saveBird(updatedBird);
+    } catch (err) {
+      console.error('Erro ao trocar tipo de ração:', err);
+      setBirds(prev => prev.map(b => b.id === bird.id ? bird : b));
+    } finally {
+      setUpdatingBirdFeedId(null);
+    }
+  };
+
   const filteredBirds = birds.filter(bird => {
     const matchesSearch = bird.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (bird.ring_number?.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -664,66 +752,181 @@ export default function Plantel() {
                     {bird.raca}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex flex-col gap-2 text-xs">
-                      {/* Ração Section */}
-                      <div className="space-y-0.5 border-b border-slate-100 pb-1">
-                        <span className="text-[9px] text-[#2563EB] font-bold uppercase tracking-wider">Ração</span>
-                        <div className="flex items-center gap-1 font-semibold text-slate-700">
-                          <span className="text-[10px] text-slate-400 font-medium">Dia:</span>
-                          <span>{((bird.monthly_feed_grams || 0) / 30).toFixed(0)}g</span>
-                        </div>
-                        <div className="flex items-center gap-1 font-semibold text-slate-700">
-                          <span className="text-[10px] text-slate-400 font-medium">Mês:</span>
-                          <span>
-                            {bird.monthly_feed_grams && bird.monthly_feed_grams >= 1000 
-                              ? `${(bird.monthly_feed_grams / 1000).toFixed(2).replace(/\.00$/, '')} kg` 
-                              : `${bird.monthly_feed_grams || 0} g`}
-                          </span>
-                        </div>
-                        {bird.monthly_feed_cost ? (
-                          <div className="text-[10px] font-bold text-[#16A34A] flex items-center gap-1">
-                            <span className="text-[9px] text-slate-400 font-medium">Custo:</span>
-                            <span>R$ {bird.monthly_feed_cost.toFixed(2)}/mês</span>
-                          </div>
-                        ) : null}
-                      </div>
+                    {(() => {
+                      const recipe = recipes.find(r => r.id === bird.feed_recipe_id);
+                      const isUpdating = updatingBirdFeedId === bird.id;
+                      const dailyRacao = Math.round((bird.monthly_feed_grams || 0) / 30);
+                      const dailyMilho = Math.round(bird.corn_daily_grams || 0);
 
-                      {/* Milho Section */}
-                      <div className="space-y-0.5">
-                        <span className="text-[9px] text-[#D97706] font-bold uppercase tracking-wider">Milho</span>
-                        <div className="flex items-center gap-1 font-semibold text-slate-700">
-                          <span className="text-[10px] text-slate-400 font-medium">Dia:</span>
-                          <span>{(bird.corn_daily_grams || 0).toFixed(0)}g</span>
-                        </div>
-                        <div className="flex items-center gap-1 font-semibold text-slate-700">
-                          <span className="text-[10px] text-slate-400 font-medium">Mês:</span>
-                          <span>
-                            {((bird.corn_daily_grams || 0) * 30) >= 1000 
-                              ? `${(((bird.corn_daily_grams || 0) * 30) / 1000).toFixed(2).replace(/\.00$/, '')} kg` 
-                              : `${((bird.corn_daily_grams || 0) * 30)} g`}
-                          </span>
-                        </div>
-                        {bird.corn_price_per_kg && bird.corn_daily_grams ? (
-                          <div className="text-[10px] font-bold text-[#16A34A] flex items-center gap-1">
-                            <span className="text-[9px] text-slate-400 font-medium">Custo:</span>
-                            <span>R$ {(((bird.corn_daily_grams * 30) / 1000) * bird.corn_price_per_kg).toFixed(2)}/mês</span>
-                          </div>
-                        ) : null}
-                      </div>
+                      return (
+                        <div className="flex flex-col gap-2 text-xs min-w-[210px]">
+                          {/* Ração Section */}
+                          <div className="space-y-1.5 border-b border-slate-100 dark:border-slate-800 pb-2">
+                            <div className="flex items-center justify-between gap-1 flex-wrap">
+                              <span className="text-[9px] text-[#2563EB] font-black uppercase tracking-wider">Ração</span>
+                              <select
+                                value={bird.feed_recipe_id || ''}
+                                onChange={(e) => handleUpdateBirdRecipe(bird, e.target.value)}
+                                className="text-[10px] font-bold bg-blue-50/80 hover:bg-blue-100 text-[#1D4ED8] dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 rounded-lg px-2 py-0.5 max-w-[140px] truncate outline-none cursor-pointer transition-colors"
+                                title="Selecione ou altere o tipo de ração fornecida"
+                              >
+                                <option value="">Sem ração definida</option>
+                                {recipes.map(r => (
+                                  <option key={r.id} value={r.id}>
+                                    {r.name} (R$ {(r.price_per_kg || 0).toFixed(2)}/kg)
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
 
-                      {/* Total cost for this bird */}
-                      {(bird.monthly_feed_cost || (bird.corn_price_per_kg && bird.corn_daily_grams)) ? (
-                        <div className="border-t border-slate-200 pt-1 mt-1 font-black text-[#16A34A] text-xs flex justify-between">
-                          <span className="text-slate-400 uppercase tracking-widest text-[9px] font-bold">Total:</span>
-                          <span>
-                            R$ {(
-                              (bird.monthly_feed_cost || 0) + 
-                              (((bird.corn_daily_grams || 0) * 30 / 1000) * (bird.corn_price_per_kg || 0))
-                            ).toFixed(2)}/mês
-                          </span>
+                            {/* Stepper Ração Diária */}
+                            <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                              <span className="text-[10px] text-slate-400 font-medium">Dia:</span>
+                              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateDailyFeed(bird, -5)}
+                                  disabled={dailyRacao <= 0 || isUpdating}
+                                  className="w-5 h-5 flex items-center justify-center bg-white dark:bg-slate-700 hover:bg-red-50 hover:text-red-600 text-slate-600 dark:text-slate-300 rounded text-xs font-black shadow-2xs transition-all active:scale-90 cursor-pointer disabled:opacity-40"
+                                  title="Diminuir 5g de ração"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="5"
+                                  className="w-10 text-center font-bold text-xs bg-transparent border-none outline-none font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none p-0 text-slate-800 dark:text-slate-100"
+                                  defaultValue={dailyRacao}
+                                  key={`feed_${bird.id}_${dailyRacao}`}
+                                  onBlur={(e) => {
+                                    const val = Math.max(0, parseFloat(e.target.value) || 0);
+                                    handleUpdateDailyFeed(bird, val, true);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      const val = Math.max(0, parseFloat((e.target as HTMLInputElement).value) || 0);
+                                      handleUpdateDailyFeed(bird, val, true);
+                                      (e.target as HTMLInputElement).blur();
+                                    }
+                                  }}
+                                />
+                                <span className="text-[9px] font-bold text-slate-400 pr-1">g</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateDailyFeed(bird, 5)}
+                                  disabled={isUpdating}
+                                  className="w-5 h-5 flex items-center justify-center bg-white dark:bg-slate-700 hover:bg-emerald-50 hover:text-emerald-600 text-slate-600 dark:text-slate-300 rounded text-xs font-black shadow-2xs transition-all active:scale-90 cursor-pointer disabled:opacity-40"
+                                  title="Aumentar 5g de ração"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between text-slate-500 font-medium text-[10px]">
+                              <span>Mês:</span>
+                              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                {bird.monthly_feed_grams && bird.monthly_feed_grams >= 1000 
+                                  ? `${(bird.monthly_feed_grams / 1000).toFixed(2).replace(/\.00$/, '')} kg` 
+                                  : `${bird.monthly_feed_grams || 0} g`}
+                              </span>
+                            </div>
+
+                            {bird.monthly_feed_cost ? (
+                              <div className="flex items-center justify-between text-[10px] font-bold text-[#16A34A]">
+                                <span className="text-slate-400 font-medium">Custo:</span>
+                                <span>R$ {bird.monthly_feed_cost.toFixed(2)}/mês</span>
+                              </div>
+                            ) : null}
+                          </div>
+
+                          {/* Milho Section */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[9px] text-[#D97706] font-black uppercase tracking-wider">Milho</span>
+                              {bird.corn_price_per_kg ? (
+                                <span className="text-[9px] text-slate-400 font-mono">R$ {bird.corn_price_per_kg.toFixed(2)}/kg</span>
+                              ) : null}
+                            </div>
+
+                            {/* Stepper Milho Diário */}
+                            <div className="flex items-center justify-between gap-1.5 pt-0.5">
+                              <span className="text-[10px] text-slate-400 font-medium">Dia:</span>
+                              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-750">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateDailyCorn(bird, -5)}
+                                  disabled={dailyMilho <= 0 || isUpdating}
+                                  className="w-5 h-5 flex items-center justify-center bg-white dark:bg-slate-700 hover:bg-red-50 hover:text-red-600 text-slate-600 dark:text-slate-300 rounded text-xs font-black shadow-2xs transition-all active:scale-90 cursor-pointer disabled:opacity-40"
+                                  title="Diminuir 5g de milho"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="5"
+                                  className="w-10 text-center font-bold text-xs bg-transparent border-none outline-none font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none p-0 text-slate-800 dark:text-slate-100"
+                                  defaultValue={dailyMilho}
+                                  key={`corn_${bird.id}_${dailyMilho}`}
+                                  onBlur={(e) => {
+                                    const val = Math.max(0, parseFloat(e.target.value) || 0);
+                                    handleUpdateDailyCorn(bird, val, true);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      const val = Math.max(0, parseFloat((e.target as HTMLInputElement).value) || 0);
+                                      handleUpdateDailyCorn(bird, val, true);
+                                      (e.target as HTMLInputElement).blur();
+                                    }
+                                  }}
+                                />
+                                <span className="text-[9px] font-bold text-slate-400 pr-1">g</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateDailyCorn(bird, 5)}
+                                  disabled={isUpdating}
+                                  className="w-5 h-5 flex items-center justify-center bg-white dark:bg-slate-700 hover:bg-emerald-50 hover:text-emerald-600 text-slate-600 dark:text-slate-300 rounded text-xs font-black shadow-2xs transition-all active:scale-90 cursor-pointer disabled:opacity-40"
+                                  title="Aumentar 5g de milho"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between text-slate-500 font-medium text-[10px]">
+                              <span>Mês:</span>
+                              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                {((dailyMilho * 30) >= 1000) 
+                                  ? `${(((dailyMilho * 30)) / 1000).toFixed(2).replace(/\.00$/, '')} kg` 
+                                  : `${dailyMilho * 30} g`}
+                              </span>
+                            </div>
+
+                            {bird.corn_price_per_kg && dailyMilho ? (
+                              <div className="flex items-center justify-between text-[10px] font-bold text-[#16A34A]">
+                                <span className="text-slate-400 font-medium">Custo:</span>
+                                <span>R$ {(((dailyMilho * 30 / 1000) * bird.corn_price_per_kg)).toFixed(2)}/mês</span>
+                              </div>
+                            ) : null}
+                          </div>
+
+                          {/* Total cost for this bird */}
+                          {(bird.monthly_feed_cost || (bird.corn_price_per_kg && dailyMilho)) ? (
+                            <div className="border-t border-slate-200 dark:border-slate-800 pt-1.5 mt-0.5 font-black text-[#16A34A] text-xs flex justify-between items-center">
+                              <span className="text-slate-400 uppercase tracking-widest text-[9px] font-bold">Total:</span>
+                              <span>
+                                R$ {(
+                                  (bird.monthly_feed_cost || 0) + 
+                                  ((dailyMilho * 30 / 1000) * (bird.corn_price_per_kg || 0))
+                                ).toFixed(2)}/mês
+                              </span>
+                            </div>
+                          ) : null}
                         </div>
-                      ) : null}
-                    </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
@@ -770,7 +973,12 @@ export default function Plantel() {
 
         {/* Mobile View: Professional Cards */}
         <div className="md:hidden divide-y divide-slate-100">
-          {filteredBirds.map((bird) => (
+          {filteredBirds.map((bird) => {
+            const isUpdating = updatingBirdFeedId === bird.id;
+            const dailyRacao = Math.round((bird.monthly_feed_grams || 0) / 30);
+            const dailyMilho = Math.round(bird.corn_daily_grams || 0);
+
+            return (
             <div key={bird.id} className="p-6 space-y-4 hover:bg-slate-50 active:bg-slate-100 transition-all">
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-4">
@@ -821,60 +1029,173 @@ export default function Plantel() {
                 </div>
 
                 {/* Ração Card */}
-                <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-center">
-                  <p className="text-[9px] font-bold text-[#2563EB] uppercase tracking-widest mb-1">Ração</p>
-                  <div className="space-y-0.5 text-xs text-[#1F2937] font-semibold">
-                    <div>Dia: <span className="font-bold">{((bird.monthly_feed_grams || 0) / 30).toFixed(0)}g</span></div>
-                    <div>Mês: <span className="font-bold">
+                <div className="bg-[#F8FAFC] p-3.5 rounded-2xl border border-slate-100 flex flex-col justify-between col-span-2 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-[10px] font-black text-[#2563EB] uppercase tracking-wider">Ração</span>
+                    <select
+                      value={bird.feed_recipe_id || ''}
+                      onChange={(e) => handleUpdateBirdRecipe(bird, e.target.value)}
+                      className="text-[11px] font-bold bg-blue-50/90 hover:bg-blue-100 text-[#1D4ED8] dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 rounded-lg px-2 py-1 max-w-[200px] truncate outline-none cursor-pointer transition-colors"
+                      title="Selecione ou altere o tipo de ração fornecida"
+                    >
+                      <option value="">Sem ração definida</option>
+                      {recipes.map(r => (
+                        <option key={r.id} value={r.id}>
+                          {r.name} (R$ {(r.price_per_kg || 0).toFixed(2)}/kg)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60">
+                    <span className="text-xs text-slate-500 font-semibold">Qtd. Diária:</span>
+                    <div className="flex items-center gap-1.5 bg-white rounded-xl p-1 border border-slate-200 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateDailyFeed(bird, -5)}
+                        disabled={dailyRacao <= 0 || isUpdating}
+                        className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-700 rounded-lg text-sm font-black shadow-2xs transition-all active:scale-90 cursor-pointer disabled:opacity-40"
+                        title="Diminuir 5g de ração"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="0"
+                        step="5"
+                        className="w-12 text-center font-bold text-sm bg-transparent border-none outline-none font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none p-0 text-slate-800"
+                        defaultValue={dailyRacao}
+                        key={`m_feed_${bird.id}_${dailyRacao}`}
+                        onBlur={(e) => {
+                          const val = Math.max(0, parseFloat(e.target.value) || 0);
+                          handleUpdateDailyFeed(bird, val, true);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const val = Math.max(0, parseFloat((e.target as HTMLInputElement).value) || 0);
+                            handleUpdateDailyFeed(bird, val, true);
+                            (e.target as HTMLInputElement).blur();
+                          }
+                        }}
+                      />
+                      <span className="text-xs font-bold text-slate-400 pr-1">g</span>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateDailyFeed(bird, 5)}
+                        disabled={isUpdating}
+                        className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-emerald-50 hover:text-emerald-600 text-slate-700 rounded-lg text-sm font-black shadow-2xs transition-all active:scale-90 cursor-pointer disabled:opacity-40"
+                        title="Aumentar 5g de ração"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs font-medium text-slate-500 pt-1">
+                    <div>Mês: <span className="font-bold text-slate-700">
                       {bird.monthly_feed_grams && bird.monthly_feed_grams >= 1000 
                         ? `${(bird.monthly_feed_grams / 1000).toFixed(2).replace(/\.00$/, '')} kg` 
                         : `${bird.monthly_feed_grams || 0} g`}
                     </span></div>
-                    {bird.monthly_feed_cost ? <div className="text-[10px] text-[#16A34A] font-bold">R$ {bird.monthly_feed_cost.toFixed(2)}/mês</div> : null}
+                    {bird.monthly_feed_cost ? (
+                      <div className="text-xs text-[#16A34A] font-bold">R$ {bird.monthly_feed_cost.toFixed(2)}/mês</div>
+                    ) : null}
                   </div>
                 </div>
 
                 {/* Milho Card */}
-                <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex flex-col justify-center">
-                  <p className="text-[9px] font-bold text-[#D97706] uppercase tracking-widest mb-1">Milho</p>
-                  <div className="space-y-0.5 text-xs text-[#1F2937] font-semibold">
-                    <div>Dia: <span className="font-bold">{(bird.corn_daily_grams || 0).toFixed(0)}g</span></div>
-                    <div>Mês: <span className="font-bold">
-                      {((bird.corn_daily_grams || 0) * 30) >= 1000 
-                        ? `${(((bird.corn_daily_grams || 0) * 30) / 1000).toFixed(2).replace(/\.00$/, '')} kg` 
-                        : `${((bird.corn_daily_grams || 0) * 30)} g`}
+                <div className="bg-[#F8FAFC] p-3.5 rounded-2xl border border-slate-100 flex flex-col justify-between col-span-2 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-black text-[#D97706] uppercase tracking-wider">Milho</span>
+                    {bird.corn_price_per_kg ? (
+                      <span className="text-xs text-slate-500 font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-lg">
+                        R$ {bird.corn_price_per_kg.toFixed(2)}/kg
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60">
+                    <span className="text-xs text-slate-500 font-semibold">Qtd. Diária:</span>
+                    <div className="flex items-center gap-1.5 bg-white rounded-xl p-1 border border-slate-200 shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateDailyCorn(bird, -5)}
+                        disabled={dailyMilho <= 0 || isUpdating}
+                        className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-700 rounded-lg text-sm font-black shadow-2xs transition-all active:scale-90 cursor-pointer disabled:opacity-40"
+                        title="Diminuir 5g de milho"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="0"
+                        step="5"
+                        className="w-12 text-center font-bold text-sm bg-transparent border-none outline-none font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none p-0 text-slate-800"
+                        defaultValue={dailyMilho}
+                        key={`m_corn_${bird.id}_${dailyMilho}`}
+                        onBlur={(e) => {
+                          const val = Math.max(0, parseFloat(e.target.value) || 0);
+                          handleUpdateDailyCorn(bird, val, true);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const val = Math.max(0, parseFloat((e.target as HTMLInputElement).value) || 0);
+                            handleUpdateDailyCorn(bird, val, true);
+                            (e.target as HTMLInputElement).blur();
+                          }
+                        }}
+                      />
+                      <span className="text-xs font-bold text-slate-400 pr-1">g</span>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateDailyCorn(bird, 5)}
+                        disabled={isUpdating}
+                        className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-emerald-50 hover:text-emerald-600 text-slate-700 rounded-lg text-sm font-black shadow-2xs transition-all active:scale-90 cursor-pointer disabled:opacity-40"
+                        title="Aumentar 5g de milho"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs font-medium text-slate-500 pt-1">
+                    <div>Mês: <span className="font-bold text-slate-700">
+                      {((dailyMilho * 30) >= 1000) 
+                        ? `${(((dailyMilho * 30)) / 1000).toFixed(2).replace(/\.00$/, '')} kg` 
+                        : `${dailyMilho * 30} g`}
                     </span></div>
-                    {bird.corn_price_per_kg && bird.corn_daily_grams ? (
-                      <div className="text-[10px] text-[#16A34A] font-bold">
-                        R$ {(((bird.corn_daily_grams * 30) / 1000) * bird.corn_price_per_kg).toFixed(2)}/mês
+                    {bird.corn_price_per_kg && dailyMilho ? (
+                      <div className="text-xs text-[#16A34A] font-bold">
+                        R$ {(((dailyMilho * 30 / 1000) * bird.corn_price_per_kg)).toFixed(2)}/mês
                       </div>
                     ) : null}
                   </div>
                 </div>
 
                 {/* Combined Total Feed Cost Card */}
-                {(bird.monthly_feed_cost || (bird.corn_price_per_kg && bird.corn_daily_grams)) ? (
-                  <div className="bg-[#F8FAFC] p-3 rounded-2xl border border-slate-100 flex justify-between items-center col-span-2 border-l-4 border-l-[#16A34A]">
+                {(bird.monthly_feed_cost || (bird.corn_price_per_kg && dailyMilho)) ? (
+                  <div className="bg-[#F8FAFC] p-3.5 rounded-2xl border border-slate-100 flex justify-between items-center col-span-2 border-l-4 border-l-[#16A34A]">
                     <div>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Custo Total de Alimentação</p>
-                      <p className="text-[10px] text-slate-500 font-bold">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Custo Total de Alimentação</p>
+                      <p className="text-xs text-slate-500 font-bold">
                         Dia: R$ {(
                           ((bird.monthly_feed_cost || 0) / 30) + 
-                          (((bird.corn_daily_grams || 0) / 1000) * (bird.corn_price_per_kg || 0))
+                          (((dailyMilho) / 1000) * (bird.corn_price_per_kg || 0))
                         ).toFixed(2)}
                       </p>
                     </div>
-                    <p className="text-sm font-black text-[#16A34A]">
+                    <p className="text-base font-black text-[#16A34A]">
                       R$ {(
                         (bird.monthly_feed_cost || 0) + 
-                        (((bird.corn_daily_grams || 0) * 30 / 1000) * (bird.corn_price_per_kg || 0))
+                        (((dailyMilho * 30) / 1000) * (bird.corn_price_per_kg || 0))
                       ).toFixed(2)} <span className="text-[10px] font-bold text-slate-400">/ MÊS</span>
                     </p>
                   </div>
                 ) : null}
               </div>
             </div>
-          ))}
+          );
+          })}
           {filteredBirds.length === 0 && (
             <div className="py-20 text-center text-slate-400 font-medium flex flex-col items-center justify-center gap-4">
               <div>

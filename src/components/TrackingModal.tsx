@@ -12,7 +12,9 @@ import {
   AlertCircle,
   MapPin
 } from 'lucide-react';
-import { correiosTrackingService, TrackingServiceResult } from '../lib/correiosTrackingService';
+import { correiosTrackingService, TrackingServiceResult, formatTrackingDate } from '../lib/correiosTrackingService';
+import { dbService } from '../lib/dbService';
+import { notificationService } from '../lib/notificationService';
 
 interface TrackingModalProps {
   isOpen: boolean;
@@ -47,20 +49,45 @@ export default function TrackingModal({
     setError(null);
     try {
       const data = await correiosTrackingService.track(code);
-      if (data && data.events.length > 0) {
+      if (data && data.events && data.events.length > 0) {
         setResult(data);
+
+        // Sincroniza em tempo real com o banco de dados e notificação
+        if (order && order.id) {
+          if (data.status === 'delivered' && order.status !== 'Entregue') {
+            if (onMarkDelivered) {
+              await onMarkDelivered(order);
+            }
+          } else if ((data.status === 'in_transit' || data.status === 'posted') && order.status === 'Pendente') {
+            const updated = { ...order, status: 'Enviado' };
+            await dbService.saveOrder(updated);
+            notificationService.addShippingNotification(updated, clientName, 'Enviado', data.events[0]?.desc);
+            window.dispatchEvent(new CustomEvent('avs_orders_updated'));
+          }
+        }
       } else {
+        const fallbackStatus = order?.status === 'Entregue' 
+          ? 'delivered' 
+          : (order?.status === 'Enviado' ? 'posted' : 'pre_posted');
+
+        const fallbackLabel = fallbackStatus === 'delivered'
+          ? 'Entregue'
+          : (fallbackStatus === 'posted' ? 'Postado' : 'Etiqueta Emitida / Aguardando Envio');
+
         setResult({
           code,
-          status: order?.status === 'Entregue' ? 'delivered' : 'in_transit',
+          status: fallbackStatus,
+          statusLabel: fallbackLabel,
           deliveredAt: order?.status === 'Entregue' ? order.updated_at : null,
           postedAt: order?.created_at || null,
           events: [
             {
-              date: 'Correios',
+              date: formatTrackingDate(order?.created_at || new Date().toISOString()) || 'Hoje',
               location: 'Sistema Postal',
-              desc: 'Objeto em trânsito ou recém-postado. Consulte o portal oficial dos Correios para os detalhes mais recentes.',
-              status: order?.status === 'Entregue' ? 'success' : 'info'
+              desc: fallbackStatus === 'delivered'
+                ? 'Objeto entregue ao destinatário.'
+                : 'Etiqueta gerada pelo remetente. Aguardando postagem ou primeira leitura no fluxo dos Correios.',
+              status: fallbackStatus === 'delivered' ? 'success' : 'info'
             }
           ]
         });
@@ -132,26 +159,33 @@ export default function TrackingModal({
     : `Olá ${clientName || ''}, seu pedido foi despachado! Você pode rastrear pelo link dos Correios: https://rastreamento.correios.com.br/app/index.php?codigo=${cleanCode} (Código: ${cleanCode})`;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      {/* Backdrop (clique fora para fechar) */}
       <div 
-        className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden my-auto animate-in zoom-in-95 duration-200"
+        className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm transition-opacity"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      <div 
+        className="relative bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden my-auto animate-in zoom-in-95 duration-200 z-10 flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-850/50">
-          <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-2xl ${
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-850/70 gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className={`shrink-0 p-2 sm:p-2.5 rounded-2xl ${
               isDelivered
                 ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
                 : 'bg-blue-100 text-[#2563EB] dark:bg-blue-950/60 dark:text-blue-400'
             }`}>
-              {isDelivered ? <PackageCheck size={22} /> : <Truck size={22} />}
+              {isDelivered ? <PackageCheck size={20} className="sm:w-[22px] sm:h-[22px]" /> : <Truck size={20} className="sm:w-[22px] sm:h-[22px]" />}
             </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 truncate">
                 Rastreamento em Tempo Real
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate max-w-xs sm:max-w-md">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
                 {clientName ? `Destinatário: ${clientName}` : 'Consulta de Envio dos Correios'}
                 {order?.id && ` • Pedido #${order.id.slice(0, 8)}`}
               </p>
@@ -161,15 +195,16 @@ export default function TrackingModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors cursor-pointer"
+            className="shrink-0 p-2 sm:p-2.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-full transition-all cursor-pointer"
             aria-label="Fechar"
+            title="Fechar (ESC)"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 space-y-6 max-h-[calc(85vh-130px)] overflow-y-auto custom-scrollbar">
+        <div className="p-4 sm:p-6 space-y-6 overflow-y-auto custom-scrollbar flex-1">
           {/* Tracking Code Banner */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-750">
             <div className="flex items-center gap-3">
@@ -193,10 +228,20 @@ export default function TrackingModal({
               <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider ${
                 isDelivered
                   ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/20'
-                  : 'bg-[#2563EB] text-white shadow-sm shadow-blue-500/20'
+                  : result?.status === 'in_transit'
+                  ? 'bg-[#2563EB] text-white shadow-sm shadow-blue-500/20'
+                  : result?.status === 'posted'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
+                  : 'bg-amber-500 text-white shadow-sm shadow-amber-500/20'
               }`}>
                 {isDelivered ? <PackageCheck size={14} /> : <Truck size={14} />}
-                {isDelivered ? 'Entregue' : (result?.status === 'posted' ? 'Postado' : 'Em Trânsito')}
+                {isDelivered 
+                  ? 'Entregue' 
+                  : result?.status === 'in_transit'
+                  ? 'Em Trânsito'
+                  : result?.status === 'posted'
+                  ? 'Postado'
+                  : 'Etiqueta Gerada'}
               </span>
 
               <button
@@ -326,6 +371,17 @@ export default function TrackingModal({
               </div>
             )}
           </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="px-4 sm:px-6 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-850/50 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer text-center"
+          >
+            Fechar
+          </button>
         </div>
       </div>
     </div>

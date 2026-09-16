@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Trash2, PackageCheck, ExternalLink, X } from 'lucide-react';
+import { Bell, Check, Trash2, PackageCheck, Truck, ExternalLink, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { notificationService, AppNotification } from '../lib/notificationService';
 import { dbService } from '../lib/dbService';
@@ -193,11 +193,15 @@ export default function NotificationBell({ isMobile = false }: NotificationBellP
                   }`}
                 >
                   <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${
-                    n.type === 'delivery' 
+                    n.statusType === 'Entregue' || n.type === 'delivery'
                       ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400' 
-                      : 'bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                      : 'bg-blue-100 dark:bg-blue-950/60 text-[#2563EB] dark:text-blue-400'
                   }`}>
-                    <PackageCheck size={16} />
+                    {n.statusType === 'Entregue' || n.type === 'delivery' ? (
+                      <PackageCheck size={16} />
+                    ) : (
+                      <Truck size={16} />
+                    )}
                   </div>
 
                   <div className="flex-1 min-w-0">

@@ -8,7 +8,8 @@ export interface TrackingTimelineEvent {
 
 export interface TrackingServiceResult {
   code: string;
-  status: 'delivered' | 'posted' | 'in_transit';
+  status: 'delivered' | 'posted' | 'in_transit' | 'pre_posted';
+  statusLabel: string;
   deliveredAt: string | null;
   postedAt: string | null;
   events: TrackingTimelineEvent[];
@@ -66,95 +67,185 @@ export const correiosTrackingService = {
       'https://api.melhorrastreio.com.br/graphql'
     ];
 
-    const query = `query {
-      findByTrackingCode(tracker: { trackingCode: "${cleanCode}" }) {
-        id
-        lastStatus
-        postedAt
-        deliveredAt
-        trackingEvents {
-          createdAt
-          status
-          title
-          description
-          location {
-            city
-            state
+    // Queries: 1. searchParcel (ativa busca em tempo real), 2. findByTrackingCode (busca no banco indexado)
+    const queries = [
+      `mutation {
+        searchParcel(tracker: { type: correios, trackingCode: "${cleanCode}" }) {
+          id
+          lastStatus
+          postedAt
+          deliveredAt
+          trackingEvents {
+            createdAt
+            status
+            title
+            description
+            location {
+              city
+              state
+            }
+            from
+            to
           }
-          from
-          to
         }
-      }
-    }`;
+      }`,
+      `query {
+        findByTrackingCode(tracker: { trackingCode: "${cleanCode}" }) {
+          id
+          lastStatus
+          postedAt
+          deliveredAt
+          trackingEvents {
+            createdAt
+            status
+            title
+            description
+            location {
+              city
+              state
+            }
+            from
+            to
+          }
+        }
+      }`
+    ];
 
     for (const endpoint of endpoints) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 7000);
+      for (const query of queries) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({ query }),
-          signal: controller.signal
-        }).catch(() => null);
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({ query }),
+            signal: controller.signal
+          }).catch(() => null);
 
-        clearTimeout(timeoutId);
+          clearTimeout(timeoutId);
 
-        if (!response || !response.ok) {
-          continue;
-        }
+          if (!response || !response.ok) {
+            continue;
+          }
 
-        const json = await response.json().catch(() => null);
-        const parcel = json?.data?.findByTrackingCode;
-        if (!parcel) {
-          continue;
-        }
+          const json = await response.json().catch(() => null);
+          const parcel = json?.data?.searchParcel || json?.data?.findByTrackingCode;
+          if (!parcel) {
+            continue;
+          }
 
-        const rawEvents = Array.isArray(parcel.trackingEvents) ? parcel.trackingEvents : [];
-        const sorted = [...rawEvents].sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
+          const rawEvents = Array.isArray(parcel.trackingEvents) ? parcel.trackingEvents : [];
+          const sorted = [...rawEvents].sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
 
-        const events: TrackingTimelineEvent[] = sorted.map((e: any) => {
-          const toDest = e.to ? ` (Destino: ${String(e.to).replace(/^\d+\s*-\s*/, '')})` : '';
-          const desc = `${e.title || 'Atualização'}${toDest}`;
+          const events: TrackingTimelineEvent[] = sorted.map((e: any) => {
+            const toDest = e.to ? ` (Destino: ${String(e.to).replace(/^\d+\s*-\s*/, '')})` : '';
+            const desc = `${e.title || 'Atualização'}${toDest}`;
+            return {
+              date: formatTrackingDate(e.createdAt),
+              rawDate: e.createdAt,
+              location: formatLocation(e),
+              desc,
+              status: getEventStatus(e.title || '', e.description)
+            };
+          });
+
+          // Determinar status exato com base em eventos e lastStatus
+          const hasDeliveredEvent = events.some(e => e.status === 'success');
+          const isDelivered = !!parcel.deliveredAt || parcel.lastStatus === 'DELIVERED' || hasDeliveredEvent;
+
+          const hasTransitEvent = events.some(e => {
+            const d = e.desc.toLowerCase();
+            return d.includes('trânsito') || d.includes('transferência') || d.includes('saiu para entrega');
+          });
+          const isInTransit = parcel.lastStatus === 'ONROUTE' || parcel.lastStatus === 'IN_TRANSIT' || hasTransitEvent;
+
+          const hasPostedEvent = events.some(e => {
+            const d = e.desc.toLowerCase();
+            return d.includes('postado') || d.includes('recebido');
+          });
+          const isPosted = parcel.lastStatus === 'POSTED' || hasPostedEvent;
+
+          let status: 'delivered' | 'posted' | 'in_transit' | 'pre_posted' = 'pre_posted';
+          let statusLabel = 'Etiqueta Emitida';
+
+          if (isDelivered) {
+            status = 'delivered';
+            statusLabel = 'Entregue';
+          } else if (isInTransit) {
+            status = 'in_transit';
+            statusLabel = 'Em Trânsito';
+          } else if (isPosted) {
+            status = 'posted';
+            statusLabel = 'Postado';
+          } else {
+            status = 'pre_posted';
+            statusLabel = 'Etiqueta Emitida / Aguardando Envio';
+          }
+
+          const deliveredAt = parcel.deliveredAt || (isDelivered && sorted.length > 0 ? sorted[0].createdAt : null);
+
+          // Se não houver eventos cadastrados ainda no Melhor Rastreio, gerar evento inicial condizente
+          if (events.length === 0) {
+            const initialDate = formatTrackingDate(parcel.postedAt || new Date().toISOString());
+            if (status === 'posted' || status === 'in_transit') {
+              events.push({
+                date: initialDate || 'Hoje',
+                location: 'Correios',
+                desc: 'Objeto postado e em trânsito no fluxo dos Correios.',
+                status: 'posted'
+              });
+            } else {
+              events.push({
+                date: initialDate || 'Hoje',
+                location: 'Remetente / Agência Postal',
+                desc: 'Etiqueta de envio gerada. Aguardando postagem e primeira leitura no fluxo postal dos Correios.',
+                status: 'posted'
+              });
+            }
+          }
+
           return {
-            date: formatTrackingDate(e.createdAt),
-            rawDate: e.createdAt,
-            location: formatLocation(e),
-            desc,
-            status: getEventStatus(e.title || '', e.description)
+            code: cleanCode,
+            status,
+            statusLabel,
+            deliveredAt,
+            postedAt: parcel.postedAt || null,
+            events
           };
-        });
-
-        const isDelivered =
-          !!parcel.deliveredAt ||
-          parcel.lastStatus === 'DELIVERED' ||
-          events.some(e => e.status === 'success');
-
-        const isPosted = events.some(e => e.status === 'posted');
-        const status: 'delivered' | 'posted' | 'in_transit' = isDelivered
-          ? 'delivered'
-          : (isPosted ? 'in_transit' : 'posted');
-
-        const deliveredAt = parcel.deliveredAt || (isDelivered && sorted.length > 0 ? sorted[0].createdAt : null);
-
-        return {
-          code: cleanCode,
-          status,
-          deliveredAt,
-          postedAt: parcel.postedAt || null,
-          events
-        };
-      } catch (err) {
-        console.debug(`Falha ao rastrear via ${endpoint}:`, err);
+        } catch (err) {
+          console.debug(`Falha ao rastrear via ${endpoint}:`, err);
+        }
       }
     }
+
+    // Se ainda não encontrou no Melhor Rastreio, tentar registrar tracker no Melhor Rastreio para sincronização futura
+    try {
+      const registerQuery = `mutation {
+        createParcelWithTracker(tracker: { type: correios, trackingCode: "${cleanCode}", shippingService: sedex }) {
+          id
+          lastStatus
+          trackingEvents {
+            createdAt
+          }
+        }
+      }`;
+      for (const endpoint of endpoints) {
+        await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ query: registerQuery })
+        }).catch(() => null);
+      }
+    } catch {}
 
     return null;
   }
 };
+

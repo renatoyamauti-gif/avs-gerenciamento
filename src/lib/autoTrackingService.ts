@@ -3,7 +3,7 @@ import { notificationService } from './notificationService';
 import { correiosTrackingService } from './correiosTrackingService';
 
 const LAST_CHECK_KEY = 'avs_last_auto_tracking_time';
-const MIN_INTERVAL_MS = 15 * 60 * 1000; // 15 minutos
+const MIN_INTERVAL_MS = 30 * 1000; // 30 segundos de intervalo mínimo entre checagens automáticas
 
 export const autoTrackingService = {
   isChecking: false,
@@ -18,21 +18,36 @@ export const autoTrackingService = {
       }
     }).catch(() => {});
 
-    // Executa em segundo plano após 8 segundos do carregamento inicial
+    // Executa em segundo plano após 2 segundos do carregamento inicial
     setTimeout(() => {
-      this.checkPendingOrders().catch(() => {});
-    }, 8000);
+      this.checkPendingOrders(true).catch(() => {});
+    }, 2000);
 
-    // Repete suavemente a cada 30 minutos enquanto o app estiver aberto
+    // Repete a cada 2.5 minutos enquanto o app estiver aberto para tempo real verdadeiro
     setInterval(() => {
       this.checkPendingOrders().catch(() => {});
-    }, 30 * 60 * 1000);
+    }, 2.5 * 60 * 1000);
 
-    // Quando o dispositivo voltar a ficar online, agenda verificação suave
+    // Quando o dispositivo voltar a ficar online, agenda verificação imediata
     window.addEventListener('online', () => {
-      setTimeout(() => {
-        this.checkPendingOrders().catch(() => {});
-      }, 5000);
+      this.checkPendingOrders(true).catch(() => {});
+    });
+
+    // Quando a aba/janela volta a ficar visível após o usuário trocar de aplicativo
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          const lastCheck = Number(localStorage.getItem(LAST_CHECK_KEY) || 0);
+          if (Date.now() - lastCheck > 60 * 1000) {
+            this.checkPendingOrders(true).catch(() => {});
+          }
+        }
+      });
+    }
+
+    // Permite disparo imediato por outras telas do app
+    window.addEventListener('avs_trigger_tracking_check', () => {
+      this.checkPendingOrders(true).catch(() => {});
     });
   },
 
@@ -129,8 +144,13 @@ export const autoTrackingService = {
 
                   if (isDelivered && !alreadyDeliveredOrderIds.has(order.id)) {
                     alreadyDeliveredOrderIds.add(order.id);
-                    await this.markOrderAsDelivered(order);
+                    await this.updateOrderStatus(order, 'Entregue');
                     deliveredCount++;
+                  } else if (order.status === 'Pendente') {
+                    const isSent = item.status === 'posted' || item.status === 'in_transit' || (Array.isArray(item.history) && item.history.length > 0);
+                    if (isSent) {
+                      await this.updateOrderStatus(order, 'Enviado');
+                    }
                   }
                 }
               }
@@ -204,8 +224,10 @@ export const autoTrackingService = {
                     const latestDesc = (objeto.eventos[0].descricao || '').toLowerCase();
                     if ((latestDesc.includes('entregue') || latestDesc.includes('entrega efetuada')) && !alreadyDeliveredOrderIds.has(order.id)) {
                       alreadyDeliveredOrderIds.add(order.id);
-                      await this.markOrderAsDelivered(order);
+                      await this.updateOrderStatus(order, 'Entregue');
                       deliveredCount++;
+                    } else if (order.status === 'Pendente') {
+                      await this.updateOrderStatus(order, 'Enviado');
                     }
                   }
                 }
@@ -220,32 +242,44 @@ export const autoTrackingService = {
       }
 
       // 5. Verificação Pública Universal dos Correios (em tempo real para todos os pedidos restantes)
+      let updatedCount = deliveredCount;
       const remainingOrders = ordersToCheck.filter((o: any) => !alreadyDeliveredOrderIds.has(o.id));
+
       for (const order of remainingOrders) {
         const code = String(order.tracking_code || '').trim().toUpperCase();
         if (correiosTrackingService.isCorreiosFormat(code)) {
           try {
             const result = await correiosTrackingService.track(code);
-            if (result && result.status === 'delivered') {
-              alreadyDeliveredOrderIds.add(order.id);
-              await this.markOrderAsDelivered(order);
-              deliveredCount++;
+            if (result) {
+              if (result.status === 'delivered') {
+                if (order.status !== 'Entregue') {
+                  alreadyDeliveredOrderIds.add(order.id);
+                  await this.updateOrderStatus(order, 'Entregue', result);
+                  deliveredCount++;
+                  updatedCount++;
+                }
+              } else if (result.status === 'in_transit' || result.status === 'posted') {
+                if (order.status === 'Pendente') {
+                  await this.updateOrderStatus(order, 'Enviado', result);
+                  updatedCount++;
+                }
+              }
             }
           } catch (err) {
             console.debug(`Falha ao checar rastreio público para ${code}:`, err);
           }
-          // Intervalo suave de 300ms entre requisições
-          await new Promise(r => setTimeout(r, 300));
+          // Intervalo suave de 250ms entre requisições
+          await new Promise(r => setTimeout(r, 250));
         }
       }
 
       localStorage.setItem(LAST_CHECK_KEY, String(Date.now()));
 
-      if (deliveredCount > 0) {
+      if (updatedCount > 0) {
         window.dispatchEvent(new CustomEvent('avs_orders_updated'));
       }
 
-      return deliveredCount;
+      return updatedCount;
     } catch (err) {
       console.debug('Erro silencioso no auto-tracking:', err);
       return 0;
@@ -254,22 +288,26 @@ export const autoTrackingService = {
     }
   },
 
-  async markOrderAsDelivered(order: any) {
+  async updateOrderStatus(order: any, newStatus: 'Enviado' | 'Entregue', result?: any) {
     try {
       const clientObj = order.clients || order.client || null;
-      const clientName = clientObj?.name || 'Cliente';
+      const clientName = clientObj?.name || order.client_name || 'Cliente';
 
       const updatedOrder = {
         ...order,
-        status: 'Entregue'
+        status: newStatus
       };
 
       const saved = await dbService.saveOrder(updatedOrder);
 
-      // Dispara o alerta para o sininho no topo da página
-      notificationService.addDeliveryNotification(saved || updatedOrder, clientName);
+      const latestEventDesc = result?.events?.[0]?.desc;
+      notificationService.addShippingNotification(saved || updatedOrder, clientName, newStatus, latestEventDesc);
     } catch (e) {
-      console.debug('Falha ao salvar pedido entregue no auto-tracking:', e);
+      console.debug(`Falha ao salvar pedido atualizado (${newStatus}) no auto-tracking:`, e);
     }
+  },
+
+  async markOrderAsDelivered(order: any) {
+    return this.updateOrderStatus(order, 'Entregue');
   }
 };
