@@ -53,12 +53,21 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    loadDashboardData();
+    loadDashboardData(true);
+
+    const handleTransactionsUpdated = () => {
+      loadDashboardData(false);
+    };
+
+    window.addEventListener('avs_transactions_updated', handleTransactionsUpdated);
+    return () => {
+      window.removeEventListener('avs_transactions_updated', handleTransactionsUpdated);
+    };
   }, []);
 
-  async function loadDashboardData() {
+  async function loadDashboardData(showLoading = false) {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
 
       // Load profile and all authorized data in parallel
       const [profile, birds, eggLogs, maternityRecords, incubators, transactions, orders, products, racasData, baiasData] = await Promise.all([
@@ -223,7 +232,7 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Erro ao carregar dados do dashboard:', error);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }
 

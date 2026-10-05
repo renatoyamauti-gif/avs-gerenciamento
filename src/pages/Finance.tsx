@@ -16,6 +16,14 @@ interface Transaction {
   date: string;
 }
 
+const getTodayLocalDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function Finance() {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -45,12 +53,32 @@ export default function Finance() {
   }, [isAdding]);
 
   useEffect(() => {
-    loadTransactions();
+    loadTransactions(true);
+
+    const handleDataRevalidated = (e: any) => {
+      if (e?.detail?.key === 'transactions' && Array.isArray(e.detail.data)) {
+        setTransactions(e.detail.data);
+      } else if (e?.detail?.key === 'transaction_categories' && Array.isArray(e.detail.data)) {
+        setCategories(e.detail.data);
+      }
+    };
+
+    const handleTransactionsUpdated = () => {
+      loadTransactions(false);
+    };
+
+    window.addEventListener('avs_data_revalidated', handleDataRevalidated);
+    window.addEventListener('avs_transactions_updated', handleTransactionsUpdated);
+
+    return () => {
+      window.removeEventListener('avs_data_revalidated', handleDataRevalidated);
+      window.removeEventListener('avs_transactions_updated', handleTransactionsUpdated);
+    };
   }, []);
 
-  async function loadTransactions() {
+  async function loadTransactions(showLoading = false) {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const [transData, catData] = await Promise.all([
         dbService.getTransactions(),
         dbService.getTransactionCategories().catch(err => {
@@ -96,7 +124,7 @@ export default function Finance() {
     } catch (error) {
       console.error('Erro ao carregar transações/categorias:', error);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }
 
@@ -142,36 +170,75 @@ export default function Finance() {
     return Object.values(months);
   }, [transactions]);
 
+  const sortedTransactions = useMemo(() => {
+    return [...transactions].sort((a, b) => {
+      const dateA = new Date(a.date).getTime() || 0;
+      const dateB = new Date(b.date).getTime() || 0;
+      if (dateB !== dateA) return dateB - dateA;
+      return (b.id || '').localeCompare(a.id || '');
+    });
+  }, [transactions]);
+
+  const filteredTransactions = useMemo(() => {
+    return sortedTransactions.filter(t => 
+      filterType === 'All' || t.type === filterType
+    );
+  }, [sortedTransactions, filterType]);
+
   const handleAddTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    const newTransactionPlan = {
-      id: editingTransaction?.id,
+    const isEditing = !!editingTransaction?.id;
+    const tempId = editingTransaction?.id || 'temp-' + Date.now();
+
+    const newTransactionPlan: Transaction = {
+      id: tempId,
       type: formData.get('type') as 'Entrada' | 'Saída',
       category: formData.get('category') as string,
       reason: formData.get('reason') as string,
       amount: parseFloat(formData.get('amount') as string) || 0,
-      date: formData.get('date') as string || new Date().toISOString().split('T')[0],
+      date: (formData.get('date') as string) || getTodayLocalDate(),
     };
 
+    // 1. Atualização otimista imediata na UI (0ms delay)
+    setIsAdding(false);
+    setEditingTransaction(null);
+
+    setTransactions(prev => {
+      if (isEditing) {
+        return prev.map(t => (t.id === tempId ? newTransactionPlan : t));
+      } else {
+        return [newTransactionPlan, ...prev];
+      }
+    });
+
+    // 2. Persistência em segundo plano
     try {
-      await dbService.saveTransaction(newTransactionPlan);
-      await loadTransactions();
-      setIsAdding(false);
-      setEditingTransaction(null);
+      const saved = await dbService.saveTransaction(newTransactionPlan);
+      if (saved && saved.id) {
+        setTransactions(prev => prev.map(t => (t.id === tempId ? saved : t)));
+      }
     } catch (error) {
+      console.error('Erro ao salvar transação:', error);
       alert('Erro ao salvar transação: ' + error);
+      loadTransactions(false);
     }
   };
 
   const removeTransaction = async (id: string) => {
     if (!confirm('Tem certeza que quer excluir/deletar esta movimentação? Pois será irreversível.')) return;
+    
+    const previous = transactions;
+    // Remoção otimista imediata
+    setTransactions(prev => prev.filter(t => t.id !== id));
+
     try {
       await dbService.deleteTransaction(id);
-      await loadTransactions();
     } catch (error) {
+      console.error('Erro ao excluir:', error);
       alert('Erro ao excluir: ' + error);
+      setTransactions(previous);
     }
   };
 
@@ -183,10 +250,6 @@ export default function Finance() {
       </div>
     );
   }
-
-  const filteredTransactions = transactions.filter(t => 
-    filterType === 'All' || t.type === filterType
-  );
 
   return (
     <motion.div 
@@ -520,7 +583,7 @@ export default function Finance() {
                       catData.id = categoryToEdit.id;
                     }
                     await dbService.saveTransactionCategory(catData);
-                    await loadTransactions();
+                    await loadTransactions(false);
                     setCategoryToEdit(null);
                     form.reset();
                   } catch (err: any) {
@@ -612,7 +675,7 @@ export default function Finance() {
                                   setCategories(prev => prev.filter(c => c.id !== cat.id));
                                 } else {
                                   await dbService.deleteTransactionCategory(cat.id);
-                                  await loadTransactions();
+                                  await loadTransactions(false);
                                 }
                                 if (categoryToEdit?.id === cat.id) setCategoryToEdit(null);
                               } catch (err: any) {
@@ -700,7 +763,7 @@ export default function Finance() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Data</label>
-                    <input name="date" type="date" defaultValue={editingTransaction?.date || new Date().toISOString().split('T')[0]} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
+                    <input name="date" type="date" defaultValue={editingTransaction?.date || getTodayLocalDate()} className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl px-4 py-3.5 text-[#1F2937] font-semibold focus:bg-white focus:border-[#2563EB]/50 focus:ring-4 focus:ring-[#2563EB]/10 transition-all outline-none" />
                   </div>
                 </div>
 

@@ -190,13 +190,17 @@ function applyLocalWriteToCache(cacheKey: string, action: 'insert' | 'update' | 
   }
 
   if (action === 'insert') {
-    if (!list.some((x: any) => x.id === item.id)) {
-      list = [...list, item];
+    if (item && item.id) {
+      list = [item, ...list.filter((x: any) => x.id !== item.id)];
+    } else if (item) {
+      list = [item, ...list];
     }
   } else if (action === 'update') {
-    list = list.map((x: any) => x.id === item.id ? { ...x, ...item } : x);
+    if (item && item.id) {
+      list = list.map((x: any) => x.id === item.id ? { ...x, ...item } : x);
+    }
   } else if (action === 'delete') {
-    const itemId = typeof item === 'object' ? item.id : item;
+    const itemId = typeof item === 'object' ? item?.id : item;
     list = list.filter((x: any) => x.id !== itemId);
   }
 
@@ -1094,21 +1098,22 @@ export const dbService = {
   async saveTransaction(transaction: any) {
     const ownerId = await this.getOwnerId().catch(() => null) || transaction.user_id;
     const transactionData = { ...transaction, user_id: ownerId };
+    const isRealId = transaction.id && !transaction.id.startsWith('temp-') && transaction.id.length > 15;
 
-    return this.handleWriteOperation(
+    const result = await this.handleWriteOperation(
       'transactions',
       'transactions',
-      transaction.id,
+      isRealId ? transaction.id : undefined,
       transactionData,
       async () => {
-        if (transaction.id && transaction.id.length > 15) {
+        if (isRealId) {
           const { data, error } = await supabase
             .from('transactions')
             .update(transactionData)
             .eq('id', transaction.id)
             .select();
           if (error) handleSupabaseError(error, 'update', 'transactions');
-          return data[0];
+          return data?.[0] || transactionData;
         } else {
           const { id, ...insertData } = transactionData;
           const { data, error } = await supabase
@@ -1116,14 +1121,17 @@ export const dbService = {
             .insert([insertData])
             .select();
           if (error) handleSupabaseError(error, 'create', 'transactions');
-          return data[0];
+          return data?.[0] || { ...insertData, id: generateUUID() };
         }
       }
     );
+
+    window.dispatchEvent(new CustomEvent('avs_transactions_updated'));
+    return result;
   },
 
   async deleteTransaction(id: string) {
-    return this.handleDeleteOperation(
+    const result = await this.handleDeleteOperation(
       'transactions',
       'transactions',
       id,
@@ -1135,6 +1143,9 @@ export const dbService = {
         if (error) handleSupabaseError(error, 'delete', 'transactions');
       }
     );
+
+    window.dispatchEvent(new CustomEvent('avs_transactions_updated'));
+    return result;
   },
 
   // Eggs
